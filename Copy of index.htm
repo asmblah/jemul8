@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+	<head>
+		<title>Intel x86 Emulator</title>
+		<script type="text/javascript" src="scripts/classes/emulator.js"></script>
+		<script type="text/javascript" src="scripts/classes/module.js"></script>
+		
+		<script type="text/javascript" src="scripts/debug.js"></script>
+		<script type="text/javascript" src="scripts/http.js"></script>
+		
+		<script type="text/javascript" src="scripts/classes/flash_bios.js"></script>
+		<script type="text/javascript" src="scripts/classes/bios.js"></script>
+		
+		<script type="text/javascript" src="scripts/classes/bitfield.js"></script>
+		<script type="text/javascript" src="scripts/classes/bitflag.js"></script>
+		
+		<script type="text/javascript" src="scripts/classes/ibm_pc.js"></script>
+		<script type="text/javascript" src="scripts/classes/motherboard.js"></script>
+		<script type="text/javascript" src="scripts/classes/dram.js"></script>
+		<script type="text/javascript" src="scripts/classes/dram/dram_chip.js"></script>
+		
+		<script type="text/javascript" src="scripts/classes/operand.js"></script>
+		
+		<script type="text/javascript" src="scripts/classes/cpu.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/register.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/std_registers.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/opcode_data.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/ordinals.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/execute.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/instruction.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/instructions/stack.js"></script>
+		<script type="text/javascript" src="scripts/classes/cpu/interrupts.js"></script>
+		
+		<script type="text/javascript" src="scripts/classes/screen.js"></script>
+		<script type="text/javascript" src="scripts/classes/screen_page.js"></script>
+		
+		<script type="text/javascript" src="scripts/main.js"></script>
+		
+		<style type="text/css">
+			* {
+				margin: 0px; padding: 0px; border: 0px none; outline: none;
+			}
+			
+			html, body {
+				width: 100%;
+				height: 100%;
+			}
+			
+			body {
+				background-color: #000000;
+			}
+			
+			#divScreen {
+				/* Contain positioned children */
+				position: relative;
+				margin: -188px 0px 0px -321px;
+				
+				border: solid #FFFFFF 2px;
+				
+				left: 50%;
+				top: 50%;
+				width: 640px;
+				height: 375px;
+			}
+			.pageScreen {
+				position: absolute;
+				background-color: #000000;
+				color: #FAFAFA;
+				/* NB: getting an accurate font rendering is difficult;
+					points must be used, not pixels for units */
+				/* TODO: enforce correct terminal font by using @font-face:
+					http://paulirish.com/2009/bulletproof-font-face-implementation-syntax/ */
+				font-family: Courier, Lucida Console;
+				font-size: 14pt;
+				
+				width: 640px;
+				height: 375px;
+				/* All pages hidden by default */
+				display: none;
+			}
+			
+			.pageScreen .row {
+				position: relative;
+				width: 800px;
+				height: 15px;
+			}
+			
+			.pageScreen .char {
+				float: left;
+				width: 8px;
+				height: 15px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="divScreen"></div>
+	</body>
+</html>

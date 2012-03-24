@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+	<head>
+		<title>Intel x86 Emulator</title>
+		<script type="text/javascript">
+			// Integer division
+			var res;
+			
+			window.onload = function () {
+				var a = 4;
+				
+				var start = new Date().getTime();
+				
+				for ( var i = 0 ; i < 10000000 ; ++i ) {
+					func3(a);
+				}
+				
+				var end1 = (new Date().getTime() - start);
+				
+				start = new Date().getTime();
+				if ( a == 4 ) {
+					var polymorph_func = func1;
+				} else {
+					var polymorph_func = func2;
+				}
+				
+				for ( var i = 0 ; i < 10000000 ; ++i ) {
+					polymorph_func();
+				}
+				
+				var end2 = (new Date().getTime() - start);
+				
+				start = new Date().getTime();
+				
+				alert(end1 + " , " + end2 + " , " + (new Date().getTime() - start));
+			};
+			
+			function func1() {
+				res = 6704;
+			}
+			function func2() {
+				res = 6705;
+			}
+			
+			function func3(a) {
+				if ( a == 4 ) {
+					res = 6704;
+				} else {
+					res = 6705;
+				}
+			}
+		</script>
+		
+		<style type="text/css">
+			* {
+				margin: 0px; padding: 0px; border: 0px none; outline: none;
+			}
+		</style>
+	</head>
+	<body>
+		
+	</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+	<head>
+		<title>Intel x86 Emulator</title>
+		<script type="text/javascript">
+			"use strict";
+			
+			window.onload = function () {
+				var i, start, dur1, dur2;
+				
+				start = new Date().getTime();
+				for ( i = 0 ; i < 1000000 ; ++i ) {
+					Test1(i);
+				}
+				dur1 = (new Date().getTime() - start);
+				
+				start = new Date().getTime();
+				for ( i = 0 ; i < 1000000 ; ++i ) {
+					Test2(i);
+				}
+				dur2 = (new Date().getTime() - start);
+				
+				start = new Date().getTime();
+				for ( i = 0 ; i < 1000000 ; ++i ) {
+					Test3(i);
+				}
+				alert(dur1 + "," + dur2 + "," + (new Date().getTime() - start));
+			};
+			
+			var buf = new ArrayBuffer( 32 );
+			var view = new DataView( buf );
+			var len = 4;
+			var lookup = { 1: "getUint8", 2: "getUint16", 4: "getUint32" };
+			
+			function Test1( idx ) {
+				var len = (idx & 1) ? 2 : 4;
+				var addr = 6;
+				
+				switch ( len ) {
+				case 1:
+					return view.getUint8(addr, true);
+				case 2:
+					return view.getUint16(addr, true);
+				case 4:
+					return view.getUint32(addr, true);
+				default:
+					error();
+				}
+			}
+			function Test2( idx ) {
+				var len = (idx & 1) ? 2 : 4;
+				var addr = 6;
+				
+				if ( len === 1 ) {
+					return view.getUint8(addr, true);
+				} else if ( len === 2 ) {
+					return view.getUint16(addr, true);
+				} else if ( len === 4 ) {
+					return view.getUint32(addr, true);
+				} else {
+					error();
+				}
+			}
+			function Test3( idx ) {
+				var len = (idx & 1) ? 2 : 4;
+				var addr = 6;
+				
+				return view[ lookup[ len ] ](addr, true);
+			}
+		</script>
+		
+		<style type="text/css">
+			* {
+				margin: 0px; padding: 0px; border: 0px none; outline: none;
+			}
+		</style>
+	</head>
+	<body>
+		
+	</body>
+</html>

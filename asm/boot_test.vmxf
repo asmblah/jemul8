@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Foundry>
+<VM>
+<VMId type="string">52 ee ef 70 03 ab 98 ff-cf c7 fb bf ff 1a 93 c7</VMId>
+<ClientMetaData>
+<clientMetaDataAttributes/>
+<HistoryEventList/></ClientMetaData>
+<vmxPathName type="string">boot_test.vmx</vmxPathName></VM></Foundry>
