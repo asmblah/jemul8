@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<Foundry>
-<VM>
-<VMId type="string">52 a5 da f6 2e 23 d9 1b-62 02 26 4d 1b 7c 60 63</VMId>
-<ClientMetaData>
-<clientMetaDataAttributes/>
-<HistoryEventList/></ClientMetaData>
-<vmxPathName type="string">grub.vmx</vmxPathName></VM></Foundry>
