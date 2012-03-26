@@ -1,0 +1,120 @@
+#!/usr/bin/vmplayer
+.encoding = "windows-1252"
+
+# Filename: My_Virtual_Machine.vmx
+# Generated 2009-11-23;00:12:43 by EasyVMX! Super Simple Edition
+# http://www.easyvmx.com
+
+# This is a Workstation 5 or 5.5 config file
+# It can be used with Player
+config.version = "8"
+virtualHW.version = "4"
+
+# Selected operating system for your virtual machine
+guestOS = "dos"
+
+# displayName is your own name for the virtual machine
+displayName = "My_Virtual_Machine"
+
+# These fields are free text description fields
+annotation = "Virtual Machine created with EasyVMX! Super Simple Edition"
+guestinfo.vmware.product.url = "http://www.easyvmx.com"
+guestinfo.vmware.product.class = "virtual machine"
+
+# Number of virtual CPUs. Your virtual machine will not
+# work if this number is higher than the number of your physical CPUs
+numvcpus = "1"
+
+# Memory size and other memory settings
+memsize = "16"
+MemAllowAutoScaleDown = "FALSE"
+MemTrimRate = "-1"
+
+# Unique ID for the virtual machine will be created
+uuid.action = "create"
+
+# Remind to install VMware Tools
+# This setting has no effect in VMware Player
+tools.remindInstall = "FALSE"
+
+# Startup hints interfers with automatic startup of a virtual machine
+# This setting has no effect in VMware Player
+hints.hideAll = "TRUE"
+
+# Enable time synchronization between computer
+# and virtual machine
+tools.syncTime = "TRUE"
+
+# USB settings
+# This config activates USB
+usb.present = "TRUE"
+usb.generic.autoconnect = "FALSE"
+
+# First serial port, physical COM1 is available
+serial0.present = "TRUE"
+serial0.fileName = "Auto Detect"
+serial0.autodetect = "TRUE"
+serial0.hardwareFlowControl = "TRUE"
+
+# First parallell port, physical LPT1 is available
+# It is set to bidirectional for more functionality
+parallel0.present = "TRUE"
+parallel0.fileName = "Auto Detect"
+parallel0.autodetect = "TRUE"
+parallel0.bidirectional = "TRUE"
+
+# Sound settings
+sound.present = "TRUE"
+sound.virtualdev = "es1371"
+
+# Logging
+# This config activates logging, and keeps last log
+logging = "TRUE"
+log.fileName = "My_Virtual_Machine.log"
+log.append = "TRUE"
+log.keepOld = "3"
+
+# These settings decides interaction between your
+# computer and the virtual machine
+isolation.tools.hgfs.disable = "FALSE"
+isolation.tools.dnd.disable = "FALSE"
+isolation.tools.copy.enable = "TRUE"
+isolation.tools.paste.enabled = "TRUE"
+
+# First network interface card
+# This config activates this NIC by default
+ethernet0.present = "TRUE"
+ethernet0.connectionType = "nat"
+ethernet0.addressType = "generated"
+ethernet0.generatedAddressOffset = "0"
+ethernet0.virtualDev = "vlance"
+
+# Settings for physical floppy drive
+floppy0.present = "true"
+floppy0.fileType = "file"
+floppy0.fileName = "boot.img"
+floppy0.startConnected = "true"
+
+# Settings for physical CDROM drive
+ide1:0.present = "TRUE"
+ide1:0.deviceType = "cdrom-raw"
+ide1:0.startConnected = "TRUE"
+ide1:0.fileName = "auto detect"
+ide1:0.autodetect = "TRUE"
+
+# END OF EasyVMX! CONFIG
+
+extendedConfigFile = "boot_test.vmxf"
+virtualHW.productCompatibility = "hosted"
+tools.upgrade.policy = "manual"
+
+ethernet0.generatedAddress = "00:0c:29:33:55:fc"
+uuid.location = "56 4d 48 18 c2 f0 9d ac-0b e2 08 50 fe 33 55 fc"
+uuid.bios = "56 4d 48 18 c2 f0 9d ac-0b e2 08 50 fe 33 55 fc"
+
+floppy0.clientDevice = "FALSE"
+checkpoint.vmState = "boot_test.vmss"
+cleanShutdown = "FALSE"
+replay.supported = "FALSE"
+replay.filename = ""
+vmotion.checkpointFBSize = "24576000"
