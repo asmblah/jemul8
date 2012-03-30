@@ -75,7 +75,7 @@ define([
 	}
 	// Methods based on Bochs /iodev/pic.h & pic.cc
 	util.inherit(PIC, IODevice, "PIC"); // Inheritance
-	PIC.prototype.init = function () {
+	PIC.prototype.init = function ( done, fail ) {
 		var state = this.state;
 		
 		// I/O port addresses used
@@ -87,6 +87,8 @@ define([
 		this.registerIO_Write(0x0021, "8259 PIC", writeHandler, 1);
 		this.registerIO_Write(0x00A0, "8259 PIC", writeHandler, 1);
 		this.registerIO_Write(0x00A1, "8259 PIC", writeHandler, 1);
+
+		done();
 	};
 	PIC.prototype.reset = function ( type ) {
 		// Nothing to do

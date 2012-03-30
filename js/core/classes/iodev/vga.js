@@ -192,24 +192,27 @@ define([
 		this.textSnapshot = null;
 	}
 	util.inherit(VGA, IODevice, "VGA"); // Inheritance
-	VGA.prototype.init = function () {
-		var idx, data, len
-			, state = this.state
-			, x, y;
+	VGA.prototype.init = function ( done, fail ) {
+		var machine = this.machine;
+		var state = this.state;
+		var idx;
+		var data;
+		var len;
+		var x;
+		var y;
 		
 		// Download & store VGABIOS firmware image
-		this.machine.mem.loadROM(
-			HTTP.get("docs/bochs-20100605/bios/VGABIOS-lgpl-latest")
-			//HTTP.get("docs/vgabios-0.6c/VGABIOS-lgpl-latest.debug.bin")
-			//HTTP.get("docs/bochs-20100605/bios/VGABIOS-elpin-2.40")
-			, 0xC0000, 1
+		HTTP.get(
+			"docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+			//"docs/vgabios-0.6c/VGABIOS-lgpl-latest.debug.bin")
+			//"docs/bochs-20100605/bios/VGABIOS-elpin-2.40")
+			, function ( path, buffer ) {
+				machine.mem.loadROM(buffer, 0xC0000, 1);
+				done();
+			}, function ( path ) {
+				fail();
+			}
 		);
-		/*if ( (this.bufBIOS.getUint8
-				? this.bufBIOS.getUint8(1)
-				: this.bufBIOS[ 1 ]) !== 0xAA ) {
-			alert("Sorry, you hit the Firefox ArrayBuffer corruption bug."
-				+ " [Dan]: Please sort out a bug report for this!!!");
-		}*/
 		
 		// VGA output
 		//	TODO: Separate DOM access out into plugins for eg. jQuery

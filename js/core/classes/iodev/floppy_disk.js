@@ -34,12 +34,18 @@ define([
 		
 		this.data = null;
 	}
-	FloppyDisk.prototype.loadFile = function ( path ) {
+	FloppyDisk.prototype.loadFile = function ( path, done, fail ) {
 		// FIXME: This value should be different
 		//        for different types of diskette
-		this.data = HTTP.get(path);//, 1474560);
+		//this.data = HTTP.get(path);//, 1474560);
 		
-		return this.data !== null;
+		//return this.data !== null;
+		var disk = this;
+
+		HTTP.get(path, function ( path, buffer ) {
+			disk.data = buffer;
+			done();
+		}, fail);
 	};
 	FloppyDisk.prototype.getDataSize = function () {
 		return this.data !== null ? Buffer.getBufferLength(this.data) : 0;

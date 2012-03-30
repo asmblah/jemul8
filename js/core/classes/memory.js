@@ -58,7 +58,7 @@ define([
         this.handlers = {};
     }
     // Set up memory subsystem
-    Memory.prototype.init = function () {
+    Memory.prototype.init = function ( done, fail ) {
         // 32MB RAM
         // FIXME: This should be a config setting
         var sizeDRAM = 32 * 1024 * 1024;
@@ -82,6 +82,8 @@ define([
         this.bufROMs = Buffer.wrapMultibyteBuffer(
             Buffer.createBuffer(EXROMSIZE + BIOSROMSZ + 4096)
         );
+
+        done();
     };
     Memory.prototype.destroy = function () {
         // Free memory etc. when finished

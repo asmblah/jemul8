@@ -80,7 +80,7 @@ define([
 		, DMA_MODE_BLOCK:   DMA_MODE_BLOCK
 		, DMA_MODE_CASCADE: DMA_MODE_CASCADE
 	});
-	DMA.prototype.init = function () {
+	DMA.prototype.init = function ( done, fail ) {
 		var addr;
 		// I/O port addresses used
 		// 0x0000 ... 0x000F
@@ -98,6 +98,8 @@ define([
 			this.registerIO_Read(addr, "8237 DMA", readHandler, 1);
 			this.registerIO_Write(addr, "8237 DMA", writeHandler, 3);
 		}
+
+		done();
 	};
 	// Based on [bx_dma_c::reset]
 	DMA.prototype.reset = function ( type ) {

@@ -49,7 +49,7 @@ define([
 	}
 	// Methods based on Bochs /iodev/keyboard.h & keyboard.cc
 	util.inherit(KeyboardCntrlr, IODevice, "KeyboardCntrlr"); // Inheritance
-	KeyboardCntrlr.prototype.init = function () {
+	KeyboardCntrlr.prototype.init = function ( done, fail ) {
 		var machine = this.machine, state
 			, keyboard = this.keyboard, mouse = this.mouse;
 		
@@ -80,7 +80,7 @@ define([
 		// Add keyboard LEDs to the status bar
 		// (todo)
 		
-		
+		done();
 	};
 	KeyboardCntrlr.prototype.reset = function ( type ) {
 		// ...

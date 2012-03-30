@@ -209,11 +209,83 @@ define([
             return null;
         }
     });
-    FDC.prototype.init = function () {
-        var machine = this.machine
-            , emu = machine.emu
-            , state = this.state
-            , idx, addr, devtype, cmosValue, media = state.media, disk;
+    FDC.prototype.init = function ( done, fail ) {
+        var device = this;
+        var machine = this.machine;
+        var emu = machine.emu;
+        var state = this.state;
+        var idx;
+        var addr;
+        var devtype;
+        var cmosValue;
+        var media = state.media;
+        var disk;
+        
+        function setupFloppy( idx, devtype, type, status, path, done, fail ) {
+            cmosValue |= (devtype << 4);
+            if ( devtype !== FDD_NONE ) {
+                state.device_type[ idx ] = 1 << (devtype - 1);
+                state.num_supported_floppies++;
+                state.statusbar_id[ idx ] = 0; //bx_gui.register_statusitem(" A: ");
+            } else {
+                state.statusbar_id[ idx ] = -1;
+            }
+            
+            if ( type !== FLOPPY_NONE && status ) {
+                this.evaluate_media(
+                    state.device_type[ idx ]
+                    , type
+                    , path
+                    , media[ idx ]
+                    , function () {
+                        state.media_present[ idx ] = true;
+                        disk = media[ idx ];
+                        util.info(util.sprintf("FDC.init > setupFloppy() ::"
+                            + " fd0: '%s' ro=%d, h=%d, t=%d, spt=%d"
+                            , path, disk.write_protected
+                            , disk.heads, disk.tracks, disk.sectors_per_track
+                        ));
+                        done();
+                    }, function () {
+                        // TODO: Set status config option to false
+                        fail();
+                    }
+                );
+            } else {
+                fail();
+            }
+        }
+        // Floppies (A & B) setup
+        function setupFloppies() {
+            var loaded = 0;
+            var len = 2;
+
+            util.each([ 0, 1 ], function ( idx, num ) {
+                var name = "floppy" + num;
+
+                setupFloppy.call(
+                    device
+                    , num
+                    , FDC.fromConstant(emu.getSetting(name + ".driveType"))
+                    , FDC.fromConstant(emu.getSetting(name + ".diskType"))
+                    , emu.getSetting(name + ".status")
+                    , emu.getSetting(name + ".path")
+                    , function () {
+                        util.debug("Floppy loaded ok");
+                        
+                        if ( ++loaded === len ) {
+                            done();
+                        }
+                    }, function () {
+                        util.debug("Floppy not loaded");
+
+                        if ( ++loaded === len ) {
+                            done();
+                        }
+                    }
+                );
+            });
+        }
         
         machine.dma.registerDMA8Channel(2, this, this.dma_read, this.dma_write
             , "FDC (Floppy Disk Controller)");
@@ -240,51 +312,9 @@ define([
                 FLOPPY_NONE, 0, 0, 0, 0, -1, 0, FDRIVE_NONE
             );
         }
-        
-        function setupFloppy( idx, devtype, type, status, path ) {
-            cmosValue |= (devtype << 4);
-            if ( devtype !== FDD_NONE ) {
-                state.device_type[ idx ] = 1 << (devtype - 1);
-                state.num_supported_floppies++;
-                state.statusbar_id[ idx ] = 0; //bx_gui.register_statusitem(" A: ");
-            } else {
-                state.statusbar_id[ idx ] = -1;
-            }
-            
-            if ( type !== FLOPPY_NONE && status ) {
-                if ( this.evaluate_media(
-                    state.device_type[ idx ]
-                    , type
-                    , path
-                    , media[ idx ]
-                ) ) {
-                    state.media_present[ idx ] = true;
-                    disk = media[ idx ];
-                    util.info(util.sprintf("FDC.init > setupFloppy() ::"
-                        + " fd0: '%s' ro=%d, h=%d, t=%d, spt=%d"
-                        , path, disk.write_protected
-                        , disk.heads, disk.tracks, disk.sectors_per_track
-                    ));
-                } else {
-                    // TODO: Set status config option to false
-                }
-            }
-        }
-        
-        // Floppies (A & B) setup
-        setupFloppy.call(this, 0
-            , FDC.fromConstant(emu.getSetting("floppy0.driveType"))
-            , FDC.fromConstant(emu.getSetting("floppy0.diskType"))
-            , emu.getSetting("floppy0.status")
-            , emu.getSetting("floppy0.path")
-        );
-        setupFloppy.call(this, 1
-            , FDC.fromConstant(emu.getSetting("floppy1.driveType"))
-            , FDC.fromConstant(emu.getSetting("floppy1.diskType"))
-            , emu.getSetting("floppy1.status")
-            , emu.getSetting("floppy1.path")
-        );
-        
+
+        setupFloppies();
+
         // CMOS Floppy Type and Equipment Byte register
         machine.cmos.setReg(0x10, cmosValue);
         if ( state.num_supported_floppies > 0 ) {
@@ -1563,33 +1593,22 @@ define([
     /* unsigned */FDC.prototype.get_media_status = function ( drive ) {
         return state.media_present[ drive ];
     };
-    
-    /*#ifdef O_BINARY
-    #define BX_RDONLY O_RDONLY | O_BINARY
-    #define BX_RDWR O_RDWR | O_BINARY
-    #else
-    #define BX_RDONLY O_RDONLY
-    #define BX_RDWR O_RDWR
-    #endif*/
-    
+
     // Based on [bx_floppy_ctrl_c::evaluate_media]
     /* bool */FDC.prototype.evaluate_media = function (
         devtype
         , type
         , path
         , media
+        , done
+        , fail
     ) {
         var i, ret, type_idx = -1, sizeBytes;
         
-        //If media file is already open, close it before reopening.
-        //if ( media.fd >= 0 ) {
-        //    close(media.fd);
-        //    media.fd=-1;
-        //}
-        
-        // check media type
+        // Check media type
         if ( type == FLOPPY_NONE ) {
-            return false;
+            fail();
+            return;
         }
         
         for ( i = 0; i < 8; i++ ) {
@@ -1600,91 +1619,92 @@ define([
                 "evaluate_media: unknown media type %d"
                 , type
             ));
-            return false;
+            fail();
+            return;
         }
         if ( (floppy_type[ type_idx ].drive_mask & devtype) == 0 ) {
             util.problem(util.sprintf(
                 "evaluate_media: media type %d not valid for this floppy drive"
                 , type
             ));
-            return false;
+            fail();
+            return;
         }
         
-        // open media file (image file or device)
         media.write_protected = false;
         
-        //media.fd = open(path, BX_RDWR);
-        
-        if ( !media.loadFile(path) ) {
-            util.info(util.sprintf(
-                "Could not open '%s' for read/write"
-                , path
-            ));
-            media.type = type;
-            return false;
-        }
-        
-        sizeBytes = media.getDataSize();
-        
-        // unix
-        //ret = fstat(media.fd, &stat_buf);
-        
-        //if ( ret ) {
-        //    BX_PANIC(("fstat floppy 0 drive image file returns error: %s", strerror(errno)));
-        //    return false;
-        //}
-        
-        switch ( type ) {
-        // use CMOS reserved types
-        case FLOPPY_160K: // 160K 5.25"
-        case FLOPPY_180K: // 180K 5.25"
-        case FLOPPY_320K: // 320K 5.25"
-        // standard floppy types
-        case FLOPPY_360K: // 360K 5.25"
-        case FLOPPY_720K: // 720K 3.5"
-        case FLOPPY_1_2: // 1.2M 5.25"
-        case FLOPPY_2_88: // 2.88M 3.5"
-            media.type              = type;
-            media.tracks            = floppy_type[ type_idx ].trk;
-            media.heads             = floppy_type[ type_idx ].hd;
-            media.sectors_per_track = floppy_type[ type_idx ].spt;
-            media.sectors           = floppy_type[ type_idx ].sectors;
-            if ( sizeBytes > (media.sectors * 512) ) {
-                util.problem(util.sprintf(
-                    "evaluate_media: size of file '%s' (%lu) too large for selected type",
-                    path, sizeBytes
+        media.loadFile(
+            path
+            , function () {
+                sizeBytes = media.getDataSize();
+                
+                switch ( type ) {
+                // use CMOS reserved types
+                case FLOPPY_160K: // 160K 5.25"
+                case FLOPPY_180K: // 180K 5.25"
+                case FLOPPY_320K: // 320K 5.25"
+                // standard floppy types
+                case FLOPPY_360K: // 360K 5.25"
+                case FLOPPY_720K: // 720K 3.5"
+                case FLOPPY_1_2: // 1.2M 5.25"
+                case FLOPPY_2_88: // 2.88M 3.5"
+                    media.type              = type;
+                    media.tracks            = floppy_type[ type_idx ].trk;
+                    media.heads             = floppy_type[ type_idx ].hd;
+                    media.sectors_per_track = floppy_type[ type_idx ].spt;
+                    media.sectors           = floppy_type[ type_idx ].sectors;
+                    if ( sizeBytes > (media.sectors * 512) ) {
+                        util.problem(util.sprintf(
+                            "evaluate_media: size of file '%s' (%lu) too large for selected type",
+                            path, sizeBytes
+                        ));
+                        fail();
+                        return;
+                    }
+                    break;
+                default: // 1.44M 3.5"
+                    media.type                  = type;
+                    if ( sizeBytes <= 1474560 ) {
+                        media.tracks            = floppy_type[ type_idx ].trk;
+                        media.heads             = floppy_type[ type_idx ].hd;
+                        media.sectors_per_track = floppy_type[ type_idx ].spt;
+                    } else if ( sizeBytes == 1720320 ) {
+                        media.sectors_per_track = 21;
+                        media.tracks            = 80;
+                        media.heads             = 2;
+                    } else if ( sizeBytes == 1763328 ) {
+                        media.sectors_per_track = 21;
+                        media.tracks            = 82;
+                        media.heads             = 2;
+                    } else if ( sizeBytes == 1884160 ) {
+                        media.sectors_per_track = 23;
+                        media.tracks            = 80;
+                        media.heads             = 2;
+                    } else {
+                        util.problem(util.sprintf(
+                            "evaluate_media: file '%s' of unknown size %lu",
+                            path, sizeBytes
+                        ));
+                        fail();
+                        return;
+                    }
+                    media.sectors = media.heads * media.tracks * media.sectors_per_track;
+                }
+
+                if ( media.sectors > 0 ) {
+                    done();
+                } else {
+                    fail();
+                }
+            }, function () {
+                util.info(util.sprintf(
+                    "Could not open '%s' for read/write"
+                    , path
                 ));
-                return false;
+                media.type = type;
+                fail();
             }
-            break;
-        default: // 1.44M 3.5"
-            media.type                  = type;
-            if ( sizeBytes <= 1474560 ) {
-                media.tracks            = floppy_type[ type_idx ].trk;
-                media.heads             = floppy_type[ type_idx ].hd;
-                media.sectors_per_track = floppy_type[ type_idx ].spt;
-            } else if ( sizeBytes == 1720320 ) {
-                media.sectors_per_track = 21;
-                media.tracks            = 80;
-                media.heads             = 2;
-            } else if ( sizeBytes == 1763328 ) {
-                media.sectors_per_track = 21;
-                media.tracks            = 82;
-                media.heads             = 2;
-            } else if ( sizeBytes == 1884160 ) {
-                media.sectors_per_track = 23;
-                media.tracks            = 80;
-                media.heads             = 2;
-            } else {
-                util.problem(util.sprintf(
-                    "evaluate_media: file '%s' of unknown size %lu",
-                    path, sizeBytes
-                ));
-                return false;
-            }
-            media.sectors = media.heads * media.tracks * media.sectors_per_track;
-        }
-        return (media.sectors > 0); // success
+        );
     };
     
     // Based on [bx_floppy_ctrl_c::enter_result_phase]

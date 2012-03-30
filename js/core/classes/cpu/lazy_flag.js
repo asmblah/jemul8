@@ -203,7 +203,7 @@ define([
         //return ((cpu.valLast1 < cpu.resLast) || (cpu.valLast2 === bitmask)) & 1;
     };
     hsh_getCF[ "NEG" ] = function ( cpu ) {
-        return (cpu.resLast != 0) & 1;
+        return (cpu.resLast !== 0) & 1;
     };
     hsh_getCF[ "INC" ]
     = hsh_getCF[ "DEC" ] = function ( cpu ) {

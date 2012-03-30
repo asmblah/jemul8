@@ -927,6 +927,8 @@ define([
                 
                 if ( insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL" ) { debugger; }
                 
+                //if ( insn.name === "MOV" && insn.toASM() === "MOV AH, b,DS:[SI+FFh]" ) { debugger; }
+                
                 // Catch a short jump to self (hang)
                 //if ( insn.name === "JMPS" && insn.toASM() === "JMPS FEh" ) { debugger; }
                 
@@ -1267,7 +1269,7 @@ define([
                 this.exception(util.GP_EXCEPTION, 0);
             }
             
-            if ( vector === 0x00 ) {
+            /*if ( vector === 0x00 ) {
                 //console.log("INT 0x00! Stop.");
                 //debugger;
                 //this.halt();
@@ -1298,8 +1300,8 @@ define([
                 //this.halt();
             } else if ( vector === 0x21 ) {
                 // DOS services
-                debugger;
-            }
+                //debugger;
+            }*/
             
             // Save current FLAGS and CS:IP (CPU state) on stack
             this.pushStack(this.FLAGS.get(), 2);

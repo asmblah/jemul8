@@ -222,14 +222,14 @@ define([
             // 32-bit pointer
             if ( !this.operandSizeAttr ) {
                 cpu.CS.set(cs_eip >> 16);
-                IP.set(cs_eip & 0xFFFF);
+                cpu.EIP.set(cs_eip & 0xFFFF);
             // 48-bit pointer (NOT 64-bit; even though EIP is 32-bit,
             //    CS is still 16-bit)
             } else {
                 jemul8.panic("Needs to use new method of reading > 4 byte values");
                 
                 cpu.CS.set(cs_eip >> 32);
-                IP.set(cs_eip & 0xFFFFFFFF);
+                cpu.EIP.set(cs_eip & 0xFFFFFFFF);
             }
         // Unconditional Near (16/32-bit) Call
         //  - within current segment/"intrasegment" call
@@ -244,11 +244,9 @@ define([
             
             // Relative jump - add to (E)IP
             if ( this.operand1.isRelativeJump ) {
-                IP.set(IP.get() + ip);
-            // Absolute jump - replace (E)IP
-            } else {
-                IP.set(ip);
+                ip = (IP.get() + ip) & IP.mask;
             }
+            cpu.EIP.set(ip);
         // Convert Byte to Word (CBW) - uses AX
         //  or Convert Word to Extended Dword (CWDE)
         //  - uses EAX (not AX:DX as in CWD/CDQ)
@@ -999,18 +997,17 @@ define([
             
             // Relative jump - add to (E)IP
             if ( this.operand1.isRelativeJump ) {
-                IP.set(IP.get() + ip);
-            // Absolute jump - replace (E)IP
-            } else {
-                IP.set(ip);
+                ip = (IP.get() + ip) & IP.mask;
             }
+            cpu.EIP.set(ip);
         // Unconditional Short (8-bit) Jump, relative to next Instruction
         }, "JMPS": function ( cpu ) {
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP;
             var ip = this.operand1.signExtend(this.operandSizeAttr ? 4 : 2);
             
             // Relative jump - add to (E)IP
-            IP.set(IP.get() + ip);
+            ip = (IP.get() + ip) & IP.mask;
+            cpu.EIP.set(ip);
         // Load Flags into AH Register
         }, "LAHF": function ( cpu ) {
             // Transfer only the low byte of Flags word to AH
@@ -1237,6 +1234,8 @@ define([
                 SI.set(esi + delta);
             // Repeat CX times
             } else if ( this.repeat === "#REP/REPE" ) {
+                debugger;
+                
                 len = CX.get() + 1;
                 
                 while ( --len ) {
@@ -2102,9 +2101,9 @@ define([
                     util.problem("Execute (SCAS) :: invalid string repeat operation/prefix.");
                 }
                 CX.set(len + (cpu.DF.get() ? 1 : -1));
+                // Perform the last comparison subtraction for flags calc
+                res = (val1 - val2) & this.operand1.mask;
             }
-            // Store the last comparison subtraction for flags calc
-            res = (val1 - val2) & this.operand1.mask;
             setFlags(this, cpu, val1, val2, res);
         /* ======= Conditional Byte Set Instructions ======= */
         /*
@@ -2283,27 +2282,35 @@ define([
             var operandSize = this.operand1.size;
             var CX = this.addressSizeAttr ? cpu.ECX : cpu.CX;
             var DI = this.addressSizeAttr ? cpu.EDI : cpu.DI;
-            var val1;
-            var val2;
             var res;
-            var edi;
-            var ediEnd;
+            var edi = DI.get();
             var len;
+            // When DF set, decrement (scan in reverse direction)
+            //  otherwise increment
+            var delta = cpu.DF.get() ? -operandSize : operandSize;
             
             // Common case; no repeat prefix
             if ( !this.repeat ) {
                 this.operand1.write(this.operand2.read());
                 
-                // Direction Flag set, decrement ( scan in reverse direction )
-                if ( cpu.DF.get() ) {
-                    DI.set(DI.get() - operandSize);
-                // Direction Flag clear, increment ( scan in forward direction )
-                } else {
-                    DI.set(DI.get() + operandSize);
-                }
+                DI.set(edi + delta);
             // Repeat CX times
             } else if ( this.repeat === "#REP/REPE" ) {
-                len = CX.get() * operandSize;
+                len = CX.get() + 1;
+                
+                while ( --len ) {
+                    this.operand1.write(this.operand2.read());
+                    
+                    edi += delta;
+                    DI.set(edi);
+                }
+                
+                // TODO: Almost always "len === 0", however if hits eg. segment limit
+                //       during copy, only some data would be copied leaving CX
+                //       set to > 0, so need to trap this above
+                CX.set(len);
+                
+                /*len = CX.get() * operandSize;
                 edi = DI.get();
                 // Direction Flag set, decrement (scan in reverse direction)
                 if ( cpu.DF.get() ) {
@@ -2321,7 +2328,7 @@ define([
                     }
                 }
                 DI.set(edi);
-                CX.set(0);
+                CX.set(0);*/
             } else {
                 // Otherwise must have been #REPNE (#REPNZ)
                 util.problem("Instruction.execute() :: STOS - #REPNE invalid");
@@ -2389,11 +2396,10 @@ define([
     //  either short (8-bit) or near (16-bit)
     function branchRelative( insn, cpu ) {
         var IP = insn.operandSizeAttr ? cpu.EIP : cpu.IP;
-        var mask = IP.mask;
         var ip = insn.operand1.signExtend(IP.size);
         
         // Relative jump - add to (E)IP, always set EIP though
-        cpu.EIP.set((IP.get() + ip) & mask);
+        cpu.EIP.set((IP.get() + ip) & IP.mask);
     }
     
     /* ============ State storage for Lazy Flags eval later ============ */
@@ -2416,7 +2422,7 @@ define([
     // Operand 1 and result only
     function setFlags_Op1( insn, cpu, val1, res ) {
         cpu.valLast1 = val1;
-        cpu.valLast2 = null;
+        cpu.valLast2 = 0;
         cpu.resLast = res;
         cpu.insnLast = insn;
         //cpu.name_insnLast = this.name;
@@ -2424,8 +2430,8 @@ define([
     };
     // Result only
     function setFlags_Result( insn, cpu, res ) {
-        cpu.valLast1 = null;
-        cpu.valLast2 = null;
+        cpu.valLast1 = 0;
+        cpu.valLast2 = 0;
         cpu.resLast = res;
         cpu.insnLast = insn;
         //cpu.name_insnLast = this.name;

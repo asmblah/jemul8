@@ -150,7 +150,7 @@ define([
 		, REG_IBM_CENTURY_BYTE:			0x32  // Also has some alternative uses
 		, REG_IBM_PS2_CENTURY_BYTE:		0x37  // Also has some alternative uses
 	});*/
-	CMOS.prototype.init = function () {
+	CMOS.prototype.init = function ( done, fail ) {
 		var machine = this.machine;
 		var state = this.state;
 		
@@ -164,9 +164,15 @@ define([
 		//this.machine.mem.loadROM(HTTP.get(
 		//	"docs/bochs-20100605/bios/BIOS-bochs-latest"
 		//), 0xE0000, 0);
-		this.machine.mem.loadROM(HTTP.get(
+		HTTP.get(
 			"docs/bochs-20100605/bios/BIOS-bochs-legacy"
-		), 0xF0000, 0);
+			, function ( path, buffer ) {
+				machine.mem.loadROM(buffer, 0xF0000, 0);
+				done();
+			}, function ( path ) {
+				fail();
+			}
+		);
 		
 		// I/O port addresses used
 		this.registerIO_Read(0x0070, "RAM", readHandler, 1);

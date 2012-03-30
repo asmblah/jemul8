@@ -38,7 +38,7 @@ define([
 		this.hsh_irq_nameHandler = [];
 	}
 	// Set up I/O device subsystem
-	IO.prototype.init = function () {
+	IO.prototype.init = function ( done, fail ) {
 		var addr_port, irq;
 		// 65536 ports (inc. #0 & #FFFF!)
 		for ( addr_port = 0 ; addr_port <= 0xFFFF ; ++addr_port ) {
@@ -52,6 +52,8 @@ define([
 		for ( irq = 0 ; irq < MAX_IRQS ; ++irq ) {
 			this.hsh_irq_nameHandler[ irq ] = null;
 		}
+
+		done();
 	};
 	// Register an IO read handler for the specified port
 	IO.prototype.registerIO_Read

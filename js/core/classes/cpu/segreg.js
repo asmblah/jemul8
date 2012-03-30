@@ -47,6 +47,8 @@ define([
             var cpl = cpu.getCPL();
             
             if ( addrVirtual >= descriptor.limitScaled ) {
+                debugger;
+                
                 util.problem("SegRegister.readSegment() :: Segment limit violation");
                 cpu.exception(this.getExceptionVector(), 0);
             }

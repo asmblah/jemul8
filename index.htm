@@ -43,32 +43,35 @@
                     canvasVGAPlugin.applyTo(emu);
                     keyboardPlugin.applyTo(emu);
                     
-                    $("#reset").click(function ( evt ) {
-                        emu.reset();
+                    emu.init(function () {
+                        $("#reset").click(function ( evt ) {
+                            emu.reset();
+                            emu.run();
+                        });
+                        $("#pause").click(function ( evt ) {
+                            emu.pause();
+                        });
+                        $("#run").click(function ( evt ) {
+                            emu.run();
+                        });
+                        /*$("#enter").click(function ( evt ) {
+                            //emu.pressKey(0x1C);
+                            function pressKey( name ) {
+                                var idx = Scancode.getKeyIndex(name);
+                                emu.machine.keyboard.keyboard.generateScancode(idx, "make");
+                                emu.machine.keyboard.keyboard.generateScancode(idx, "break");
+                            }
+                            pressKey("KEY_D");
+                            pressKey("KEY_I");
+                            pressKey("KEY_R");
+                            pressKey("KEY_ENTER");
+                        });*/
                         emu.run();
+                        //alert("Started");
+                    }, function () {
+                        // Load failed
+                        //alert("Load failed");
                     });
-                    $("#pause").click(function ( evt ) {
-                        emu.pause();
-                    });
-                    $("#run").click(function ( evt ) {
-                        emu.run();
-                    });
-                    /*$("#enter").click(function ( evt ) {
-                        //emu.pressKey(0x1C);
-                        function pressKey( name ) {
-                            var idx = Scancode.getKeyIndex(name);
-                            emu.machine.keyboard.keyboard.generateScancode(idx, "make");
-                            emu.machine.keyboard.keyboard.generateScancode(idx, "break");
-                        }
-                        pressKey("KEY_D");
-                        pressKey("KEY_I");
-                        pressKey("KEY_R");
-                        pressKey("KEY_ENTER");
-                    });*/
-                    
-                    emu.init();
-                    
-                    emu.run();
                 });
             });
         </script>

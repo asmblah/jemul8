@@ -12,6 +12,7 @@ define([ "jquery" ], function ( $ ) { "use strict";
     //  (TODO: Get rid of this - implement our own, to remove
     //  dependency on jQuery)
     util.extend = $.extend;
+    util.each = $.each;
     util.isFunction = $.isFunction;
     
     util.extend(util, {

@@ -205,34 +205,62 @@ define([
 		/* ========= /Physical machine components & peripherals ========= */
 	}
 	util.extend(jemul8.prototype, {
-		init: function () {
-			this.initHardware();
-			
-			this.machine.cpu.init();
+		init: function ( done, fail ) {
+			var cpu = this.machine.cpu;
+
+			// Wait for hardware to initialise, then set up CPU
+			this.initHardware(function () {
+				cpu.init();
+				done();
+			}, fail);
 		}, getSetting: function ( name ) {
 			return this.settings.get(name);
 		}, setSetting: function ( name, val ) {
 			return this.settings.set(name, val);
-		}, initHardware: function () {
+		}, initHardware: function ( done, fail ) {
 			var machine = this.machine;
+			var pending = 0;
+			var waiting = false;
 			
 			// Set up the memory subsystem
-			machine.mem.init();
+			machine.mem.init(doneOne(), failOne());
 			
 			// Set up the I/O subsystem
-			machine.io.init();
+			machine.io.init(doneOne(), failOne());
 			// Set up all I/O devices
-			machine.cmos.init();
-			machine.dma.init();
-			machine.fdc.init();
-			machine.pic.init();
-			machine.pit.init();
-			machine.keyboard.init();	// Init controller, keyboard & mouse
-			machine.vga.init();			// Sort out VGABIOS, etc.
-			machine.guest2host.init();	// Set up DEBUG_PORT, PANIC_PORT etc.
+			machine.cmos.init(doneOne(), failOne());
+			machine.dma.init(doneOne(), failOne());
+			machine.fdc.init(doneOne(), failOne());
+			machine.pic.init(doneOne(), failOne());
+			machine.pit.init(doneOne(), failOne());
+			machine.keyboard.init(doneOne(), failOne());	// Init controller, keyboard & mouse
+			machine.vga.init(doneOne(), failOne());			// Sort out VGABIOS, etc.
+			machine.guest2host.init(doneOne(), failOne());	// Set up DEBUG_PORT, PANIC_PORT etc.
 			
 			// Enable A20 line & reset CPU and devices
 			machine.reset(util.RESET_HARDWARE);
+
+			waiting = true;
+
+			function doneOne() {
+				++pending;
+				return oneDone;
+			}
+			function failOne() {
+				return oneFailed;
+			}
+			function oneDone() {
+				--pending;
+				if ( waiting && pending === 0 ) {
+					done();
+				}
+			}
+			function oneFailed() {
+				--pending;
+				if ( waiting && pending === 0 ) {
+					fail();
+				}
+			}
 		}
 	});
 	// Start/resume the emulator

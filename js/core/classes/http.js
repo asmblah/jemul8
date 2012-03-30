@@ -11,10 +11,7 @@ define([
 ], function ( util, Buffer ) { "use strict";
 	
 	var isIE = self.ActiveXObject && !self.opera;
-	var xmlhttp = self.XMLHttpRequest
-			? new self.XMLHttpRequest()
-			: new self.ActiveXObject("MSXML2.XMLHTTP")
-		, useProxy = !xmlhttp.overrideMimeType;
+	var useProxy = isIE;
 	
 	// HTTP static class
 	function HTTP() {
@@ -26,46 +23,68 @@ define([
 			// NB: random parameter added to URL to ensure caching systems
 			//	 are defeated - ( we MUST always have the latest copy of data
 			//	 to prevent synchronisation problems )
-			return "get.php?path=" + encodeURIComponent(path)
+			path = "get.php?path=" + encodeURIComponent(path)
 				+ "&rand=" + encodeURIComponent(Math.random());
 		}
 		return path;
 	}
+
+	function createXHR() {
+		return self.XMLHttpRequest
+			? new self.XMLHttpRequest()
+			: new self.ActiveXObject("MSXML2.XMLHTTP");
+	}
 	
 	// Synchronously download a file over HTTP
 	/* static */HTTP.getHTTP = function ( path ) {
-		xmlhttp.open("GET", path, false);
-		xmlhttp.send("");
-		return xmlhttp.responseText;
+		var xhr = createXHR();
+
+		xhr.open("GET", path, false);
+		xhr.send("");
+
+		return xhr.responseText;
 	};
 	
 	// Ultra-modern, fast Typed Arrays support (faster)
 	if ( util.support.typedArrays ) {
-		HTTP.get = function ( path, minSize ) {
+		HTTP.get = function ( path, done, fail, minSize ) {
+			var xhr = createXHR();
+
 			path = getURL(path);
 			
-			xmlhttp.open("GET", path, false);
-			xmlhttp.responseType = "arraybuffer";
-			xmlhttp.send("");
-			
-			if ( !minSize || xmlhttp.response.byteLength >= minSize ) {
-				return Buffer.wrapMultibyteBuffer(xmlhttp.response);
-			// Make sure result buffer is of minimum size
-			} else {
-				var bufIn = xmlhttp.response
-					, bufOut = Buffer.createByteBuffer(minSize);
-				Buffer.copy(bufIn, 0, bufOut, 0, bufIn.byteLength);
-				return Buffer.getBuffer(bufOut);
-			}
+			xhr.open("GET", path, true);
+			xhr.responseType = "arraybuffer";
+			xhr.onreadystatechange = function () {
+				var buffer, bufIn, bufOut;
+				
+				if ( this.readyState === 4 ) {
+					if ( this.status === 200 ) {
+						if ( !minSize || this.response.byteLength >= minSize ) {
+							buffer = Buffer.wrapMultibyteBuffer(this.response);
+						// Make sure result buffer is of minimum size
+						} else {
+							bufIn = this.response;
+							bufOut = Buffer.createByteBuffer(minSize);
+							Buffer.copy(bufIn, 0, bufOut, 0, bufIn.byteLength);
+							buffer = Buffer.getBuffer(bufOut);
+						}
+						
+						done(path, buffer);
+					} else {
+						fail(path);
+					}
+				}
+			};
+			xhr.send("");
 		};
 	// Legacy native Arrays support (slower)
 	} else {
-		HTTP.get = function ( path ) {
+		HTTP.get = function ( path, done, fail ) {
 			var idx, len, chars, bytes;
 			
 			path = getURL(path);
-			
-			xmlhttp.open("GET", path, false);
+
+			xmlhttp.open("GET", path, true);
 			// Force to x-user-defined encoding (Latin-1 ASCII, UTF-8 fail
 			//	in reserved 128-160 range - force to UNICODE Private Area
 			//	(0xF700-0xF7FF) range)
@@ -74,14 +93,6 @@ define([
 				xmlhttp.overrideMimeType("text/plain; charset=x-user-defined");
 			}
 			xmlhttp.send("");
-			
-			// Basic checking
-			//	(TODO: We need to use async ajax!!!)
-			//	- fails in Opera?!?
-			/*if ( xmlhttp.status !== 200 ) {
-				util.panic("HTTP.get() :: Error -"
-					+ " XMLHttpRequest failed");
-			}*/
 			
 			chars = xmlhttp.responseText;
 			len = chars.length;

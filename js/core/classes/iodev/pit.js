@@ -52,7 +52,7 @@ define([
 	}
 	util.inherit(PIT, IODevice, "PIT"); // Inheritance
 	util.extend(PIT.prototype, {
-		init: function () {
+		init: function ( done, fail ) {
 			var machine = this.machine, state = this.state;
 			
 			// Make a note that IRQ #0 is used by the PIT
@@ -116,6 +116,8 @@ define([
 				"s.last_next_event_time=%d"
 				, state.last_next_event_time
 			));
+
+			done();
 		// Based on [bx_pit_c::reset]
 		}, reset: function ( type ) {
 			this.state.timer.reset(type);

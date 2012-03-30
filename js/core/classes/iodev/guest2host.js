@@ -36,7 +36,7 @@ define([
 		};
 	}
 	util.inherit(Guest2Host, IODevice, "Guest2Host"); // Inheritance
-	Guest2Host.prototype.init = function () {
+	Guest2Host.prototype.init = function ( done, fail ) {
 		var state = this.state;
 		
 		// I/O port addresses used
@@ -46,6 +46,8 @@ define([
 		this.registerIO_Write(0x0402, "INFO_PORT", writeHandler, 1);
 		this.registerIO_Write(0x0403, "DEBUG_PORT", writeHandler, 1);
 		//this.registerIO_Write(0x0080, "PORT_DIAG", writeHandler, 1);
+
+		done();
 	};
 	Guest2Host.prototype.reset = function ( type ) {
 		// Nothing to do
