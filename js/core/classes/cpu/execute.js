@@ -218,13 +218,13 @@ define([
             var cs_eip = this.operand1.read();
             
             //if ( cs_eip !== 0x1000FCFC && cs_eip !== 0x1000FD22 ) { debugger; }
-            if ( cs_eip === 0x1F820200 ) { debugger; }
+            //if ( cs_eip === 0x1F820200 ) { debugger; }
             
             // Push CS:IP so return can come back
             cpu.pushStack(cpu.CS.get(), 2);
             cpu.pushStack(IP.get(), operandSize);
 
-            if ( (cs_eip >> 16) === 0x0265 ) { debugger; }
+            //if ( (cs_eip >> 16) === 0x0265 ) { debugger; }
             
             // 32-bit pointer
             if ( operandSize === 2 ) {
