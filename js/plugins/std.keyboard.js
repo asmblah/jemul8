@@ -43,6 +43,8 @@ define([
 			return Scancode.getKeyIndex("KEY_ENTER");
 		case 16:
 			return Scancode.getKeyIndex("KEY_SHIFT_L");
+		case 27:
+			return Scancode.getKeyIndex("KEY_ESC");
 		case 32:
 			return Scancode.getKeyIndex("KEY_SPACE");
 		case 37:
@@ -53,6 +55,8 @@ define([
 			return Scancode.getKeyIndex("KEY_RIGHT");
 		case 40:
 			return Scancode.getKeyIndex("KEY_DOWN");
+		case 114:
+			return Scancode.getKeyIndex("KEY_F3");
         case 123:
             return Scancode.getKeyIndex("KEY_F12");
         case 190:
