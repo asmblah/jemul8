@@ -1945,28 +1945,28 @@ define([
                     while ( --len ) {
                         val2 = this.operand2.read();
                         
+                        edi += delta;
+                        DI.set(edi);
+                        
                         // Stop if values are not equal
                         if ( val2 !== val1 ) {
                             --len;
                             break;
                         }
-                        
-                        edi += delta;
-                        DI.set(edi);
                     }
                 // Repeat while not equal, max CX times
                 } else if ( this.repeat === "#REPNE" ) {
                     while ( --len ) {
                         val2 = this.operand2.read();
                         
+                        edi += delta;
+                        DI.set(edi);
+                        
                         // Stop if values are equal
                         if ( val2 === val1 ) {
                             --len;
                             break;
                         }
-                        
-                        edi += delta;
-                        DI.set(edi);
                     }
                 } else {
                     util.problem("Execute (SCAS) :: invalid string repeat operation/prefix.");
