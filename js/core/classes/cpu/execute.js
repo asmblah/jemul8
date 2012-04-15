@@ -491,23 +491,24 @@ define([
         }, "ENTER": function ( cpu ) {
             var operandSize = this.operandSizeAttr ? 4 : 2;
             var stackSizeAttr = cpu.SS.cache.default32BitSize;
-            var BP = (stackSizeAttr ? cpu.EBP : cpu.BP);
-            var SP = (stackSizeAttr ? cpu.ESP : cpu.SP);
-            var stackSize = SP.size;
+            var stackBP = (stackSizeAttr ? cpu.EBP : cpu.BP);
+            var stackSP = (stackSizeAttr ? cpu.ESP : cpu.SP);
+            var operandBP = (this.operandSizeAttr ? cpu.EBP : cpu.BP);
+            var operandSP = (this.operandSizeAttr ? cpu.ESP : cpu.SP);
             var imm16 = this.operand1.read();
-            var level = this.operand2.read();
+            var level = this.operand2.read() & 0x1F; // Between 0 and 31
             var frame_ptr;
-            var bp = BP.get();
+            var bp = stackBP.get();
             
-            level &= 0x1F; // Between 0 and 31
-            
-            cpu.pushStack(bp, stackSize);
-            frame_ptr = SP.get();
+            cpu.pushStack(operandBP.get(), operandSize);
+
+            // Make sure this is done AFTER the push above
+            frame_ptr = operandSP.get();
             
             if ( level > 0 ) {
                 // Do level-1 times
                 while ( --level ) {
-                    bp -= 2;
+                    bp -= operandSize;
                     var temp = cpu.SS.readSegment(bp, operandSize);
                     cpu.pushStack(temp, operandSize);
                 }
@@ -516,15 +517,15 @@ define([
                 cpu.pushStack(frame_ptr, operandSize);
             }
             
-            SP.set(SP.get() - imm16);
+            stackSP.set(stackSP.get() - imm16);
             
             // ENTER finishes with memory write check on the final stack pointer
             // the memory is touched but no write actually occurs
             // emulate it by doing RMW read access from SS:(E)SP
             //read_RMW_virtual_word_32(BX_SEG_REG_SS, (E)SP);
-            cpu.SS.readSegment(SP.get(), operandSize);
+            cpu.SS.readSegment(stackSP.get(), operandSize);
             
-            BP.set(frame_ptr);
+            operandBP.set(frame_ptr);
         // Escape
         }, "ESC": function ( cpu ) {
             util.panic("Execute (ESC) :: unsupported");
