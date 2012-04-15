@@ -1125,8 +1125,16 @@ define([
             util.panic("Execute (LLDT) :: unsupported");
         // Load Machine Status Word
         }, "LMSW": function ( cpu ) {
-            util.panic("Execute (LMSW) :: unsupported");
-            // cpu.CR0
+            var msw = this.operand1.read();
+
+            // LMSW cannot clear PE
+            if ( cpu.PE.get() ) {
+                msw |= 0x1; // Adjust PE bit to current value of 1
+            }
+
+            msw &= 0xF; // LMSW only affects last 4 flags
+
+            cpu.CR0.set((cpu.CR0.get() & 0xFFFFFFF0) | msw);
         // Load String ( Byte, Word or Dword )
         //    TODO: could be polymorphic, one func for each string-repeat type
         //    TODO: there is potential for speed ups here by using native .indexOf() / .slice() and similar
