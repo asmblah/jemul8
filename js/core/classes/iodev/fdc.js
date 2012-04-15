@@ -1037,7 +1037,7 @@ define([
             }
             
             if ( sector > state.media[ drive ].sectors_per_track ) {
-                debugger;
+                //debugger;
                 util.info(util.sprintf(
                     "attempt to read/write sector %u past last sector %u"
                     , sector, state.media[drive].sectors_per_track

@@ -1586,7 +1586,7 @@ define([
             var cf;
             var of;
             
-            debugger;
+            //debugger;
             
             if ( operandSize === 4 ) {
                 count &= 0x1f;
