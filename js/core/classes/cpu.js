@@ -266,6 +266,10 @@ define([
             // Control Register 0
             var CR0 = new LazyFlagRegister( "CR0", 4 );
             this.install(CR0);
+
+            // Machine Status Word
+            this.install(new SubRegister( "MSW", 2, this.CR0, 0xFFFF, 0 ));
+
             // Protected Mode Enable
             //  (If 1, system is in Protected Mode, else system is in Real Mode)
             CR0.install(new UnlazyFlag( "PE", this.CR0, 0 ));
@@ -820,7 +824,7 @@ define([
                     //if ( this.IP.get() === 0x0A84 ) { debugger; } // "nibble = " in "X or x"
                     //if ( this.IP.get() === 0xA880 ) { insn.execute=function(){}; } // [call BX_INFO Booting from %x:%x]
                     //if ( this.IP.get() === 0xA880 ) { debugger; }
-                    if ( this.IP.get() === 0xA8A3 ) { debugger; } // [iret]
+                    //if ( this.IP.get() === 0xA8A3 ) { debugger; } // [iret]
                     
                     //if ( offset === 0xAE12 ) { debugger; }
                     //if ( this.IP.get() === 0xAE1A ) { debugger; } // [jmp int13_diskette_function]
@@ -932,7 +936,7 @@ define([
                     //if ( this.IP.get() === 0x316f ) { debugger; } // @64A5h [dec si]
                 //}
                 
-                //if ( insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL" ) { debugger; }
+                if ( insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL" ) { debugger; }
                 //if ( insn.name === "AND" && insn.toASM() === "AND b,DS:[BX+SI], AH" ) { debugger; }
                 //if ( insn.name === "MOV" && insn.toASM() === "MOV AH, b,DS:[SI+FFh]" ) { debugger; }
 
