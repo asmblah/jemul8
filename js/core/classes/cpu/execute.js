@@ -937,26 +937,19 @@ define([
         // High Level Procedure Exit
         }, "LEAVE": function ( cpu ) {
             // NB: Reverses the actions of the ENTER instruction. 
-            //    By copying the frame pointer to the stack pointer,
-            //    LEAVE releases the stack space used by a procedure for its local variables.
+            //     By copying the frame pointer to the stack pointer,
+            //      LEAVE releases the stack space used by a procedure for its local variables.
             
-            var operandSizeAttr = this.operandSizeAttr;
-            var operandSize = operandSizeAttr ? 4 : 2;
+            var operandSize = this.operandSizeAttr ? 4 : 2;
             var stackSizeAttr = cpu.SS.cache.default32BitSize;
-            var BP = (stackSizeAttr ? cpu.EBP : cpu.BP);
-            var SP = (stackSizeAttr ? cpu.ESP : cpu.SP);
-            var stackSize = SP.size;
-            var value;
+            var stackBP = (stackSizeAttr ? cpu.EBP : cpu.BP);
+            var stackSP = (stackSizeAttr ? cpu.ESP : cpu.SP);
+            var operandBP = (this.operandSizeAttr ? cpu.EBP : cpu.BP);
+            var value = cpu.SS.readSegment(stackBP.get(), operandSize);
             
-            if ( stackSizeAttr ) {
-                value = cpu.SS.readSegment(cpu.EBP.get(), operandSize);
-                cpu.ESP.set(cpu.EBP.get() + operandSize);
-            } else {
-                value = cpu.SS.readSegment(cpu.BP.get(), operandSize);
-                cpu.SP.set(cpu.BP.get() + operandSize);
-            }
+            stackSP.set(stackBP.get() + operandSize);
             
-            (operandSizeAttr ? cpu.EBP : cpu.BP).set(value);
+            operandBP.set(value);
         // Load Global Descriptor Table Register
         }, "LGDT": function ( cpu ) {
             //util.panic("Execute (LGDT) :: unsupported");
