@@ -96,6 +96,30 @@ define([ "jquery" ], function ( $ ) { "use strict";
         , DESC_CODE_EXEC_ONLY_CONFORMING_ACCESSED   : 0xD
         , DESC_CODE_EXEC_READ_CONFORMING            : 0xE
         , DESC_CODE_EXEC_READ_CONFORMING_ACCESSED   : 0xF
+
+        // For converting a number in two's complement to a float value
+        // - byte 0xFF -> -1
+        // - word 0xFF -> 0xFF (not negative)
+        , toSigned: function ( num, size ) {
+            if ( size === 4 ) {
+                //num = (num >>> 0);
+                if ( num > 0x7FFFFFFF ) {
+                    num -= 0xFFFFFFFF + 1;
+                }
+            } else if ( size === 2 ) {
+                if ( num > 0x7FFF ) {
+                    num -= 0xFFFF + 1;
+                }
+            } else {
+                if ( num > 0x7F ) {
+                    num -= 0xFF + 1;
+                }
+            }
+            return num;
+        
+        }, truncateTowardZero: function ( num ) {
+            return num >> 0;
+        }
     });
     
     // From [http://phpjs.org/functions/sprintf:522]
@@ -397,14 +421,14 @@ define([ "jquery" ], function ( $ ) { "use strict";
             }
         });
     } else {
+        // Stub functions as console logging unavailable
         util.extend(util, {
-            assert: function ( cond, msg ) {
-            }, info: function ( msg ) {
-            }, debug: function ( msg ) {
-            }, warning: function ( msg ) {
-            }, problem: function ( msg ) {
-            }, panic: function ( msg ) {
-            }
+            assert: function ( cond, msg ) {}
+            , info: function ( msg ) {}
+            , debug: function ( msg ) {}
+            , warning: function ( msg ) {}
+            , problem: function ( msg ) {}
+            , panic: function ( msg ) {}
         });
     }
     

@@ -2043,9 +2043,9 @@ define([
 				+ util.format("hex", addrA20) + " = " + util.format("hex", val));
 		}
 		
-		if ( val === "T".charCodeAt(0) ) {
-			var a = 1;
-		}
+		//if ( val === "?".charCodeAt(0) ) {
+		//	debugger;
+		//}
 		
 		//if ( val === "/".charCodeAt(0) ) { debugger; }
 		

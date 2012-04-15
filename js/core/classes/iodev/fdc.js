@@ -1028,6 +1028,7 @@ define([
             }
             
             if ( cylinder >= state.media[ drive ].tracks ) {
+                debugger;
                 util.panic(util.sprintf(
                     "io: norm r/w parms out of range: sec#%02xh cyl#%02xh eot#%02xh head#%02xh"
                     , sector, cylinder, eot, head

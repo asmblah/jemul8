@@ -21,6 +21,7 @@ define([
         //    TODO: how to handle other flags? Intel docs say undefined,
         //    but other sources say should be handled just as for other insns
         "AAA": function ( cpu ) {
+            debugger;
             var AL = cpu.AL.get();
             
             if ( ((AL & 0x0F) > 9) || (cpu.AF.get()) ) {
@@ -35,6 +36,7 @@ define([
             }
         // ASCII adjust AX before Division
         }, "AAD": function ( cpu ) {
+            debugger;
             // Val1 will almost always be 0Ah (10d), meaning to adjust for base-10 / decimal.
             var val1 = this.operand1.read();
             var res = cpu.AH.get() * val1 + cpu.AL.get();
@@ -45,6 +47,7 @@ define([
             setFlags_Op1(this, cpu, val1, res);
         // ASCII adjust after Multiplication
         }, "AAM": function ( cpu ) {
+            debugger;
             // Val1 will almost always be 0Ah ( 10d ), meaning to adjust for base-10 / decimal.
             var val1 = this.operand1.read();
             var AL = cpu.AL.get();
@@ -57,6 +60,7 @@ define([
         //    TODO: how to handle other flags? Intel docs say undefined,
         //    but other sources say should be handled just as for other insns
         }, "AAS": function ( cpu ) {
+            debugger;
             var AL = cpu.AL.get();
             
             if ( ((AL & 0x0F) > 9) || (cpu.AF.get()) ) {
@@ -218,9 +222,11 @@ define([
             // Push CS:IP so return can come back
             cpu.pushStack(cpu.CS.get(), 2);
             cpu.pushStack(IP.get(), operandSize);
+
+            if ( (cs_eip >> 16) === 0x0265 ) { debugger; }
             
             // 32-bit pointer
-            if ( !this.operandSizeAttr ) {
+            if ( operandSize === 2 ) {
                 cpu.CS.set(cs_eip >> 16);
                 cpu.EIP.set(cs_eip & 0xFFFF);
             // 48-bit pointer (NOT 64-bit; even though EIP is 32-bit,
@@ -236,11 +242,10 @@ define([
         //  - may be absolute, or relative to next Instruction
         }, "CALLN": function ( cpu ) {
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP;
-            var operandSize = IP.size;
             var ip = this.operand1.read();
             
             // Push IP so return can come back
-            cpu.pushStack(IP.get(), operandSize);
+            cpu.pushStack(IP.get(), IP.size);
             
             // Relative jump - add to (E)IP
             if ( this.operand1.isRelativeJump ) {
@@ -295,148 +300,78 @@ define([
             // Do not store result of subtraction; only flags
             setFlags(this, cpu, val1, val2, res);
         // Compare String (Byte, Word or Dword)
-        //    TODO:    - could be polymorphic, one func for each string-repeat type
-        //            - probably has no reason to use lazy flags, as it will always be followed
-        //                by a conditional jump. (ie. should call cpu.ZF.set() etc.)
+        //  TODO: - could be polymorphic, one func for each string-repeat type
+        //        - probably has no reason to use lazy flags, as it will always be followed
+        //          by a conditional jump. (ie. should call cpu.ZF.set() etc.)
         }, "CMPS": function ( cpu ) {
-            var sizeOperand = this.operand1.size;
-            var val1 = 0;
-            var val2 = 0;
-            var res = 0;
-            var esi;
-            var edi;
-            var esiEnd;
+            var operandSize = this.operand1.size;
+            var CX = this.addressSizeAttr ? cpu.ECX : cpu.CX;
+            var SI = this.addressSizeAttr ? cpu.ESI : cpu.SI;
+            var DI = this.addressSizeAttr ? cpu.EDI : cpu.DI;
+            // This is the difference between SCAS and CMPS: here,
+            //  the value in AL/(E)AX is compared with the chars in string,
+            //  so only needs to be read once
+            var val1;
+            var val2;
+            var esi = SI.get();
+            var edi = DI.get();
             var len;
+            // When DF set, decrement (scan in reverse direction)
+            //  otherwise increment
+            var delta = cpu.DF.get() ? -operandSize : operandSize;
             
-            switch ( this.repeat ) {
-            // Common case; no repeat prefix
-            case "":
-                // Signed subtraction (as for SUB)
+            // No repeat prefix
+            if ( this.repeat === "" ) {
                 val1 = this.operand1.read();
                 val2 = this.operand2.read();
-                res = (val1 - val2) & this.operand1.mask;
                 
-                // Direction Flag set, decrement ( scan in reverse direction )
-                if ( cpu.DF.get() ) {
-                    cpu.ESI.set(
-                        (cpu.ESI.get() - sizeOperand)
-                    );
-                    cpu.EDI.set(
-                        (cpu.EDI.get() - sizeOperand)
-                    );
-                // Direction Flag clear, increment ( scan in forward direction )
+                SI.set(esi + delta);
+                DI.set(edi + delta);
+            } else {
+                len = CX.get() + 1;
+                
+                // Repeat while equal, max CX times
+                if ( this.repeat === "#REP/REPE" ) {
+                    while ( --len ) {
+                        val1 = this.operand1.read();
+                        val2 = this.operand2.read();
+                        
+                        // Stop if values are not equal
+                        if ( val2 !== val1 ) {
+                            --len;
+                            break;
+                        }
+                        
+                        esi += delta;
+                        edi += delta;
+                        SI.set(esi);
+                        DI.set(edi);
+                    }
+                // Repeat while not equal, max CX times
+                } else if ( this.repeat === "#REPNE" ) {
+                    while ( --len ) {
+                        val1 = this.operand1.read();
+                        val2 = this.operand2.read();
+                        
+                        // Stop if values are equal
+                        if ( val2 === val1 ) {
+                            --len;
+                            break;
+                        }
+                        
+                        esi += delta;
+                        edi += delta;
+                        SI.set(esi);
+                        DI.set(edi);
+                    }
                 } else {
-                    cpu.ESI.set(
-                        (cpu.ESI.get() + sizeOperand)
-                    );
-                    cpu.EDI.set(
-                        (cpu.EDI.get() + sizeOperand)
-                    );
+                    util.problem("Execute (SCAS) :: invalid string repeat operation/prefix.");
                 }
-                // Do not store result of subtraction; only flags
-                setFlags(this, cpu, val1, val2, res);
-                break;
-            // Repeat while Equal, max CX times
-            case "#REP/REPE":
-                len = cpu.CX.get() + 1;    // Add 1 to allow more efficient pre-decrement ( see below )
-                esi = cpu.ESI.get();
-                edi = cpu.EDI.get();
-                // Direction Flag set, decrement ( scan in reverse direction )
-                if ( cpu.DF.get() ) {
-                    // Loop CX times ( may exit early if NOT equal, see below )
-                    while ( --len ) {
-                        // Signed subtraction (as for SUB)
-                        val1 = this.operand1.read();
-                        val2 = this.operand2.read();
-                        
-                        cpu.ESI.set(
-                            esi = (esi - sizeOperand)
-                        );
-                        cpu.EDI.set(
-                            edi = (edi - sizeOperand)
-                        );
-                        
-                        // Stop checking if NOT equal
-                        if ( val1 !== val2 ) { break; }
-                    }
-                // Direction Flag clear, increment ( scan in forward direction )
-                } else {
-                    // Loop CX times ( may exit early if NOT equal, see below )
-                    while ( --len ) {
-                        // Signed subtraction (as for SUB)
-                        val1 = this.operand1.read();
-                        val2 = this.operand2.read();
-                        
-                        cpu.ESI.set(
-                            esi = (esi + sizeOperand)
-                        );
-                        cpu.EDI.set(
-                            edi = (edi + sizeOperand)
-                        );
-                        
-                        // Stop checking if NOT equal
-                        if ( val1 !== val2 ) { break; }
-                    }
-                }
-                // Do not store result of subtraction; only flags
-                //    NB: it is worth noting that subtraction actually only has to take place here,
-                //        after the tight ( hopefully efficient ) loop above
-                setFlags(this, cpu, val1, val2, (val1 - val2) & this.operand1.mask);
-                cpu.CX.set(len);
-                break;
-            // Repeat while NOT Equal, max CX times
-            case "#REPNE":
-                len = cpu.CX.get() + 1;    // Add 1 to allow more efficient pre-decrement ( see below )
-                esi = cpu.ESI.get();
-                edi = cpu.EDI.get();
-                // Direction Flag set, decrement ( scan in reverse direction )
-                if ( cpu.DF.get() ) {
-                    // Loop CX times ( may exit early if not equal, see below )
-                    while ( --len ) {
-                        // Signed subtraction (as for SUB)
-                        val1 = this.operand1.read();
-                        val2 = this.operand2.read();
-                        
-                        cpu.ESI.set(
-                            esi = (esi - sizeOperand)
-                        );
-                        cpu.EDI.set(
-                            edi = (edi - sizeOperand)
-                        );
-                        
-                        // Stop checking if equal
-                        if ( val1 === val2 ) { break; }
-                    }
-                // Direction Flag clear, increment ( scan in forward direction )
-                } else {
-                    // Loop CX times ( may exit early if not equal, see below )
-                    while ( --len ) {
-                        // Signed subtraction (as for SUB)
-                        val1 = this.operand1.read();
-                        val2 = this.operand2.read();
-                        
-                        cpu.ESI.set(
-                            esi = (esi + sizeOperand)
-                        );
-                        cpu.EDI.set(
-                            edi = (edi + sizeOperand)
-                        );
-                        
-                        // Stop checking if equal
-                        if ( val1 === val2 ) { break; }
-                    }
-                }
-                // Do not store result of subtraction; only flags
-                //    NB: it is worth noting that subtraction actually only
-                //    has to take place here, after the tight
-                //    (hopefully efficient) loop above
-                setFlags(this, cpu, val1, val2, (val1 - val2)
-                    & this.operand1.mask);
-                cpu.CX.set(len);
-                break;
-            default:
-                util.problem("Execute (CMPS) :: invalid string repeat operation/prefix.");
+
+                CX.set(len);
             }
+            // Perform the last comparison subtraction for flags calc
+            setFlags(this, cpu, val1, val2, (val1 - val2) & this.operand1.mask);
         // Compare and Exchange (486+)
         }, "CMPXCHG": function ( cpu ) {
             util.panic("CMPXCHG :: This needs to be more efficient");
@@ -511,34 +446,42 @@ define([
             var sizeOperand = this.operand2.size;
             var dividend;
             var divisor = this.operand2.read();
-            var res;
+            var quotient;
+            var quotient16;
+            var remainder;
             
             // Divide by Zero (Divide Error)
-            if ( /*dividend == 0 || */divisor === 0 ) {
+            if ( divisor === 0 ) {
                 cpu.exception(util.DE_EXCEPTION, 0);
-                return;
             }
             
             // Dividend is AX
             if ( sizeOperand == 1 ) {
                 dividend = cpu.AX.get();
                 // Truncate unsigned integer result (">>> 0") toward zero
-                res = (dividend / divisor) >>> 0;
-                cpu.AL.set(res); // Quotient
+                quotient = (dividend / divisor) >>> 0;
+                cpu.AL.set(quotient); // Quotient
                 cpu.AH.set(dividend % divisor); // Remainder
             // Dividend is DX:AX
             } else if ( sizeOperand == 2 ) {
                 dividend = (cpu.DX.get() << 16) | cpu.AX.get();
                 // Truncate unsigned integer result (">>> 0") toward zero
-                res = (dividend / divisor) >>> 0;
-                cpu.AX.set(res); // Quotient
-                cpu.DX.set(dividend % divisor); // Remainder
+                quotient = (dividend / divisor) >>> 0;
+                remainder = (dividend % divisor) & 0xFFFF;
+                quotient16 = quotient & 0xFFFF;
+
+                if ( quotient !== quotient16 ) {
+                    cpu.exception(util.DE_EXCEPTION, 0);
+                }
+
+                cpu.AX.set(quotient16); // Quotient
+                cpu.DX.set(remainder); // Remainder
             // Dividend is EDX:EAX
             } else if ( sizeOperand == 4 ) {
                 dividend = Int64.fromBits(cpu.EAX.get(), cpu.EDX.get());
                 divisor = Int64.fromNumber(divisor);
-                res = dividend.div(divisor);
-                cpu.EAX.set(res.getLowBits());
+                quotient = dividend.div(divisor);
+                cpu.EAX.set(quotient.getLowBits());
                 cpu.EDX.set(dividend.modulo(divisor).getLowBits());
                 util.warning("DIV insn :: setFlags needs to support Int64s");
             }
@@ -639,85 +582,41 @@ define([
             cpu.halt();
         // Signed Integer Division
         }, "IDIV": function ( cpu ) {
-            var sizeOperand = this.operand1.size;
+            var operandSize = this.operand1.size;
             var dividend;
-            var divisor = this.operand1.read();
-            var res;
+            var divisor = util.toSigned(this.operand1.read(), operandSize);
+            var quotient;
             
             // Divide by Zero (Divide Error)
-            if ( /*dividend == 0 || */divisor === 0 ) {
+            if ( divisor === 0 ) {
                 cpu.exception(util.DE_EXCEPTION);
                 return;
             }
             
             // Dividend is AX
-            if ( sizeOperand == 1 ) {
-                // ">> 0" to interpret as signed
-                dividend = cpu.AX.get() >> 0;
+            if ( operandSize == 1 ) {
+                dividend = util.toSigned(cpu.AX.get(), 2);
                 // Integer result - truncated toward zero
-                res = (dividend / divisor) >> 0;
-                cpu.AL.set(res); // Quotient
+                quotient = util.truncateTowardZero(dividend / divisor);
+                cpu.AL.set(quotient); // Quotient
                 cpu.AH.set(dividend % divisor); // Remainder
             // Dividend is DX:AX
-            } else if ( sizeOperand == 2 ) {
-                // ">> 0" to interpret as signed
-                dividend = ((cpu.DX.get() << 16) | cpu.AX.get()) >> 0;
+            } else if ( operandSize == 2 ) {
+                dividend = util.toSigned((cpu.DX.get() << 16) | cpu.AX.get(), 2 + 2);
                 // Integer result - truncated toward zero
-                res = (dividend / divisor) >> 0;
-                cpu.AX.set(res); // Quotient
+                quotient = util.truncateTowardZero(dividend / divisor);
+                cpu.AX.set(quotient); // Quotient
                 cpu.DX.set(dividend % divisor); // Remainder
             // Dividend is EDX:EAX
-            } else if ( sizeOperand == 4 ) {
-                debugger;
-                jemul8.warning("IDIV :: 64-bit SIGNED divide needs testing");
+            } else if ( operandSize == 4 ) {
+                //debugger;
+                util.warning("IDIV :: 64-bit SIGNED divide needs testing");
                 dividend = Int64.fromBits(cpu.EAX.get(), cpu.EDX.get());
                 divisor = Int64.fromNumber(divisor);
-                res = dividend.div(divisor);
-                cpu.EAX.set(res.getLowBits());
+                quotient = dividend.div(divisor);
+                cpu.EAX.set(quotient.getLowBits());
                 cpu.EDX.set(dividend.modulo(divisor).getLowBits());
             }
-            
-            return;
-            
-            // Unlike IMUL to MUL, IDIV is identical to DIV (?)
-            Execute.functions.DIV.call(this, cpu);
-            return;
-            
-            debugger;
-            util.panic("Needs to be as per IMUL below.");
-            
-            var sizeOperand = this.operand1.size;
-            // NB: Interpret as signed
-            var dividend = this.operand1.read();
-            var divisor = this.operand2.read();
-            var res;
-            
-            // Divide by Zero
-            if ( divisor == 0 ) { cpu.exception(0); return; }
-            
-            // Integer result - truncated toward zero
-            res = (dividend / divisor) >> 0;
-            // Dividend is AX
-            if ( sizeOperand == 1 ) {
-                // Integer result is written to quotient
-                cpu.AL.set(res);
-                // Remainder
-                cpu.AH.set(dividend % divisor);
-            // Dividend is DX:AX
-            } else if ( sizeOperand == 2 ) {
-                // Integer result is written to quotient
-                cpu.AX.set(res);
-                // Remainder
-                cpu.DX.set(dividend % divisor);
-            // Dividend is EDX:EAX
-            } else if ( sizeOperand == 4 ) {
-                // Integer result is written to quotient
-                cpu.EAX.set(res);
-                // Remainder
-                cpu.EDX.set(dividend % divisor);
-            }
-            
-            setFlags(this, cpu, dividend, divisor, res);
         // Signed Multiply
         // - See http://faydoc.tripod.com/cpu/imul.htm
         }, "IMUL": function ( cpu ) {
@@ -739,11 +638,11 @@ define([
             // IMUL r32, imm8
             if ( this.operand3 || this.operand2 ) {
                 if ( this.operand3 ) {
-                    multiplicand = this.operand2.read();
-                    multiplier = this.operand3.signExtend();
+                    multiplicand = util.toSigned(this.operand2.read(), operandSize);
+                    multiplier = util.toSigned(this.operand3.read(), operandSize);
                 } else {
-                    multiplicand = this.operand1.read();
-                    multiplier = this.operand2.read();
+                    multiplicand = util.toSigned(this.operand1.read(), operandSize);
+                    multiplier = util.toSigned(this.operand2.read(), operandSize);
                 }
                 // 16-bit * 16-bit; product will fit in 32 bits
                 if ( operandSize === 2 ) {
@@ -765,22 +664,22 @@ define([
             // IMUL r/m32
             } else if ( this.operand1 ) {
                 // Multiplicand is implicitly accumulator: see below
-                multiplier = this.operand1.read();
+                multiplier = util.toSigned(this.operand1.read(), operandSize);
                 
                 if ( operandSize === 1 ) {
-                    multiplicand = cpu.AL.get();
+                    multiplicand = util.toSigned(cpu.AL.get(), operandSize);
                     res = multiplicand * multiplier;
                     cpu.AX.set(res);
                     highBits = res >> 8;
                 } else if ( operandSize === 2 ) {
-                    multiplicand = cpu.AX.get();
+                    multiplicand = util.toSigned(cpu.AX.get(), operandSize);
                     res = multiplicand * multiplier;
                     cpu.DX.set(res >> 16); // Result written to DX:AX
                     cpu.AX.set(res & 0xFFFF);
                     highBits = res >> 16;
                 } else if ( operandSize === 4 ) {
-                    multiplicand = Int64.fromNumber(cpu.EAX.get());
-                    multiplier = Int64.fromNumber(multiplier);
+                    multiplicand = Int64.fromNumber(util.toSigned(cpu.EAX.get(), operandSize));
+                    multiplier = Int64.fromNumber(util.toSigned(multiplier, operandSize));
                     res = multiplicand.multiply(multiplier);
                     highBits = res.getHighBits();
                     lowBits = res.getLowBits();
@@ -832,7 +731,46 @@ define([
             cpu.CF.setBin(cf);
         // Input String from Port ( 80188+ )
         }, "INS": function ( cpu ) {
-            util.panic("Execute (INS) :: Not implemented yet");
+            var operandSize = this.operand1.size;
+            var CX = this.addressSizeAttr ? cpu.ECX : cpu.CX;
+            var DI = this.addressSizeAttr ? cpu.EDI : cpu.DI;
+            var res;
+            var edi = DI.get();
+            var len;
+            // When DF set, decrement (scan in reverse direction)
+            //  otherwise increment
+            var delta = cpu.DF.get() ? -operandSize : operandSize;
+            
+            // Common case; no repeat prefix
+            if ( !this.repeat ) {
+                this.operand1.write(cpu.machine.io.read(
+                    this.operand2.read()    // Port/address
+                    , this.operand1.size    // IO length
+                ));
+                
+                DI.set(edi + delta);
+            // Repeat CX times
+            } else if ( this.repeat === "#REP/REPE" ) {
+                len = CX.get() + 1;
+                
+                while ( --len ) {
+                    this.operand1.write(cpu.machine.io.read(
+                        this.operand2.read()    // Port/address
+                        , this.operand1.size    // IO length
+                    ));
+                    
+                    edi += delta;
+                    DI.set(edi);
+                }
+                
+                // TODO: Almost always "len === 0", however if hits eg. segment limit
+                //       during copy, only some data would be copied leaving CX
+                //       set to > 0, so need to trap this above
+                CX.set(len);
+            } else {
+                // Otherwise must have been #REPNE (#REPNZ)
+                util.problem("Instruction.execute() :: INS - #REPNE invalid");
+            }
         // Software-generated interrupt
         }, "INT": function ( cpu ) {
             // Should this ever support 32-bit?
@@ -878,8 +816,8 @@ define([
          *    several ways; the mnemonics used here are the first
          *    in the list provided in the Intel Instruction Formats & Encodings,
          *    Table B-8.
-         *    ( eg. JE (Jump if Equal) is identical to JZ (Jump if Zero),
-         *    as both will jump if the Zero Flag (ZF) is set. )
+         *    - eg. JE (Jump if Equal) is identical to JZ (Jump if Zero),
+         *          as both will jump if the Zero Flag (ZF) is set.
          */
         // Jump if Overflow
         }, "JO": function ( cpu ) {
@@ -943,7 +881,7 @@ define([
             }
         // Jump if Less Than
         }, "JL": function ( cpu ) {
-            if ( /*!cpu.ZF.get() && */(cpu.SF.get() !== cpu.OF.get()) ) {
+            if ( cpu.SF.get() !== cpu.OF.get() ) {
                 branchRelative(this, cpu);
             }
         // Jump if NOT Less Than
@@ -1018,7 +956,7 @@ define([
         // Load Effective Address
         }, "LEA": function ( cpu ) {
             // Just compute the Memory Address of the 2nd Operand
-            //    and store it in the first
+            //  and store it in the first
             this.operand1.write(this.operand2.getPointerAddress());
         // High Level Procedure Exit
         }, "LEAVE": function ( cpu ) {
@@ -1329,7 +1267,7 @@ define([
         // Load Task Register
         }, "LTR": function ( cpu ) {
             util.panic("Execute (LTR) :: unsupported");
-        // Move ( Copy ) data
+        // Move (Copy) data
         }, "MOV": function ( cpu ) {
             //if ( this.operand1.getPointerAddress() === 0x46C
             //    && this.operand2.reg === cpu.ECX
@@ -1345,38 +1283,28 @@ define([
             var CX = this.addressSizeAttr ? cpu.ECX : cpu.CX;
             var SI = this.addressSizeAttr ? cpu.ESI : cpu.SI;
             var DI = this.addressSizeAttr ? cpu.EDI : cpu.DI;
-            var val1;
-            var val2;
-            var res;
-            var esi;
-            var esiStart;
-            var esiEnd;
-            var edi;
+            var esi = SI.get();
+            var edi = DI.get();
             var len;
             var delta;
             var linear;
             var physical;
             var accessor1;
             var accessor2;
+            // When DF set, decrement (scan in reverse direction)
+            //  otherwise increment
+            var delta = cpu.DF.get() ? -operandSize : operandSize;
             
-            switch ( this.repeat ) {
             // Common case; no repeat prefix
-            case "":
+            if ( !this.repeat ) {
                 // Load String Character (Operand 1 is part of Accumulator, Operand 2
                 //    will be a memory pointer using (E)SI)
                 this.operand2.write(this.operand1.read());
-                // Direction Flag set, decrement (scan in reverse direction)
-                if ( cpu.DF.get() ) {
-                    SI.set(SI.get() - operandSize);
-                    DI.set(DI.get() - operandSize);
-                // Direction Flag clear, increment (scan in forward direction)
-                } else {
-                    SI.set(SI.get() + operandSize);
-                    DI.set(DI.get() + operandSize);
-                }
-                break;
+
+                SI.set(esi + delta);
+                DI.set(edi + delta);
             // Repeat CX times
-            case "#REP/REPE":
+            } else if ( this.repeat === "#REP/REPE" ) {
                 len = CX.get() * operandSize;
                 esi = SI.get();
                 edi = DI.get();
@@ -1432,10 +1360,6 @@ define([
                     return;
                 }
                 
-                // When DF set, decrement (scan in reverse direction)
-                //  otherwise increment
-                delta = cpu.DF.get() ? -operandSize : operandSize;
-                
                 len = CX.get() + 1;
                 
                 while ( --len ) {
@@ -1451,9 +1375,9 @@ define([
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
                 CX.set(len);
-                break;
-            default:
-                util.problem("Execute (MOVS) :: Only REP/REPE prefix is valid.");
+            } else {
+                // Otherwise must have been #REPNE (#REPNZ)
+                util.problem("Instruction.execute() :: MOVS - #REPNE invalid");
             }
         // Move with Sign Extend
         }, "MOVSX": function ( cpu ) {
@@ -1813,7 +1737,7 @@ define([
             
             cpu.CF.setBin(cf);
             cpu.OF.setBin(of);
-        // Return ( Near ) from Procedure
+        // Return (Near) from Procedure
         }, "RETN": function ( cpu ) {
             if ( !this.operandSizeAttr ) {
                 // ( NB: Will clear high word of EIP )
@@ -2059,7 +1983,6 @@ define([
             //  so only needs to be read once
             var val1 = this.operand1.read();
             var val2;
-            var res;
             var edi = DI.get();
             var len;
             // When DF set, decrement (scan in reverse direction)
@@ -2069,7 +1992,6 @@ define([
             // No repeat prefix
             if ( this.repeat === "" ) {
                 val2 = this.operand2.read();
-                res = (val1 - val2) & this.operand1.mask;
                 
                 DI.set(edi + delta);
             } else {
@@ -2080,31 +2002,37 @@ define([
                     while ( --len ) {
                         val2 = this.operand2.read();
                         
+                        // Stop if values are not equal
+                        if ( val2 !== val1 ) {
+                            --len;
+                            break;
+                        }
+                        
                         edi += delta;
                         DI.set(edi);
-                        
-                        // Stop if values are not equal
-                        if ( val2 !== val1 ) { break; }
                     }
                 // Repeat while not equal, max CX times
                 } else if ( this.repeat === "#REPNE" ) {
                     while ( --len ) {
                         val2 = this.operand2.read();
                         
+                        // Stop if values are equal
+                        if ( val2 === val1 ) {
+                            --len;
+                            break;
+                        }
+                        
                         edi += delta;
                         DI.set(edi);
-                        
-                        // Stop if values are equal
-                        if ( val2 === val1 ) { break; }
                     }
                 } else {
                     util.problem("Execute (SCAS) :: invalid string repeat operation/prefix.");
                 }
-                CX.set(len + (cpu.DF.get() ? 1 : -1));
-                // Perform the last comparison subtraction for flags calc
-                res = (val1 - val2) & this.operand1.mask;
+
+                CX.set(len);
             }
-            setFlags(this, cpu, val1, val2, res);
+            // Perform the last comparison subtraction for flags calc
+            setFlags(this, cpu, val1, val2, (val1 - val2) & this.operand1.mask);
         /* ======= Conditional Byte Set Instructions ======= */
         /*
          *    Many of these conditions may be interpreted in one of

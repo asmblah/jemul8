@@ -158,6 +158,8 @@ define([
                 );
                 // Get offset after finishing decode (move past Operand's bytes)
                 offset = insn.operand1.offset;
+
+                setSegment(decoder, insn, insn.operand1);
                 
                 // Check whether Instruction uses a second Operand
                 if ( dataOpcode[ 1 ].length > 1 ) {
@@ -171,6 +173,10 @@ define([
                     );
                     // Get offset after finishing decode (move past Operand's bytes)
                     offset = insn.operand2.offset;
+
+                    if ( insn.segreg === decoder.DS ) {
+                        setSegment(decoder, insn, insn.operand2);
+                    }
                     
                     // Check whether Instruction uses a third Operand
                     if ( dataOpcode[ 1 ].length > 2 ) {
@@ -184,6 +190,10 @@ define([
                         );
                         // Get offset after finishing decode (move past Operand's bytes)
                         offset = insn.operand3.offset;
+
+                        if ( insn.segreg === decoder.DS ) {
+                            setSegment(decoder, insn, insn.operand3);
+                        }
                     }
                 }
             }
@@ -248,6 +258,23 @@ define([
             return this.lenBytes;
         }
     });
+
+    function setSegment( decoder, insn, operand ) {
+        // [Intel] The default segment register is SS for the effective
+        //  addresses containing a BP or SP index, DS for other effective addresses
+        if ( operand.isPointer && (
+            operand.reg === decoder.BP
+            || operand.reg === decoder.EBP
+            || operand.reg === decoder.SP
+            || operand.reg === decoder.ESP
+        )) {
+            if ( insn.segreg !== decoder.SS ) {
+                debugger;
+                util.panic("setSegment() :: Shouldn't be needed");
+            }
+            // insn.segreg = decoder.SS;
+        }
+    }
     
     // Exports
     return Instruction;

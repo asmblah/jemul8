@@ -172,7 +172,6 @@ define([
 								operand.reg = decoder.hsh_size_regOrdinals
 									[ size ][ rm ];
 								
-								//operand.setSegment();
 								return operand;	// Done!
 							}
 							
@@ -195,7 +194,6 @@ define([
 											operand.offset += 4;
 										}
 										// mod==00b, rm!=4, rm!=5
-										operand.setSegment();
 										return operand; // Done!
 									}
 									insn.segreg = decoder.segreg_mod1or2_base32[ rm ];
@@ -209,7 +207,6 @@ define([
 									operand.setDisplacement(read(operand.offset, 1), 1);
 									// Move offset pointer past the displacement just read
 									++operand.offset;
-									operand.setSegment();
 									return operand; // Done!
 								}
 								
@@ -217,7 +214,6 @@ define([
 								operand.setDisplacement(read(operand.offset, 4), 4);
 								// Move offset pointer past the displacement just read
 								operand.offset += 4;
-								operand.setSegment();
 								return operand; // Done!
 							// 16-bit addressing mode
 							} else {
@@ -243,12 +239,10 @@ define([
 										// Move offset pointer past the displacement just read
 										operand.offset += 2;
 										
-										operand.setSegment();
 										return operand;	// Done!
 									}
 									operand.type = "GENERAL";
 									
-									operand.setSegment();
 									return operand;	// Done!
 								}
 								operand.type = "GENERAL";
@@ -263,7 +257,6 @@ define([
 									// Move offset pointer past the displacement just read
 									++operand.offset;
 									
-									operand.setSegment();
 									return operand;	// Done!
 								}
 								
@@ -273,7 +266,6 @@ define([
 								// Move offset pointer past the displacement just read
 								operand.offset += 2;
 								
-								operand.setSegment();
 								return operand;	// Done!
 							}
 							break;
@@ -334,7 +326,6 @@ define([
 				operand.size = operand.reg.size;
 				operand.mask = util.generateMask(operand.size);
 			}
-			//operand.setSegment();
 			
 			return operand;
 		}
@@ -351,18 +342,6 @@ define([
 			this.immedSize = size;
 		}, getImmediate: function () {
 			return this.immed;
-		// Determine the effective segment, if not already set
-		}, setSegment: function () {
-			// [Intel] The default segment register is SS for the effective
-			//	addresses containing a BP index, DS for other effective addresses
-			if ( this.isPointer && this.insn.segreg === null ) {
-				this.insn.segreg = (
-					this.reg !== decoder.BP
-					&& this.reg !== decoder.EBP
-					&& this.reg !== decoder.SP
-					&& this.reg !== decoder.ESP
-				) ? decoder.DS : decoder.SS;
-			}
 		// TODO: Sign-extend displacements here, instead of storing
 		//       size of displacement to extend later
 		}, setDisplacement: function ( displacement, size ) {

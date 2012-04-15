@@ -86,7 +86,9 @@ define([
         this.regMaster.bitsDirty = (this.regMaster.bitsDirty
             & this.bitmaskDirtySet) >>> 0;
         // Should be faster than eg. val ? 1 : 0
-        this.value = val & 1;
+        //this.value = val & 1;
+        this.value = val ? 1 : 0;
+        //if ( val > 1 ) { debugger; }
     };
     LazyFlag.prototype.toggle = function () {
         this.set(!this.get());

@@ -383,6 +383,9 @@ define([
         // Force emulated CPU into a halted state
         }, halt: function () {
             if ( !this.isHalted ) {
+                if ( !this.IF.get() ) {
+                    util.warning("CPU halted with IF=0!");
+                }
                 this.isHalted = true;
                 
                 util.debug("CPU halted");
@@ -587,12 +590,16 @@ define([
             // Don't start yield manager immediately; finish setup first
             self.setTimeout(yieldManager, 0);
         // Decode one page of instructions (23)
-        }, decodePage: function () {
+        }, decodePage: function ( offset ) {
             var i, insn
                 , CS = this.CS
                 , decoder = this.decoder
-                , offset = this.EIP.get(), asm = "";
+                , asm = "";
             
+            if ( offset === undefined ) {
+                offset = this.EIP.get()
+            }
+
             function read( offset, len ) {
                 return CS.readSegment(offset, len);
             }
@@ -604,8 +611,8 @@ define([
                 
                 offset += insn.getLength();
             }
-            alert(asm);
-            //debugger;
+
+            return asm;
         // Private method; start next set of Fetch-Decode-Execute cycles up until next Yield is scheduled
         }, fetchDecodeExecute: function () {
             var machine = this.machine
@@ -759,7 +766,7 @@ define([
                 //}
                 
                 // In CMOS BIOS (Bochs)
-                //if ( CS.get() === 0xF000 ) {
+                if ( CS.get() === 0xF000 ) {
                     // memsetb()
                     //if ( this.IP.get() === 0x0000 ) { debugger; } // Entry [push bp]
                     //if ( this.IP.get() === 0x0023 ) { debugger; } // Exit [retn]
@@ -813,7 +820,7 @@ define([
                     //if ( this.IP.get() === 0x0A84 ) { debugger; } // "nibble = " in "X or x"
                     //if ( this.IP.get() === 0xA880 ) { insn.execute=function(){}; } // [call BX_INFO Booting from %x:%x]
                     //if ( this.IP.get() === 0xA880 ) { debugger; }
-                    //if ( this.IP.get() === 0xA8A3 ) { debugger; } // [iret]
+                    if ( this.IP.get() === 0xA8A3 ) { debugger; } // [iret]
                     
                     //if ( offset === 0xAE12 ) { debugger; }
                     //if ( this.IP.get() === 0xAE1A ) { debugger; } // [jmp int13_diskette_function]
@@ -827,7 +834,7 @@ define([
                     
                     // normal_post
                     //if ( this.IP.get() === 0xE222 ) { debugger; } // [call _init_boot_vectors()]
-                //}
+                }
                 
                 // In CMOS BIOS (AMI 56i112)
                 //if ( CS.get() === 0xF000 ) {
@@ -925,9 +932,11 @@ define([
                     //if ( this.IP.get() === 0x316f ) { debugger; } // @64A5h [dec si]
                 //}
                 
-                if ( insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL" ) { debugger; }
-                
+                //if ( insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL" ) { debugger; }
+                //if ( insn.name === "AND" && insn.toASM() === "AND b,DS:[BX+SI], AH" ) { debugger; }
                 //if ( insn.name === "MOV" && insn.toASM() === "MOV AH, b,DS:[SI+FFh]" ) { debugger; }
+
+                //if ( insn.name === "MOV" && insn.offset === 29297 ) { debugger; }
                 
                 // Catch a short jump to self (hang)
                 //if ( insn.name === "JMPS" && insn.toASM() === "JMPS FEh" ) { debugger; }
@@ -965,7 +974,7 @@ define([
                     // Skip BIOS-bochs-legacy _init_boot_vectors()
                     //if ( this.IP.get() === 0xE222 ) { this.IP.set(0xE225); }
                     // Skip BIOS-bochs-legacy _interactive_bootkey()
-                    if ( this.IP.get() === 0xE22E ) { debugger;this.IP.set(0xE231); }
+                    if ( this.IP.get() === 0xE22E ) { this.IP.set(0xE231); }
                 }
                 
                 // PC-DOS IBMBIO.COM (IO.SYS equiv)
@@ -1269,7 +1278,7 @@ define([
                 this.exception(util.GP_EXCEPTION, 0);
             }
             
-            /*if ( vector === 0x00 ) {
+            if ( vector === 0x00 ) {
                 //console.log("INT 0x00! Stop.");
                 //debugger;
                 //this.halt();
@@ -1279,6 +1288,9 @@ define([
             } else if ( vector === 0x10 ) {
                 //debugger;
                 //alert(String.fromCharCode(this.AL.get()));
+                //if ( this.AL.get() === "?".charCodeAt(0) ) {
+                //    debugger;
+                //}
             } else if ( vector === 0x13 ) {
                 // Read sector
                 //debugger;
@@ -1301,7 +1313,7 @@ define([
             } else if ( vector === 0x21 ) {
                 // DOS services
                 //debugger;
-            }*/
+            }
             
             // Save current FLAGS and CS:IP (CPU state) on stack
             this.pushStack(this.FLAGS.get(), 2);

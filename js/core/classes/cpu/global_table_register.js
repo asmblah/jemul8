@@ -24,6 +24,8 @@ define([
 		reset: function ( raw ) {
 			this.base = 0x00000000;
             this.limit =    0xFFFF;
+		}, get: function () {
+			util.panic("GlobalTableRegister.get() :: Not yet implemented");
 		}
 	});
 	
