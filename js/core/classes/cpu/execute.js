@@ -180,7 +180,7 @@ define([
         // Bit Test (386+)
         }, "BT": function ( cpu ) {
             // Read bit at specified offset & store in Carry Flag
-            cpu.CF.setBit((this.operand1.read()
+            cpu.CF.setBin((this.operand1.read()
                 >> this.operand2.read()) & 0x01);
         // Bit Test and Compliment (386+)
         }, "BTC": function ( cpu ) {
@@ -188,7 +188,7 @@ define([
             var val = this.operand1.read();
             
             // Read bit at specified offset & store in Carry Flag
-            cpu.CF.setBit((val >> offsetBit) & 0x01);
+            cpu.CF.setBin((val >> offsetBit) & 0x01);
             // Complement / toggle the bit just read
             this.operand1.write(val ^ (1 << offsetBit));
         // Bit Test and Reset (386+)
@@ -197,7 +197,7 @@ define([
             var val = this.operand1.read();
             
             // Read bit at specified offset & store in Carry Flag
-            cpu.CF.setBit((val >> offsetBit) & 0x01);
+            cpu.CF.setBin((val >> offsetBit) & 0x01);
             // Clear / reset the bit just read
             this.operand1.write(val & ~(1 << offsetBit));
         // Bit Test and Set (386+)
@@ -206,7 +206,7 @@ define([
             var val = this.operand1.read();
             
             // Read bit at specified offset & store in Carry Flag
-            cpu.CF.setBit((val >> offsetBit) & 0x01);
+            cpu.CF.setBin((val >> offsetBit) & 0x01);
             // Set the bit just read
             this.operand1.write(val | (1 << offsetBit));
         // Unconditional Far (32/48-bit) absolute Call
