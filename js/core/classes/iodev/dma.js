@@ -214,8 +214,31 @@ define([
 		// Read: DMA-controlled transfer of byte from memory (RAM) to I/O
 		} else if ( channel.mode.typeTransfer === 2 ) {
 			// TODO
-			util.panic("DMA.raiseHLDA() :: DMA read transfer not supported yet");
-			return;
+			//util.panic("DMA.raiseHLDA() :: DMA read transfer not supported yet");
+			//return;
+			if ( !isMaster ) {
+				thisObj = this.list_thisObj8[ idx_channel ];
+				fn = this.list_fnRead8[ idx_channel ];
+				if ( !fn ) {
+					util.panic(util.sprintf(
+						"DMA.raiseHLDA() :: No DMA read handler for channel %u."
+						, idx_channel
+					));
+				}
+				val = mem.readPhysical(addrPhysical, 1);
+				fn.call(thisObj, val);
+			} else {
+				thisObj = this.list_thisObj16[ idx_channel ];
+				fn = this.list_fnRead16[ idx_channel ];
+				if ( !fn ) {
+					util.panic(util.sprintf(
+						"DMA.raiseHLDA() :: No DMA read handler for channel %u."
+						, idx_channel
+					));
+				}
+				val = mem.readPhysical(addrPhysical, 2);
+				fn.call(thisObj, val);
+			}
 		// Verify
 		} else if ( channel.mode.typeTransfer === 0 ) {
 			// TODO
