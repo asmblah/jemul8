@@ -1181,9 +1181,9 @@ define([
             //ret = ::write(state.media[drive].fd, (bx_ptr_t) buffer, bytes);
             ret = Buffer.copy(
                 buffer
-                , offset
-                , state.media[ drive ].data
                 , 0
+                , state.media[ drive ].data
+                , offset
                 , bytes
             );
             
