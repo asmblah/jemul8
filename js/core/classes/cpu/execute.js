@@ -375,6 +375,7 @@ define([
             setFlags(this, cpu, val1, val2, (val1 - val2) & this.operand1.mask);
         // Compare and Exchange (486+)
         }, "CMPXCHG": function ( cpu ) {
+            debugger;
             util.panic("CMPXCHG :: This needs to be more efficient");
             
             var reg_acc = cpu.accumulator[ this.operand1.size ]
