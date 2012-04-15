@@ -413,6 +413,9 @@ define([
             }
             // Do not store result of subtraction; only flags
             setFlags(this, cpu, val1, val2, res);
+        // Get Processor identification information
+        }, "CPUID": function ( cpu ) {
+            util.panic("Execute (CPUID) :: unsupported");
         // Convert Word to Dword (CWD), or Dword to Quadword (CDQ)
         }, "CWD": function ( cpu ) {
             // Sign-extend AX into DX:AX
