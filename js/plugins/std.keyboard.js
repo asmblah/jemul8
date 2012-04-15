@@ -34,7 +34,7 @@ define([
 	
 	// Convert a DOM keyCode to a key index
 	function toKeyIndex( keyCode ) {
-        //$("<div>").text(keyCode).insertBefore($("canvas"));
+        $("<div>").text(keyCode).insertBefore($("canvas"));
         
 		switch ( keyCode ) {
 		case 8:
@@ -45,9 +45,17 @@ define([
 			return Scancode.getKeyIndex("KEY_SHIFT_L");
 		case 32:
 			return Scancode.getKeyIndex("KEY_SPACE");
+		case 37:
+			return Scancode.getKeyIndex("KEY_LEFT");
+		case 38:
+			return Scancode.getKeyIndex("KEY_UP");
+		case 39:
+			return Scancode.getKeyIndex("KEY_RIGHT");
+		case 40:
+			return Scancode.getKeyIndex("KEY_DOWN");
         case 123:
             return Scancode.getKeyIndex("KEY_F12");
-        case 191:
+        case 190:
             return Scancode.getKeyIndex("KEY_PERIOD");
 		// Other ANSI key
 		default:
