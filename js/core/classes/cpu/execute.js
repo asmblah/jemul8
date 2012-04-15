@@ -336,16 +336,16 @@ define([
                         val1 = this.operand1.read();
                         val2 = this.operand2.read();
                         
+                        esi += delta;
+                        edi += delta;
+                        SI.set(esi);
+                        DI.set(edi);
+                        
                         // Stop if values are not equal
                         if ( val2 !== val1 ) {
                             --len;
                             break;
                         }
-                        
-                        esi += delta;
-                        edi += delta;
-                        SI.set(esi);
-                        DI.set(edi);
                     }
                 // Repeat while not equal, max CX times
                 } else if ( this.repeat === "#REPNE" ) {
@@ -353,16 +353,16 @@ define([
                         val1 = this.operand1.read();
                         val2 = this.operand2.read();
                         
+                        esi += delta;
+                        edi += delta;
+                        SI.set(esi);
+                        DI.set(edi);
+                        
                         // Stop if values are equal
                         if ( val2 === val1 ) {
                             --len;
                             break;
                         }
-                        
-                        esi += delta;
-                        edi += delta;
-                        SI.set(esi);
-                        DI.set(edi);
                     }
                 } else {
                     util.problem("Execute (SCAS) :: invalid string repeat operation/prefix.");
