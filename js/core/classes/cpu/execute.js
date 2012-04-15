@@ -489,8 +489,7 @@ define([
             }
         // Make Stack Frame (80188+)
         }, "ENTER": function ( cpu ) {
-            var operandSizeAttr = this.operandSizeAttr;
-            var operandSize = operandSizeAttr ? 4 : 2;
+            var operandSize = this.operandSizeAttr ? 4 : 2;
             var stackSizeAttr = cpu.SS.cache.default32BitSize;
             var BP = (stackSizeAttr ? cpu.EBP : cpu.BP);
             var SP = (stackSizeAttr ? cpu.ESP : cpu.SP);
@@ -498,57 +497,32 @@ define([
             var imm16 = this.operand1.read();
             var level = this.operand2.read();
             var frame_ptr;
+            var bp = BP.get();
             
             level &= 0x1F; // Between 0 and 31
             
-            cpu.pushStack(BP.get(), stackSize);
+            cpu.pushStack(bp, stackSize);
             frame_ptr = SP.get();
             
-            if ( stackSizeAttr ) {
-                var ebp = BP.get(); // Use temp copy for case of exception.
-                
-                if ( level > 0 ) {
-                    // Do level-1 times
-                    while ( --level ) {
-                        ebp -= 2;
-                        var temp = cpu.SS.readSegment(cpu.EBP.get(), operandSize);
-                        cpu.pushStack(temp, operandSize);
-                    }
-                    
-                    // Push frame pointer
-                    cpu.pushStack(frame_ptr, operandSize);
+            if ( level > 0 ) {
+                // Do level-1 times
+                while ( --level ) {
+                    bp -= 2;
+                    var temp = cpu.SS.readSegment(bp, operandSize);
+                    cpu.pushStack(temp, operandSize);
                 }
                 
-                cpu.ESP.set(cpu.ESP.get() - imm16);
-                
-                // ENTER finishes with memory write check on the final stack pointer
-                // the memory is touched but no write actually occurs
-                // emulate it by doing RMW read access from SS:ESP
-                //read_RMW_virtual_word(BX_SEG_REG_SS, ESP);
-                cpu.SS.readSegment(cpu.ESP.get(), operandSize);
-            } else {
-                var bp = BP.get();
-                
-                if ( level > 0 ) {
-                    // Do level-1 times
-                    while ( --level ) {
-                        bp -= 2;
-                        var temp = cpu.SS.readSegment(cpu.BP.get(), operandSize);
-                        cpu.pushStack(temp, operandSize);
-                    }
-                    
-                    // Push frame pointer
-                    cpu.pushStack(frame_ptr, operandSize);
-                }
-                
-                cpu.SP.set(cpu.SP.get() - imm16);
-                
-                // ENTER finishes with memory write check on the final stack pointer
-                // the memory is touched but no write actually occurs
-                // emulate it by doing RMW read access from SS:SP
-                //read_RMW_virtual_word_32(BX_SEG_REG_SS, SP);
-                cpu.SS.readSegment(cpu.SP.get(), operandSize);
+                // Push frame pointer
+                cpu.pushStack(frame_ptr, operandSize);
             }
+            
+            SP.set(SP.get() - imm16);
+            
+            // ENTER finishes with memory write check on the final stack pointer
+            // the memory is touched but no write actually occurs
+            // emulate it by doing RMW read access from SS:(E)SP
+            //read_RMW_virtual_word_32(BX_SEG_REG_SS, (E)SP);
+            cpu.SS.readSegment(SP.get(), operandSize);
             
             BP.set(frame_ptr);
         // Escape
