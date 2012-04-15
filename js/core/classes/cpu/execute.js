@@ -108,7 +108,7 @@ define([
             this.operand1.write(res);
             
             setFlags(this, cpu, val1, val2, res);
-        // Adjusted Requested Privilege Level of Selector ( 286+ Protected Mode )
+        // Adjusted Requested Privilege Level of Selector (286+ Protected Mode)
         }, "ARPL": function ( cpu ) {
             util.panic("Execute (ARPL) :: No Protected Mode support yet.");
             return;
@@ -121,13 +121,13 @@ define([
             } else {
                 cpu.ZF.clear();
             }
-        // Array Index Bound Check ( 80188+ )
-        //    Based on http://siyobik.info/index.php?module=x86&id=18
+        // Array Index Bound Check (80188+)
+        //  Based on http://siyobik.info/index.php?module=x86&id=18
         }, "BOUND": function ( cpu ) {
             util.panic("Execute (BOUND) :: No Array bounds support yet.");
         // Bit Scan Forward (386+)
-        //    TODO: how to handle other flags? Intel docs say undefined,
-        //    but other sources say should be handled just as for other insns
+        //  TODO: how to handle other flags? Intel docs say undefined,
+        //  but other sources say should be handled just as for other insns
         }, "BSF": function ( cpu ) {
             var sizeBits = this.operand1.size * 8;
             var val = this.operand2.read();
@@ -141,27 +141,28 @@ define([
                     return;
                 }
             }
-            // At this point, dest operand's value is undefined ( no set bit found ),
-            //    so we will use zero ( and flag explicitly with Zero Flag )
+            // At this point, dest operand's value is undefined (no set bit found),
+            //  so we will use zero (and flag explicitly with Zero Flag)
             this.operand1.write(0x00);    //this.operand1.reg.set(0x00);
             cpu.ZF.set();
         // Bit Scan Reverse (386+)
         }, "BSR": function ( cpu ) {
+            var idx_bit;
             var sizeBits = this.operand1.size * 8;
             var val = this.operand2.read();
             
             // Find Most Significant Bit set
-            for ( var idx_bit = sizeBits - 1 ; idx_bit >= 0 ; --idx_bit ) {
+            for ( idx_bit = sizeBits - 1 ; idx_bit >= 0 ; --idx_bit ) {
                 // Found a set bit
                 if ( (val >> idx_bit) & 0x01 ) {
-                    this.operand1.write(idx_bit);    //this.operand1.reg.set(idx_bit);
+                    this.operand1.write(idx_bit);
                     cpu.ZF.clear();
                     return;
                 }
             }
-            // At this point, dest operand's value is undefined ( no set bit found ),
-            //    so we will use zero ( and flag explicitly with Zero Flag )
-            this.operand1.write(0x00);    //this.operand1.reg.set(0x00);
+            // At this point, dest operand's value is undefined (no set bit found),
+            //  so we will use zero (and flag explicitly with Zero Flag)
+            this.operand1.write(0x00);
             cpu.ZF.set();
         // Byte Swap (486+)
         //    - Reverses the byte order of a 32-bit register.
@@ -169,7 +170,7 @@ define([
             var val = this.operand1.read();
             
             // Bits 0 through 7 are swapped with bits 24 through 31,
-            //    and bits 8 through 15 are swapped with bits 16 through 23.
+            //  and bits 8 through 15 are swapped with bits 16 through 23.
             this.operand1.write(
                 ((val & 0xFF000000) >> 24)
                 | ((val & 0xFF0000) >> 8)
