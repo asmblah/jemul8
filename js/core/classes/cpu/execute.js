@@ -530,20 +530,22 @@ define([
         }, "ESC": function ( cpu ) {
             util.panic("Execute (ESC) :: unsupported");
         // Halt cpu
-        //    ( Or jemul8 Hypervisor escape - see notes below )
+        //  (Or jemul8 Hypervisor escape - see notes below)
         }, "HLT": function ( cpu ) {
             /* ========= Hypervisor escape ========= */
             /*
-             *    This command has been "overloaded" to facilitate the high-level
-             *    emulation of BIOS interrupts; the entries in the IDT MUST point
-             *    to valid code Instruction addresses, because real-mode programs
-             *    are free to "hook" Interrupts by reading the current Int CS:IP, storing
-             *    it in their own memory, replacing the entry with the address of their
-             *    own handler and calling the previous handler at the end of their own.
-             *    HLT is used as it is a reasonably rare Instruction, so the extra overhead
-             *    of handling Hypervisor escaping should not cause a problem.
-             
-            var func_interruptHandler;
+             * This command has been "overloaded" to facilitate the high-level
+             *  emulation of BIOS interrupts; the entries in the IDT MUST point
+             *  to valid code instruction addresses, because real-mode programs
+             *  are free to "hook" Interrupts by reading the current Int CS:IP, storing
+             *  it in their own memory, replacing the entry with the address of their
+             *  own handler and calling the previous handler at the end of their own.
+             *  HLT is used as it is a reasonably rare instruction, and when it is called
+             *  a delay is obviously expected so the extra overhead
+             *  of handling Hypervisor escaping should not cause a problem.
+             */
+
+            /*var func_interruptHandler;
             // Look up this Instruction's address in the list of Hypervisor calls
             //    to internal Interrupt handlers
             if ( func_interruptHandler = cpu.arr_mapAbsoluteOffset_ToHLEInterruptHandler[this.offset] ) {
@@ -552,6 +554,7 @@ define([
                 return;
             }*/
             /* ========= /Hypervisor escape ========= */
+
             /**** If we reached this point, it was just a normal HLT command ****/
             
             util.debug("CPU HLT command encountered");
@@ -751,7 +754,10 @@ define([
         // Software-generated interrupt
         }, "INT": function ( cpu ) {
             // Should this ever support 32-bit?
-            if ( this.operandSizeAttr ) { debugger; }
+            if ( this.operandSizeAttr ) {
+                jemul8.warning("32-bit interrupt handling not tested yet");
+                debugger;
+            }
             
             cpu.interrupt(
                 this.operand1.read()      // Vector
@@ -782,9 +788,9 @@ define([
         }, "INVLPG": function ( cpu ) {
             util.panic("Execute (INVLPG) :: Unsupported - no paging support yet");
         // Perform a far return after Interrupt handling
-        //    NB: not used by internal Hypervisor Interrupt Service Routines, for speed
-        //    as (E)FLAGS register never needs to be restored after their exec ( it is unaffected )
-        //    Based on http://pdos.csail.mit.edu/6.828/2005/readings/i386/IRET.htm
+        //  NB: not used by internal Hypervisor Interrupt Service Routines, for speed
+        //  as (E)FLAGS register never needs to be restored after their exec (it is unaffected)
+        // - Based on http://pdos.csail.mit.edu/6.828/2005/readings/i386/IRET.htm
         }, "IRET": function ( cpu ) {
             cpu.interruptReturn(this.operandSizeAttr);
         /* ======= Conditional Jump Instructions ======= */
@@ -1142,6 +1148,7 @@ define([
                 SI.set(esi + delta);
             // Repeat CX times
             } else if ( this.repeat === "#REP/REPE" ) {
+                util.warning("REP LODS - Pointless instruction?");
                 debugger;
                 
                 len = CX.get() + 1;
@@ -1157,34 +1164,6 @@ define([
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
                 CX.set(len);
-                
-                /*return;
-                
-                len = CX.get() * operandSize;
-                esi = SI.get();
-                // Direction Flag set, decrement (scan in reverse direction)
-                if ( cpu.DF.get() ) {
-                    esiEnd = esi - len;
-                    for ( ; esi >= esiEnd ; esi -= operandSize ) {
-                        SI.set(esi);
-                        // Load String Character (Operand 1 is part
-                        //    of Accumulator, Operand 2
-                        //    will be a memory pointer using (E)SI)
-                        this.operand1.write(this.operand2.read());
-                    }
-                // Direction Flag clear, increment (scan in forward direction)
-                } else {
-                    esiEnd = esi + len;
-                    for ( ; esi < esiEnd ; esi += operandSize ) {
-                        SI.set(esi);
-                        // Load String Character (Operand 1 is part
-                        //    of Accumulator, Operand 2
-                        //    will be a memory pointer using (E)SI)
-                        this.operand1.write(this.operand2.read());
-                    }
-                }
-                SI.set(esi);
-                CX.set(0);*/
             } else {
                 util.problem("Execute (LODS) ::"
                     + " invalid string repeat operation/prefix.");
@@ -1239,12 +1218,6 @@ define([
             util.panic("Execute (LTR) :: unsupported");
         // Move (Copy) data
         }, "MOV": function ( cpu ) {
-            //if ( this.operand1.getPointerAddress() === 0x46C
-            //    && this.operand2.reg === cpu.ECX
-            //) {
-            //    debugger;
-            //}
-            
             this.operand1.write(this.operand2.read());
         // Move Data from String to String ( Byte, Word or Dword )
         //    TODO: could be polymorphic, one func for each string-repeat type
@@ -2207,26 +2180,6 @@ define([
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
                 CX.set(len);
-                
-                /*len = CX.get() * operandSize;
-                edi = DI.get();
-                // Direction Flag set, decrement (scan in reverse direction)
-                if ( cpu.DF.get() ) {
-                    ediEnd = edi - len;
-                    for ( ; edi >= ediEnd ; edi -= operandSize ) {
-                        DI.set(edi);
-                        this.operand1.write(this.operand2.read());
-                    }
-                // Direction Flag clear, increment (scan in forward direction)
-                } else {
-                    ediEnd = edi + len;
-                    for ( ; edi < ediEnd ; edi += operandSize ) {
-                        DI.set(edi);
-                        this.operand1.write(this.operand2.read());
-                    }
-                }
-                DI.set(edi);
-                CX.set(0);*/
             } else {
                 // Otherwise must have been #REPNE (#REPNZ)
                 util.problem("Instruction.execute() :: STOS - #REPNE invalid");
