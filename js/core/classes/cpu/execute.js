@@ -1454,18 +1454,16 @@ define([
                 cpu.EAX.set(cpu.popStack(4));
             }
         // Pop Stack into FLAGS / EFLAGS Register
+        //  POPF:  Pop 16-bit
+        //  POPFD: Pop 32-bit
         }, "POPF": function ( cpu ) {
             // NB: bits 16 and 17 ( VM & RF ) should not be affected by this
             //    (TODO: mask... ^!)
             //debugger;
-            
-            // POPF
-            if ( !this.operandSizeAttr ) {
-                cpu.FLAGS.set(cpu.popStack(2));
-            // POPFD
-            } else {debugger;
-                cpu.EFLAGS.set(cpu.popStack(4));
-            }
+            var operandSize = this.operandSizeAttr ? 4 : 2;
+
+            // Always set all of EFLAGS (zero out high word if POPF)
+            cpu.EFLAGS.set(cpu.popStack(operandSize));
         // Push data onto stack top (SS:SP)
         }, "PUSH": function ( cpu ) {
             if ( this.operand1.addressSizeAttr ) { debugger; }
