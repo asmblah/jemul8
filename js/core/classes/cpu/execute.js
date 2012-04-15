@@ -17,9 +17,9 @@ define([
     }
     Execute.functions = {
         // ASCII adjust after Addition
-        //        Based on http://siyobik.info/index.php?module=x86&id=1
-        //    TODO: how to handle other flags? Intel docs say undefined,
-        //    but other sources say should be handled just as for other insns
+        // - Based on http://siyobik.info/index.php?module=x86&id=1
+        // TODO: how to handle other flags? Intel docs say undefined,
+        //       but other sources say should be handled just as for other insns
         "AAA": function ( cpu ) {
             debugger;
             var AL = cpu.AL.get();
@@ -165,7 +165,7 @@ define([
             this.operand1.write(0x00);
             cpu.ZF.set();
         // Byte Swap (486+)
-        //    - Reverses the byte order of a 32-bit register.
+        // - Reverses the byte order of a 32-bit register.
         }, "BSWAP": function ( cpu ) {
             var val = this.operand1.read();
             
@@ -180,8 +180,7 @@ define([
         // Bit Test (386+)
         }, "BT": function ( cpu ) {
             // Read bit at specified offset & store in Carry Flag
-            cpu.CF.setBin((this.operand1.read()
-                >> this.operand2.read()) & 0x01);
+            cpu.CF.setBin((this.operand1.read() >> this.operand2.read()) & 0x01);
         // Bit Test and Compliment (386+)
         }, "BTC": function ( cpu ) {
             var offsetBit = this.operand2.read();
