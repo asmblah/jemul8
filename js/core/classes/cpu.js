@@ -827,7 +827,7 @@ define([
                     //if (this.IP.get() === 0x0A84) { debugger; } // "nibble = " in "X or x"
                     //if (this.IP.get() === 0xA880) { insn.execute=function(){}; } // [call BX_INFO Booting from %x:%x]
                     //if (this.IP.get() === 0xA880) { debugger; }
-                    if (this.IP.get() === 0xA8A3) { debugger; } // [iret]
+                    //if (this.IP.get() === 0xA8A3) { debugger; } // [iret]
                     
                     //if (offset === 0xAE12) { debugger; }
                     //if (this.IP.get() === 0xAE1A) { debugger; } // [jmp int13_diskette_function]
