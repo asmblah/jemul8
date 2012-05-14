@@ -11,10 +11,10 @@ define([
     , "./selector"
     //, "../memory/accessor"
     , "./descriptor"
-], function ( util, Register, Selector, /*Accessor, */Descriptor ) { "use strict";
+], function (util, Register, Selector, /*Accessor, */Descriptor) { "use strict";
     
     // Segment Register (eg. CS, DS, ES, FS, GS) class constructor
-    function SegRegister( name, size ) {
+    function SegRegister(name, size) {
         util.assert(this && (this instanceof SegRegister)
             , "SegRegister constructor :: error - not called properly"
         );
@@ -36,7 +36,7 @@ define([
     util.inherit(SegRegister, Register); // Inheritance
     util.extend(SegRegister.prototype, {
         // Read a data quantum from this segment by virtual address/offset
-        readSegment: function ( addrVirtual, size ) {
+        readSegment: function (addrVirtual, size) {
             //return this.accessor.read(addrVirtual, size);
             
             var machine = this.cpu.machine;
@@ -46,7 +46,7 @@ define([
             var addrLinear = descriptor.base + addrVirtual;
             var cpl = cpu.getCPL();
             
-            if ( addrVirtual >= descriptor.limitScaled ) {
+            if (addrVirtual > descriptor.limitScaled) {
                 debugger;
                 
                 util.problem("SegRegister.readSegment() :: Segment limit violation");
@@ -55,7 +55,7 @@ define([
             
             return machine.mem.readLinear(addrLinear, size, cpl);
         // Write data quantum to this segment by virtual address/offset
-        }, writeSegment: function ( addrVirtual, val, size ) {
+        }, writeSegment: function (addrVirtual, val, size) {
             //this.accessor.write(addrVirtual, val, size);
             
             var machine = this.cpu.machine;
@@ -65,7 +65,7 @@ define([
             var addrLinear = descriptor.base + addrVirtual;
             var cpl = cpu.getCPL();
             
-            if ( addrVirtual >= descriptor.limitScaled ) {
+            if (addrVirtual > descriptor.limitScaled) {
                 util.problem("SegRegister.writeSegment() :: Segment limit violation");
                 cpu.exception(this.getExceptionVector(), 0);
             }
@@ -74,7 +74,7 @@ define([
         // Translates a Virtual address to a Linear one by segmentation
         //  (NB: Not used in .read/writeSegment() as no handling is performed
         //  for memory protection etc.)
-        }, virtualToLinear: function ( addrVirtual ) {
+        }, virtualToLinear: function (addrVirtual) {
             return this.cache.base + addrVirtual;
         // Sets the Segment register back to its startup state
         }, reset: function () {
@@ -95,14 +95,14 @@ define([
             cache.use4KPages = false;
             cache.default32BitSize = false;
             
-            if ( this === this.cpu.CS ) {
+            if (this === this.cpu.CS) {
                 cache.base = 0xFFFF0000;
             }
             
             // Clear raw value too
             this.value = 0;
         // Loads a null selector into the segreg
-        }, loadNullSelector: function ( val ) {
+        }, loadNullSelector: function (val) {
             util.assert((val & 0xFFFC) == 0
                 , "SegRegister.loadNullSelector() :: Invalid value"
             );
@@ -126,7 +126,7 @@ define([
             cache.available = 0;
         // Segment Registers need special handling when set,
         //  eg. parsing selector & mapping
-        }, set: function ( val ) {
+        }, set: function (val) {
             var machine = this.cpu.machine;
             var cpu = machine.cpu;
             var mem = machine.mem;
@@ -143,23 +143,23 @@ define([
             
             // When (C)ode (S)egment is changed, eg. for a [far jmp],
             //  Instruction cache needs to be flushed
-            if ( this === cpu.CS ) {
+            if (this === cpu.CS) {
                 cpu.flushInstructionCaches();
             }
             
             // Protected mode
-            if ( cpu.PE.get() && !cpu.VM.get() ) {
+            if (cpu.PE.get() && !cpu.VM.get()) {
                 // Find out the Current Privilege Level
                 //  for enforcing memory protection
                 cpl = cpu.getCPL();
                 debugger;
                 // Loading Segment Selector is special
-                if ( this === cpu.SS ) {
+                if (this === cpu.SS) {
                     // Parse raw selector into components
                     selector = Selector.parse(val);
                     
                     // Null selector
-                    if ( (val & 0xFFFC) === 0 ) {
+                    if ((val & 0xFFFC) === 0) {
                         util.problem("SS.set() :: Loading null selector");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
@@ -168,7 +168,7 @@ define([
                     rawDescriptor = mem.fetchRawDescriptor(selector, util.GP_EXCEPTION);
                     
                     /* selector's RPL must = CPL, else #GP(selector) */
-                    if ( selector.rpl != cpl ) {
+                    if (selector.rpl != cpl) {
                         util.problem("SS.set() :: RPL != CPL");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
@@ -176,7 +176,7 @@ define([
                     // Parse raw descriptor into components
                     descriptor = Descriptor.parse(rawDescriptor);
                     
-                    if ( descriptor.isValid() == false ) {
+                    if (descriptor.isValid() == false) {
                         util.problem("SS.set() :: Valid bit cleared");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
@@ -191,13 +191,13 @@ define([
                     }
                     
                     // DPL in the AR byte must equal CPL else #GP(selector)
-                    if ( descriptor.dpl != cpl ) {
+                    if (descriptor.dpl != cpl) {
                         util.problem("SS.set() :: DPL != CPL");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
                     
                     // Segment must be marked PRESENT else #SS(selector)
-                    if ( descriptor.isPresent() == false ) {
+                    if (descriptor.isPresent() == false) {
                         util.problem("SS.set() :: Not present");
                         cpu.exception(util.SS_EXCEPTION, val & 0xFFFC);
                     }
@@ -215,7 +215,7 @@ define([
                 // DS, ES, FS or GS
                 } else {
                     // Null selector
-                    if ( (val & 0xFFFC) == 0 ) {
+                    if ((val & 0xFFFC) == 0) {
                         this.loadNullSelector(val);
                         return;
                     }
@@ -229,7 +229,7 @@ define([
                     // Parse raw descriptor into components
                     descriptor = Descriptor.parse(rawDescriptor);
                     
-                    if ( descriptor.isValid() == false ) {
+                    if (descriptor.isValid() == false) {
                         util.problem(util.sprintf(
                             "load_seg_reg(%s, 0x%04x): invalid segment"
                             , this.getName(), val
@@ -268,7 +268,7 @@ define([
                     }
                     
                     // Segment must be marked PRESENT else #NP(selector)
-                    if ( descriptor.isPresent() == false ) {
+                    if (descriptor.isPresent() == false) {
                         util.problem(util.sprintf(
                             "load_seg_reg(%s, 0x%04x): segment not present"
                             , this.getName(), val
@@ -313,7 +313,7 @@ define([
                 descriptor.present = true;  // Segment always present/resident
                 
                 // V8086-mode
-                if ( cpu.VM.get() ) {
+                if (cpu.VM.get()) {
                     util.warning("No V8086 support yet");
                     
                     descriptor.type = util.DESC_DATA_READ_WRITE_ACCESSED;
@@ -328,7 +328,7 @@ define([
             }
         // Stack exceptions are different
         }, getExceptionVector: function () {
-            if ( this === this.cpu.SS ) {
+            if (this === this.cpu.SS) {
                 return util.SS_EXCEPTION;
             } else {
                 return util.GP_EXCEPTION;

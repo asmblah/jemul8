@@ -12,7 +12,7 @@ define([
 	, "../iodev"
 	, "../register"
 	, "../http"
-], function ( util, IODevice, Register, HTTP ) { "use strict";
+], function (util, IODevice, Register, HTTP) { "use strict";
 	
 	/* ====== Private ====== */
 	
@@ -42,7 +42,7 @@ define([
 	/* ==== /Const ==== */
 	
 	// Constructor / pre-init ( ie. from bx_cmos_c::bx_cmos_c(void) )
-	function CMOS( machine ) {
+	function CMOS(machine) {
 		util.assert(this && (this instanceof CMOS)
 			, "CMOS constructor :: error - not called properly"
 		);
@@ -71,8 +71,8 @@ define([
 		list_reg = state.list_reg;
 		
 		/* ==== Set up registers ==== */
-		for ( idx = 0 ; idx < 128 ; ++idx ) {
-			list_reg[ idx ] = new Register( "R_" + idx, 1 );
+		for (idx = 0 ; idx < 128 ; ++idx) {
+			list_reg[ idx ] = new Register("R_" + idx, 1);
 		}
 		
 		state.regSec = list_reg[ REG_SEC ];
@@ -150,7 +150,7 @@ define([
 		, REG_IBM_CENTURY_BYTE:			0x32  // Also has some alternative uses
 		, REG_IBM_PS2_CENTURY_BYTE:		0x37  // Also has some alternative uses
 	});*/
-	CMOS.prototype.init = function ( done, fail ) {
+	CMOS.prototype.init = function (done, fail) {
 		var machine = this.machine;
 		var state = this.state;
 		
@@ -166,10 +166,10 @@ define([
 		//), 0xE0000, 0);
 		HTTP.get(
 			"docs/bochs-20100605/bios/BIOS-bochs-legacy"
-			, function ( path, buffer ) {
+			, function (path, buffer) {
 				machine.mem.loadROM(buffer, 0xF0000, 0);
 				done();
-			}, function ( path ) {
+			}, function (path) {
 				fail();
 			}
 		);
@@ -192,7 +192,7 @@ define([
 		
 		/* ==== Load CMOS ==== */
 		// From image file
-		if ( 0 ) {
+		if (0) {
 			// Not yet supported.
 		// Values generated
 		} else {
@@ -214,7 +214,7 @@ define([
         var state = this.state;
         
         // Continuous, not active
-		if ( state.timerPeriodic === null ) {	
+		if (state.timerPeriodic === null) {	
 			state.timerPeriodic = machine.registerTimer(
                 handlePeriodicTimer, this  // Callback & "this"
                 , 1000000                  // Interval in us (1 sec)
@@ -224,7 +224,7 @@ define([
             );
 		}
         // Continuous, not active
-		if ( state.timerOneSecond === null ) {
+		if (state.timerOneSecond === null) {
 			state.timerOneSecond = machine.registerTimer(
                 handleOneSecondTimer, this // Callback & "this"
                 , 1000000                  // Interval in us (1 sec)
@@ -234,7 +234,7 @@ define([
             );
 		}
         // One-shot (not continuous), not active
-		if ( state.timerUIP === null ) {
+		if (state.timerUIP === null) {
 			state.timerUIP = machine.registerTimer(
                 handleUIPTimer, this       // Callback & "this"
                 , 244                      // Interval in us (244us)
@@ -244,7 +244,7 @@ define([
             );
 		}
     };
-	CMOS.prototype.reset = function ( type ) {
+	CMOS.prototype.reset = function (type) {
 		var state = this.state;
 		
 		state.addrMemory = 0;
@@ -286,13 +286,13 @@ define([
 		this.updateTimeVal();
 		this.CRA_Changed();
 	};
-	CMOS.prototype.getReg = function ( idx ) {
+	CMOS.prototype.getReg = function (idx) {
 		return this.state.list_reg[ idx ].get();
 	};
-	CMOS.prototype.setReg = function ( idx, val ) {
+	CMOS.prototype.setReg = function (idx, val) {
 		this.state.list_reg[ idx ].set(val);
 	};
-	CMOS.prototype.installEquipment = function ( bit ) {
+	CMOS.prototype.installEquipment = function (bit) {
 		this.state.regEquipmentByte.set(
 			this.state.regEquipmentByte.get() | bit);
 	};
@@ -318,9 +318,9 @@ define([
 		if (state.rtc_mode_12hour) {
 			pm_flag = this.getReg(REG_HOUR) & 0x80;
 			val_bin = bcd_to_bin(this.getReg(REG_HOUR) & 0x70, state.rtc_mode_binary);
-			if ( (val_bin < 12) & (pm_flag > 0) ) {
+			if ((val_bin < 12) & (pm_flag > 0)) {
 				val_bin += 12;
-			} else if ( (val_bin == 12) & (pm_flag == 0) ) {
+			} else if ((val_bin == 12) & (pm_flag == 0)) {
 				val_bin = 0;
 			}
 			tm_hour = val_bin;
@@ -351,7 +351,7 @@ define([
 	CMOS.prototype.checksum = function () {
 		var state = this.state;
 		var sum = 0, idx;
-		for ( idx = 0x10 ; idx <= 0x2D ; ++idx ) {
+		for (idx = 0x10 ; idx <= 0x2D ; ++idx) {
 			sum += this.list_reg[ idx ].get();
 		}
 		// High byte of checksum
@@ -371,7 +371,7 @@ define([
 		//time_calendar = localtime(& BX_CMOS_THIS s.timeval);
 		
 		// ???
-		function x( t, m ) {
+		function x(t, m) {
 			var a = (new Date( t.getFullYear(), 0, m, 0, 0, 0, 0 )).toUTCString();
 			return t - new Date( a.slice(0, a.lastIndexOf(' ') - 1) );
 		}
@@ -395,7 +395,7 @@ define([
 		this.setReg(REG_MIN, bin_to_bcd(tm_min, state.rtc_mode_binary));
 		
 		// [Bochs] update hours
-		if ( state.rtc_mode_12hour ) {
+		if (state.rtc_mode_12hour) {
 			hour = tm_hour;
 			val_bcd = (hour > 11) ? 0x80 : 0x00;
 			if (hour > 11) hour -= 12;
@@ -442,17 +442,17 @@ define([
 		dcc = (state.regStatA.get() >> 4) & 0x07; // Next 3 bits
 		
 		// No Periodic Interrupt Rate when 0, deactivate timer
-		if ( (nibble === 0) || ((dcc & 0x06) === 0) ) {
+		if ((nibble === 0) || ((dcc & 0x06) === 0)) {
 			state.timerPeriodic.deactivate();
 			state.intervalPeriodicUsecs = -1;	// (Effectively) max value
 		} else {
 			// Values 0001b & 0010b are the same as 1000b & 1001b
-			if ( nibble <= 2 ) { nibble += 7; }
+			if (nibble <= 2) { nibble += 7; }
 			
 			state.intervalPeriodicUsecs = 1000000 / (32768 / (1 << (nibble - 1)));
 			
 			// Activate timer if Periodic Interrupt Enable bit set
-			if ( state.regStatB.get() & 0x40 ) {
+			if (state.regStatB.get() & 0x40) {
 				state.timerPeriodic.activate(state.intervalPeriodicUsecs, true);
 			} else {
 				state.timerPeriodic.deactivate();
@@ -460,22 +460,22 @@ define([
 		}
 	};
 	
-	function handlePeriodicTimer( ticksNow ) {
+	function handlePeriodicTimer(ticksNow) {
 		var machine = this.machine;
         var state = this.state;
 		
 		// Periodic interrupts are enabled: trip IRQ 8
 		//	and update status register C
-		if ( state.regStatB.get() & 0x40 ) {
+		if (state.regStatB.get() & 0x40) {
 			state.regStatC.set(state.regStatC.get() | 0xC0); // Interrupt Request, Periodic Int
 			machine.pic.raiseIRQ(8);
 		}
 	}
-	function handleOneSecondTimer( ticksNow ) {
+	function handleOneSecondTimer(ticksNow) {
 		var state = this.state;
 		
 		// Divider Chain reset - RTC stopped
-		if ( (state.regStatA.get() & 0x60) === 0x60 ) { return; }
+		if ((state.regStatA.get() & 0x60) === 0x60) { return; }
 		
 		// Update internal time/date buffer
 		// NB: Bochs only advances the time one second here -
@@ -485,7 +485,7 @@ define([
 		
 		// Don't update CMOS user copy of time/date if CRB bit7 is 1
 		// - Nothing else to do
-		if ( state.regStatB.get() & 0x80 ) { return; }
+		if (state.regStatB.get() & 0x80) { return; }
 		
 		state.regStatA.set(state.regStatA.get() | 0x80); // Set UIP bit
 		
@@ -493,7 +493,7 @@ define([
 		//bx_pc_system.activate_timer(state.uip_timer_index, 244, 0);
 		state.timerUIP.activate(244, false);
 	}
-	function handleUIPTimer( ticksNow ) {
+	function handleUIPTimer(ticksNow) {
 		var machine = this.machine;
 		var state = this.state;
 		var matchAlarm;
@@ -501,35 +501,35 @@ define([
 		this.updateClock();
 		
 		// If updates interrupts are enabled, trip IRQ 8 & update status reg C
-		if ( state.regStatB.get() & 0x10 ) {
+		if (state.regStatB.get() & 0x10) {
 			// Interrupt Request, Update Ended
 			state.regStatC.set(state.regStatC.get() | 0x90);
 			machine.pic.raiseIRQ(8);
 		}
 		
 		// Compare CMOS user copy of date/time to alarm date/time here
-		if ( state.regStatB.get() & 0x20 ) {
+		if (state.regStatB.get() & 0x20) {
 			// Alarm interrupts enabled
 			matchAlarm = true;
-			if ( (state.regSecAlarm.get() & 0xC0) != 0xC0 ) {
+			if ((state.regSecAlarm.get() & 0xC0) != 0xC0) {
 				// Seconds alarm is not in "don't care" mode
-				if ( state.regSec.get() != state.regSecAlarm.get() ) {
+				if (state.regSec.get() != state.regSecAlarm.get()) {
 					matchAlarm = false;
 				}
 			}
-			if ( (state.regMinAlarm.get() & 0xC0) != 0xC0 ) {
+			if ((state.regMinAlarm.get() & 0xC0) != 0xC0) {
 				// Minutes alarm is not in "don't care" mode
-				if ( state.regMin.get() != state.regMinAlarm.get() ) {
+				if (state.regMin.get() != state.regMinAlarm.get()) {
 					matchAlarm = false;
 				}
 			}
-			if ( (state.regHourAlarm.get() & 0xC0) != 0xC0 ) {
+			if ((state.regHourAlarm.get() & 0xC0) != 0xC0) {
 				// Hour alarm is not in "don't care" mode
-				if ( state.regHour.get() != state.regHourAlarm.get() ) {
+				if (state.regHour.get() != state.regHourAlarm.get()) {
 					matchAlarm = false;
 				}
 			}
-			if ( matchAlarm ) {
+			if (matchAlarm) {
 				// Interrupt Request, Alarm Int
 				state.regStatC.set(state.regStatC.get() | 0xA0);
 				machine.pic.raiseIRQ(8);
@@ -538,22 +538,22 @@ define([
 		state.regStatA.set(state.regStatA.get() & 0x7F); // Clear UIP bit
 	}
 	
-	function bcd_to_bin( val, isBinary ) {
+	function bcd_to_bin(val, isBinary) {
 		return isBinary ? val : (((val >> 4) * 10) + (val & 0x0F));
 	}
-	function bin_to_bcd( val, isBinary ) {
+	function bin_to_bcd(val, isBinary) {
 		return isBinary ? val : (((val / 10) << 4) | (val % 10));
 	}
 	
 	// CMOS chip's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		var machine = this.machine;
 		var state = device.state; // "device" will be CMOS
 		var result8; // 8-bit result
 		
 		util.info("CMOS readHandler() :: Read of CMOS register " + util.format("hex", state.addrMemory));
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x0070:
 			// NB: This register is write-only on most machines.
 			util.debug("CMOS readHandler() :: Read of index port 0x70. Returning 0xFF");
@@ -562,7 +562,7 @@ define([
 			// Read from current CMOS memory/register (set by writing to port 0x60)
 			result8 = state.list_reg[ state.addrMemory ].get();
 			// All bits of register C are cleared after a read from that particular register
-			if ( state.addrMemory === REG_STAT_C ) {
+			if (state.addrMemory === REG_STAT_C) {
 				state.regStatC.set(0x00);
 				machine.pic.lowerIRQ(8);
 			}
@@ -573,7 +573,7 @@ define([
 		}
 	}
 	// CMOS chip's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len ) {
+	function writeHandler(device, addr, val, io_len) {
 		var state = device.state; // "device" will be CMOS
 		var dcc;
 		var valCRBPrevious;
@@ -581,7 +581,7 @@ define([
 		util.info("CMOS writeHandler() :: Write to address: "
 			+ util.format("hex", addr) + " = " + util.format("hex", val));
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x0070:	// Assign new current register address
 			// This port is written to in order to specify
 			//	the register for eg. reading (extracts only 1st 7 bits)
@@ -595,7 +595,7 @@ define([
 			// 	(the "& 0x7F")
 			break;
 		case 0x0071:	// Write to current register
-			switch ( state.addrMemory ) {
+			switch (state.addrMemory) {
 			case REG_SEC_ALARM:
 			case REG_MIN_ALARM:
 			case REG_HOUR_ALARM:
@@ -613,8 +613,8 @@ define([
 			case REG_IBM_PS2_CENTURY_BYTE:
 				state.list_reg[ state.addrMemory ].set(val);
 				// Copy writes to IBM_CENTURY to IBM_PS2_CENTURY
-				if ( state.addrMemory === REG_IBM_PS2_CENTURY_BYTE ) { state.regIBMCenturyByte.set(val); }
-				if ( state.regStatB.get() & 0x80 ) {
+				if (state.addrMemory === REG_IBM_PS2_CENTURY_BYTE) { state.regIBMCenturyByte.set(val); }
+				if (state.regStatB.get() & 0x80) {
 					state.timeChange = 1;
 				} else {
 					device.updateTimeVal();
@@ -652,9 +652,9 @@ define([
 				//   1110 250      ms
 				//   1111 500      ms
 				dcc = (val >> 4) & 0x07;
-				if ( (dcc & 0x06) == 0x06 ) {
+				if ((dcc & 0x06) == 0x06) {
 					util.info(("CRA: divider chain RESET"));
-				} else if ( dcc > 0x02 ) {
+				} else if (dcc > 0x02) {
 					util.panic("CRA: divider chain control " + util.format("hex", dcc));
 				}
 				state.regStatA.set(state.regStatA.get() & 0x80);
@@ -687,34 +687,34 @@ define([
 				//   1 = user copy of time is "frozen" allowing time registers
 				//       to be accessed without regard for an occurance of an update
 				//   0 = time updates occur normally
-				if ( val & 0x01 ) {
+				if (val & 0x01) {
 					// Daylight savings unsupported (for now)
 					util.problem("CMOS writeHandler() :: Write status reg B, daylight savings unsupported");
 				}
 				val &= 0xF7; // Bit3 always 0
 				// Note: setting bit 7 clears bit 4
-				if ( val & 0x80 ) {
+				if (val & 0x80) {
 					val &= 0xEF;
 				}
 				valCRBPrevious = state.regStatB.get();
 				state.regStatB.set(val);
-				if ( (valCRBPrevious & 0x02) != (val & 0x02) ) {
+				if ((valCRBPrevious & 0x02) != (val & 0x02)) {
 					state.modeRTC_12Hour = ((val & 0x02) == 0);
 					device.updateClock();
 				}
-				if ( (valCRBPrevious & 0x04) != (val & 0x04) ) {
+				if ((valCRBPrevious & 0x04) != (val & 0x04)) {
 					state.modeRTC_Binary = ((val & 0x04) != 0);
 					device.updateClock();
 				}
-				if ( (valCRBPrevious & 0x40) != (val & 0x40) ) {
+				if ((valCRBPrevious & 0x40) != (val & 0x40)) {
 					// Periodic Interrupt Enabled changed
-					if ( valCRBPrevious & 0x40 ) {
+					if (valCRBPrevious & 0x40) {
 						// Transition from 1 to 0, deactivate timer
 						state.timerPeriodic.deactivate();
 					} else {
 						// Transition from 0 to 1
-						//	( if rate select is not 0, activate timer )
-						if ( (state.regStatA.get() & 0x0F) != 0 ) {
+						//	(if rate select is not 0, activate timer)
+						if ((state.regStatA.get() & 0x0F) != 0) {
 							state.timerPeriodic.activate(state.intervalPeriodicUsecs, true);
 						}
 					}
@@ -739,7 +739,7 @@ define([
 				state.regDiagnosticStatus.set(val);
 				break;
 			case REG_SHUTDOWN_STATUS:
-				switch ( val ) {
+				switch (val) {
 				case 0x00: // Proceed with normal POST (soft reset)
 					util.debug("CMOS writeHandler() :: Reg 0Fh(00): Shutdown action = normal POST");
 					break;
@@ -775,7 +775,7 @@ define([
 						+ " to return to POST (used by POST during protected-mode RAM test).");
 					break;
 				case 0x09: // Return to BIOS extended memory block move
-						// ( interrupt 15h, func 87h was in progress )
+						// (interrupt 15h, func 87h was in progress)
 					util.debug("CMOS writeHandler() :: Reg 0Fh(09): Request to change shutdown action"
 						+ " to return to BIOS extended memory block move.");
 					break;

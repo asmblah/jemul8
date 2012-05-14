@@ -10,12 +10,12 @@ define([
 	, "../iodev"
 	, "../pin"
 	, "../register"
-], function ( util, IODevice, Pin, Register ) { "use strict";
+], function (util, IODevice, Pin, Register) { "use strict";
 	
 	// TODO: Should be a config setting
 	var enableDebug = false;
 	
-	var debug = enableDebug ? function ( msg ) {
+	var debug = enableDebug ? function (msg) {
 		util.debug(msg);
 	} : function () {};
 	
@@ -31,7 +31,7 @@ define([
 	var DMA_MODE_CASCADE   = 3;
 	
 	// Constructor / pre-init
-	function DMA( machine ) {
+	function DMA(machine) {
 		util.assert(this && (this instanceof DMA), "DMA ctor ::"
 			+ " error - constructor not called properly");
 		
@@ -45,13 +45,13 @@ define([
 		this.machine = machine;
 		
 		// Hold Acknowledge
-		this.HLDA = new Pin( "HLDA" );
+		this.HLDA = new Pin("HLDA");
 		// Terminal Count
-		this.TC = new Pin( "TC" );
+		this.TC = new Pin("TC");
 		// 16 Extra page registers (unused, as in Bochs)
 		this.list_regExtraPage = [];
-		for ( idx = 0 ; idx < 16 ; ++idx ) {
-			this.list_regExtraPage[ idx ] = new Register( "EXT_" + idx, 1 );
+		for (idx = 0 ; idx < 16 ; ++idx) {
+			this.list_regExtraPage[ idx ] = new Register("EXT_" + idx, 1);
 		}
 		// Holds DMA-1 & DMA-2, addressable by index (for use with loops)
 		this.list_core = [];
@@ -65,10 +65,10 @@ define([
 		this.list_fnWrite16 = [];
 		
 		// DMA-1
-		core = this.DMA1 = this.list_core[ 0 ] = new DMA_Core( this, 0 );
+		core = this.DMA1 = this.list_core[ 0 ] = new DMA_Core(this, 0);
 		
 		// DMA-2 (Master)
-		core = this.DMA2 = this.list_core[ 1 ] = new DMA_Core( this, 1 );
+		core = this.DMA2 = this.list_core[ 1 ] = new DMA_Core(this, 1);
 		core.list_channel[ 0 ].inUse = true; // Cascade channel is in use
 		debug("DMA constructor() :: Channel 4 in use by cascade");
 	}
@@ -80,21 +80,21 @@ define([
 		, DMA_MODE_BLOCK:   DMA_MODE_BLOCK
 		, DMA_MODE_CASCADE: DMA_MODE_CASCADE
 	});
-	DMA.prototype.init = function ( done, fail ) {
+	DMA.prototype.init = function (done, fail) {
 		var addr;
 		// I/O port addresses used
 		// 0x0000 ... 0x000F
-		for ( addr = 0x0000 ; addr <= 0x000F ; ++addr ) {
+		for (addr = 0x0000 ; addr <= 0x000F ; ++addr) {
 			this.registerIO_Read(addr, "8237 DMA", readHandler, 1);
 			this.registerIO_Write(addr, "8237 DMA", writeHandler, 3);
 		}
 		// 0x0080 ... 0x008F
-		for ( addr = 0x0080 ; addr <= 0x008F ; ++addr ) {
+		for (addr = 0x0080 ; addr <= 0x008F ; ++addr) {
 			this.registerIO_Read(addr, "8237 DMA", readHandler, 1);
 			this.registerIO_Write(addr, "8237 DMA", writeHandler, 3);
 		}
 		// 0x00C0 ... 0x00DE
-		for ( addr = 0x00C0 ; addr <= 0x00DE ; addr += 2 ) {
+		for (addr = 0x00C0 ; addr <= 0x00DE ; addr += 2) {
 			this.registerIO_Read(addr, "8237 DMA", readHandler, 1);
 			this.registerIO_Write(addr, "8237 DMA", writeHandler, 3);
 		}
@@ -102,7 +102,7 @@ define([
 		done();
 	};
 	// Based on [bx_dma_c::reset]
-	DMA.prototype.reset = function ( type ) {
+	DMA.prototype.reset = function (type) {
 		this.DMA1.reset();
 		this.DMA2.reset();
 	};
@@ -122,7 +122,7 @@ define([
 		this.HLDA.raise();
 		
 		// Find highest priority channel
-		for ( idx_channel = 0 ; idx_channel < 4 ; ++idx_channel ) {
+		for (idx_channel = 0 ; idx_channel < 4 ; ++idx_channel) {
 			if ( (DMA2.regStatus.get() & (1 << (idx_channel + 4)))
 					&& (DMA2.list_channel[ idx_channel ].mask === 0) ) {
 				isMaster = true;
@@ -131,9 +131,9 @@ define([
 			}
 		}
 		// Highest priority channel found for slave is the master cascade channel
-		if ( idx_channel === 0 ) {
+		if (idx_channel === 0) {
 			DMA2.list_channel[ 0 ].DACK.raise();
-			for ( idx_channel = 0 ; idx_channel < 4 ; ++idx_channel ) {
+			for (idx_channel = 0 ; idx_channel < 4 ; ++idx_channel) {
 				if ( (DMA1.regStatus.get() & (1 << (idx_channel + 4)))
 						&& (DMA1.list_channel[ idx_channel ].mask === 0) ) {
 					isMaster = false;
@@ -142,7 +142,7 @@ define([
 				}
 			}
 		}
-		if ( idx_channel >= 4 ) {
+		if (idx_channel >= 4) {
 			// Wait until they're unmasked
 			return;
 		}
@@ -150,27 +150,27 @@ define([
 		// Cache reference
 		channel = core.list_channel[ idx_channel ];
 		
-		// ( NB: isMaster will be converted to int )
+		// (NB: isMaster will be converted to int)
 		addrPhysical = (channel.regPage.get() << 16) | (channel.addrCurrent << isMaster);
 		
 		channel.DACK.raise();
 		
 		// Check for expiration of count, so we can signal TC & <channel>.DACK
 		//	at the same time
-		if ( channel.mode.decrement_addr === 0 ) {
+		if (channel.mode.decrement_addr === 0) {
 			channel.addrCurrent = (channel.addrCurrent + 1) & 0xFFFF;
 		} else {
 			channel.addrCurrent = (channel.addrCurrent - 1) & 0xFFFF;
 		}
 		channel.countCurrent = (channel.countCurrent - 1) & 0xFFFF;
 		
-		if ( channel.countCurrent === 0xFFFF ) {
+		if (channel.countCurrent === 0xFFFF) {
 			// Count expired, done with transfer
 			// Assert TC, deassert HRQ & <channel>.DACK lines
 			core.regStatus.set(core.regStatus.get() | (1 << idx_channel)); // Hold TC in status reg
 			this.TC.raise();
 			countExpired = true;
-			if ( channel.mode.useAutoInit === false ) {
+			if (channel.mode.useAutoInit === false) {
 				// Set mask bit if not in AutoInit mode
 				channel.mask = 1;
 			} else {
@@ -184,14 +184,14 @@ define([
 		var thisObj, fn, val;
 		
 		// Write: DMA-controlled transfer of byte from I/O to memory (RAM)
-		if ( channel.mode.typeTransfer === 1 ) {
+		if (channel.mode.typeTransfer === 1) {
 			// TODO
 			//util.panic("DMA.raiseHLDA() :: DMA write transfer not supported yet");
 			//debugger;
-			if ( !isMaster ) {
+			if (!isMaster) {
 				thisObj = this.list_thisObj8[ idx_channel ];
 				fn = this.list_fnWrite8[ idx_channel ];
-				if ( !fn ) {
+				if (!fn) {
 					util.panic(util.sprintf(
 						"DMA.raiseHLDA() :: No DMA write handler for channel %u."
 						, idx_channel
@@ -202,7 +202,7 @@ define([
 			} else {
 				thisObj = this.list_thisObj16[ idx_channel ];
 				fn = this.list_fnWrite16[ idx_channel ];
-				if ( !fn ) {
+				if (!fn) {
 					util.panic(util.sprintf(
 						"DMA.raiseHLDA() :: No DMA write handler for channel %u."
 						, idx_channel
@@ -212,14 +212,14 @@ define([
 				mem.writePhysical(addrPhysical, val, 2);
 			}
 		// Read: DMA-controlled transfer of byte from memory (RAM) to I/O
-		} else if ( channel.mode.typeTransfer === 2 ) {
+		} else if (channel.mode.typeTransfer === 2) {
 			// TODO
 			//util.panic("DMA.raiseHLDA() :: DMA read transfer not supported yet");
 			//return;
-			if ( !isMaster ) {
+			if (!isMaster) {
 				thisObj = this.list_thisObj8[ idx_channel ];
 				fn = this.list_fnRead8[ idx_channel ];
-				if ( !fn ) {
+				if (!fn) {
 					util.panic(util.sprintf(
 						"DMA.raiseHLDA() :: No DMA read handler for channel %u."
 						, idx_channel
@@ -230,7 +230,7 @@ define([
 			} else {
 				thisObj = this.list_thisObj16[ idx_channel ];
 				fn = this.list_fnRead16[ idx_channel ];
-				if ( !fn ) {
+				if (!fn) {
 					util.panic(util.sprintf(
 						"DMA.raiseHLDA() :: No DMA read handler for channel %u."
 						, idx_channel
@@ -240,7 +240,7 @@ define([
 				fn.call(thisObj, val);
 			}
 		// Verify
-		} else if ( channel.mode.typeTransfer === 0 ) {
+		} else if (channel.mode.typeTransfer === 0) {
 			// TODO
 			util.panic("DMA.raiseHLDA() :: DMA verify not supported yet");
 			return;
@@ -249,24 +249,24 @@ define([
 			return;
 		}
 		
-		if ( countExpired ) {
+		if (countExpired) {
 			this.TC.lower(); // clear TC, adapter card already notified
 			this.HLDA.lower();
 			machine.HRQ.lower(); // clear HRQ to CPU
 			channel.DACK.lower(); // clear DACK to adapter card
-			if ( !isMaster ) {
+			if (!isMaster) {
 				this.setDRQ(4, 0); // clear DRQ to cascade
 				this.DMA2.list_channel[ 0 ].DACK.lower(); // clear DACK to cascade
 			}
 		}
 	};
 	// Based on [bx_dma_c::set_DRQ]
-	DMA.prototype.setDRQ = function ( idx_channel, val ) {
+	DMA.prototype.setDRQ = function (idx_channel, val) {
 		var baseDMA, roofDMA;
 		var isMaster;
 		var core, channel;
 		
-		if ( idx_channel > 7 ) {
+		if (idx_channel > 7) {
 			util.panic("DMA.setDRQ() :: idx_channel > 7");
 			return;
 		}
@@ -275,13 +275,13 @@ define([
 		// Only 1st 2 bits are significant
 		channel = core.list_channel[ idx_channel & 0x03 ];
 		channel.DRQ.set(val);
-		if ( !channel.inUse ) {
+		if (!channel.inUse) {
 			util.panic("DMA.setDRQ() :: Channel " + idx_channel + " not connected to device");
 			return;
 		}
-		// ( See note above )
+		// (See note above)
 		idx_channel &= 0x03;
-		if ( !val ) {
+		if (!val) {
 			debug("DMA.setDRQ() :: Val = 0");
 			// Clear bit in status reg
 			//debugger;
@@ -315,24 +315,24 @@ define([
 			return 0;
 		}
 		
-		// ( NB: isMaster will be converted to int )
+		// (NB: isMaster will be converted to int)
 		baseDMA = (channel.regPage.get() << 16)
 			| (channel.addrBase << isMaster);
 		
-		// ( NB: isMaster will be converted to int )
-		if ( channel.mode.decrement_addr === 0 ) {
+		// (NB: isMaster will be converted to int)
+		if (channel.mode.decrement_addr === 0) {
 			roofDMA = baseDMA + (channel.countBase << isMaster);
 		} else {
 			roofDMA = baseDMA - (channel.countBase << isMaster);
 		}
 		
-		// ( NB: isMaster will be converted to int )
+		// (NB: isMaster will be converted to int)
 		if ( (baseDMA & (0x7FFF0000 << isMaster))
 				!== (roofDMA & (0x7FFF0000 << isMaster)) ) {
 			util.info("DMA.setDRQ() :: baseDMA = " + util.format("hex", baseDMA));
 			util.info("DMA.setDRQ() :: countBase = " + util.format("hex", channel.countBase));
 			util.info("DMA.setDRQ() :: roofDMA = " + util.format("hex", roofDMA));
-			// ( NB: isMaster will be converted to int )
+			// (NB: isMaster will be converted to int)
 			util.panic("DMA.setDRQ() :: Request outside "
 				+ util.format("hex", 64 << isMaster) + "k boundary");
 			return 0;
@@ -351,12 +351,12 @@ define([
 		// ?
 	};
 	// 8-bit DMA transfers are handled by DMA-1 (slave)
-	DMA.prototype.registerDMA8Channel = function ( idx_channel, thisObj, fnRead, fnWrite, name ) {
-		if ( idx_channel > 3 ) {
+	DMA.prototype.registerDMA8Channel = function (idx_channel, thisObj, fnRead, fnWrite, name) {
+		if (idx_channel > 3) {
 			util.panic("DMA.registerDMA8Channel() :: Invalid channel #" + idx_channel);
 			return false; // Fail
 		}
-		if ( this.DMA1.list_channel[ idx_channel ].inUse ) {
+		if (this.DMA1.list_channel[ idx_channel ].inUse) {
 			util.panic("DMA.registerDMA8Channel() :: Channel #" + idx_channel + " already in use");
 			return false; // Fail
 		}
@@ -368,13 +368,13 @@ define([
 		return true; // Success
 	};
 	// 16-bit DMA transfers are handled by DMA-2 (master)
-	DMA.prototype.registerDMA16Channel = function ( idx_channel, thisObj, fnRead, fnWrite, name ) {
-		if ( idx_channel < 4 || idx_channel > 7 ) {
+	DMA.prototype.registerDMA16Channel = function (idx_channel, thisObj, fnRead, fnWrite, name) {
+		if (idx_channel < 4 || idx_channel > 7) {
 			util.panic("DMA.registerDMA16Channel() ::"
 				+ " Invalid channel #" + idx_channel);
 			return false; // Fail
 		}
-		if ( this.DMA2.list_channel[ idx_channel & 0x03 ].inUse ) {
+		if (this.DMA2.list_channel[ idx_channel & 0x03 ].inUse) {
 			util.panic("DMA.registerDMA16Channel() :: Channel #"
 				+ idx_channel + " already in use");
 			return false; // Fail
@@ -388,7 +388,7 @@ define([
 		this.DMA2.list_channel[ idx_channel ].inUse = true;
 		return true; // Success
 	};
-	DMA.prototype.unregisterDMAChannel = function ( idx_channel ) {
+	DMA.prototype.unregisterDMAChannel = function (idx_channel) {
 		// Disable the channel
 		(idx_channel > 3 ? this.DMA2 : this.DMA1)
 			.list_channel[ idx_channel & 0x03 ].inUse = false;
@@ -399,21 +399,21 @@ define([
 	
 	
 	// There are 2 DMA cores: DMA-1 & DMA-2; this is their class
-	function DMA_Core( cntrlr, idxCore ) {
+	function DMA_Core(cntrlr, idxCore) {
 		var idx, list, len;
 		
 		this.cntrlr = cntrlr;
 		
 		this.idx = idxCore;
 		this.flipFlop = false;
-		this.regStatus = new Register( "STAT", 1 );
-		this.regCommand = new Register( "CMD", 1 );
+		this.regStatus = new Register("STAT", 1);
+		this.regCommand = new Register("CMD", 1);
 		this.disabled = false;
 		
 		// Create 4 DMA channels for this DMA core
 		this.list_channel = [];
-		for ( idx = 0 ; idx < 4 ; ++idx ) {
-			this.list_channel[ idx ] = new DMA_Channel( idx );
+		for (idx = 0 ; idx < 4 ; ++idx) {
+			this.list_channel[ idx ] = new DMA_Channel(idx);
 		}
 	}
 	// Handle the (H)old (R)e(Q)uest line to CPU
@@ -424,11 +424,11 @@ define([
 			, idx_channel;
 		//debugger;
 		// Do nothing if controller is disabled
-		if ( this.disabled ) { return; }
+		if (this.disabled) { return; }
 		
 		// Deassert HRQ if no DRQ is pending
-		if ( (this.regStatus.get() & 0xF0) === 0 ) {
-			if ( this.idx === 1 ) {
+		if ((this.regStatus.get() & 0xF0) === 0) {
+			if (this.idx === 1) {
 				machine.HRQ.lower();
 			} else {
 				cntrlr.setDRQ(4, 0);
@@ -436,10 +436,10 @@ define([
 			return;
 		}
 		// Find highest priority channel
-		for ( idx_channel = 0 ; idx_channel < 4 ; ++idx_channel ) {
+		for (idx_channel = 0 ; idx_channel < 4 ; ++idx_channel) {
 			if ( (this.regStatus.get() & (1 << (idx_channel + 4)))
 					&& (this.list_channel[ idx_channel ].mask === 0) ) {
-				if ( this.idx === 1 ) {
+				if (this.idx === 1) {
 					// Assert (H)old (R)e(Q)uest line to CPU
 					machine.HRQ.raise();
 				} else {
@@ -452,7 +452,7 @@ define([
 	};
 	DMA_Core.prototype.reset = function () {
 		var idx, list, len;
-		for ( idx = 0 ; idx < 4 ; ++idx ) {
+		for (idx = 0 ; idx < 4 ; ++idx) {
 			this.list_channel[ idx ].mask = 1;
 		}
 		this.disabled = false;
@@ -462,12 +462,12 @@ define([
 	};
 	
 	// There are 4 channels per DMA core; this is their class
-	function DMA_Channel( idx_channel ) {
+	function DMA_Channel(idx_channel) {
 		this.idx = idx_channel;
 		// DMA Request
-		this.DRQ = new Pin( "DRQ" );
+		this.DRQ = new Pin("DRQ");
 		// DMA Acknowledge
-		this.DACK = new Pin( "DACK" );
+		this.DACK = new Pin("DACK");
 		this.mask = 0;
 		
 		this.mode = {
@@ -480,12 +480,12 @@ define([
 		this.addrCurrent = 0;
 		this.countBase = 0;
 		this.countCurrent = 0;
-		this.regPage = new Register( "PAGE", 1 );
+		this.regPage = new Register("PAGE", 1);
 		this.inUse = false;
 	}
 	
 	// DMA chip's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		// "device" will be DMA
 		var result8; // 8-bit result
 		var idx_channel, channel;
@@ -499,7 +499,7 @@ define([
 		isMaster = (addr >= 0xC0);
 		core = isMaster ? device.DMA2 : device.DMA1;
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x0000: // DMA-1 current address, channel 0
 		case 0x0002: // DMA-1 current address, channel 1
 		case 0x0004: // DMA-1 current address, channel 2
@@ -510,7 +510,7 @@ define([
 		case 0x00CC: // DMA-2 current address, channel 3
 			idx_channel = (addr >> (1 + isMaster)) & 0x03;
 			core.flipFlop = !core.flipFlop;
-			if ( core.flipFlop === false ) {
+			if (core.flipFlop === false) {
 				// Low byte
 				return core.list_channel[ idx_channel ].addrCurrent & 0xFF;
 			} else {
@@ -528,7 +528,7 @@ define([
 		case 0x00CE: // DMA-2 current count, channel 3
 			idx_channel = (addr >> (1 + isMaster)) & 0x03;
 			core.flipFlop = !core.flipFlop;
-			if ( core.flipFlop === false ) {
+			if (core.flipFlop === false) {
 				// Low byte
 				return core.list_channel[ idx_channel ].countCurrent & 0xFF;
 			} else {
@@ -593,13 +593,13 @@ define([
 		}
 	}
 	// DMA chip's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len ) {
+	function writeHandler(device, addr, val, io_len) {
 		// "device" will be DMA
 		var idx_channel, channel, set_mask_bit
 			, isMaster, DMA1, DMA2, core;
 		
-		if ( io_len > 1 ) {
-			if ( io_len === 2 && addr === 0x0B ) {
+		if (io_len > 1) {
+			if (io_len === 2 && addr === 0x0B) {
 				writeHandler(device, addr, val & 0xFF, 1);
 				writeHandler(device, addr, val >> 8, 1);
 				return;
@@ -623,7 +623,7 @@ define([
 		DMA1 = device.DMA1; DMA2 = device.DMA2;
 		core = isMaster ? DMA2 : DMA1;
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x00:
 		case 0x02:
 		case 0x04:
@@ -638,7 +638,7 @@ define([
 				"  DMA-%d base and current address, channel %d"
 				, isMaster + 1, idx_channel
 			));
-			if ( core.flipFlop == false ) { /* 1st byte */
+			if (core.flipFlop == false) { /* 1st byte */
 				channel.addrBase = val;
 				channel.addrCurrent = val;
 			} else { /* 2nd byte */
@@ -670,7 +670,7 @@ define([
 				"  DMA-%d base and current count, channel %d"
 				, isMaster + 1, idx_channel
 			));
-			if ( core.flipFlop == false ) { /* 1st byte */
+			if (core.flipFlop == false) { /* 1st byte */
 				channel.countBase = val;
 				channel.countCurrent = val;
 			} else { /* 2nd byte */
@@ -690,7 +690,7 @@ define([
 		
 		case 0x08: /* DMA-1: command register */
 		case 0xd0: /* DMA-2: command register */
-			if ( (val & 0xfb) != 0x00 ) {
+			if ((val & 0xfb) != 0x00) {
 				util.problem(util.sprintf(
 					"write to command register: value 0x%02x not supported"
 					, val
@@ -705,7 +705,7 @@ define([
 		case 0xd2: // DMA-2: request register
 			channel = val & 0x03;
 			// note: write to 0x0d / 0xda clears this register
-			if ( val & 0x04 ) {
+			if (val & 0x04) {
 				// set request bit
 				core.regStatus.set(core.regStatus.get() | (1 << (channel+4)));
 				debug(util.sprintf(

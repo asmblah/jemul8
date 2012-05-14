@@ -9,9 +9,9 @@ define([
 	"../util"
 	, "./register"
 	, "./cpu/lazy_flags_register"
-], function ( util, Register, LazyFlagRegister ) { "use strict";
+], function (util, Register, LazyFlagRegister) { "use strict";
 	
-	// CPU Sub-register ( eg AX, AL, AH ) class constructor
+	// CPU Sub-register (eg AX, AL, AH) class constructor
 	function SubRegister( name, size, regMaster
 						, mask, bytesInLeft ) {
 		util.assert(this != self, "SubRegister constructor ::"
@@ -28,7 +28,7 @@ define([
 		this.mask = mask;
 		
 		// Faster case; if no bits to shift, remove shift operation from method function
-		if ( bytesInLeft == 0 ) {
+		if (bytesInLeft == 0) {
 			this.bitmaskOccupies = mask;
 			// Bitmask for extracting only the part of the value not occupied by this subregister
 			this.bitmaskNotOccupies = 0xFFFFFFFF - this.bitmaskOccupies;
@@ -61,16 +61,16 @@ define([
 	
 	// Faster case; if no bits to shift, remove shift operation
 	//	from method function
-	var subreg_setFirst = function ( val ) {
+	var subreg_setFirst = function (val) {
 		this.regMaster.set(
 			// Mask out current SubRegister value
 			(this.regMaster.get() & this.bitmaskNotOccupies)
 			// Restrict new value to max size of SubRegister
-			//	( no need to move, SubRegister is at low end of bits )
+			//	(no need to move, SubRegister is at low end of bits)
 			| (val & this.bitmaskOccupies)
 		);
 	};
-	var subreg_setGeneral = function ( val ) {
+	var subreg_setGeneral = function (val) {
 		this.regMaster.set(
 			// Mask out current SubRegister value
 			(this.regMaster.get() & this.bitmaskNotOccupies)

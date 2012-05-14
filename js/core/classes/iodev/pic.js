@@ -10,12 +10,12 @@ define([
 	, "../iodev"
 	, "../register"
 	, "../pin"
-], function ( util, IODevice, Register, Pin ) { "use strict";
+], function (util, IODevice, Register, Pin) { "use strict";
 	
 	// TODO: Should be a config setting
 	var enableDebug = false;
 	
-	var debug = enableDebug ? function ( msg ) {
+	var debug = enableDebug ? function (msg) {
 		util.debug(msg);
 	} : function () {};
 	
@@ -26,7 +26,7 @@ define([
 	/* ==== /Const ==== */
 	
 	// Constructor / pre-init ( ie. from bx_pic_c::init(void) )
-	function PIC( machine ) {
+	function PIC(machine) {
 		util.assert(this && (this instanceof PIC), "PIC ctor ::"
 			+ " error - constructor not called properly");
 		
@@ -46,7 +46,7 @@ define([
 		};
 		
 		// The master PIC
-		core = state.PICmaster = new PIC_Core( this, true );
+		core = state.PICmaster = new PIC_Core(this, true);
 		core.isSingle = false;
 		// IRQ0 = INT 0x08
 		core.offsetInterrupt = 0x08;
@@ -58,7 +58,7 @@ define([
 		core.irqLowestPriority = 7;
 		
 		// The slave PIC
-		core = state.PICslave = new PIC_Core( this, false );
+		core = state.PICslave = new PIC_Core(this, false);
 		core.isSingle = false;
 		// IRQ8 = INT 0x70
 		core.offsetInterrupt = 0x70;
@@ -75,7 +75,7 @@ define([
 	}
 	// Methods based on Bochs /iodev/pic.h & pic.cc
 	util.inherit(PIC, IODevice, "PIC"); // Inheritance
-	PIC.prototype.init = function ( done, fail ) {
+	PIC.prototype.init = function (done, fail) {
 		var state = this.state;
 		
 		// I/O port addresses used
@@ -90,7 +90,7 @@ define([
 
 		done();
 	};
-	PIC.prototype.reset = function ( type ) {
+	PIC.prototype.reset = function (type) {
 		// Nothing to do
 	};
 	PIC.prototype.registerState = function () {
@@ -104,14 +104,14 @@ define([
 		// ?
 	};
 	// As per Bochs /iodev/pic.cc
-	PIC.prototype.lowerIRQ = function ( irq ) {
+	PIC.prototype.lowerIRQ = function (irq) {
 		var state = this.state;
 		
 		// TODO: Forward to APIC too (when it is implemented...)
 		
 		var mask = (1 << (irq & 7));
 		// Master PIC handles IRQs <= 7
-		if ( (irq <= 7) && (state.PICmaster.inIRQ & mask) ) {
+		if ((irq <= 7) && (state.PICmaster.inIRQ & mask)) {
 			debug("PIC.lowerIRQ() :: IRQ line #"
 				+ irq + " (master PIC) now low");
 			state.PICmaster.inIRQ &= ~(mask); // Clear bit
@@ -128,14 +128,14 @@ define([
 		}
 	};
 	// As per Bochs /iodev/pic.cc
-	PIC.prototype.raiseIRQ = function ( irq ) {
+	PIC.prototype.raiseIRQ = function (irq) {
 		var state = this.state;
 		
 		// TODO: Forward to APIC too (when it is implemented...)
 		
 		var mask = (1 << (irq & 7));
 		// Master PIC handles IRQs <= 7
-		if ( (irq <= 7) && !(state.PICmaster.inIRQ & mask) ) {
+		if ((irq <= 7) && !(state.PICmaster.inIRQ & mask)) {
 			debug("PIC.raiseIRQ() :: IRQ line #"
 				+ irq + " (master PIC) now high");
 			state.PICmaster.inIRQ |= mask; // Set bit
@@ -153,7 +153,7 @@ define([
 			state.PICslave.service();
 		}
 	};
-	PIC.prototype.setMode = function ( forMaster, mode ) {
+	PIC.prototype.setMode = function (forMaster, mode) {
 		var core = forMaster ? this.state.PICmaster : this.state.PICslave;
 		debug("PIC(" + core.name + ").setMode() ::"
 			+ " Setting mode (edge/level) to " + util.format("hex", mode));
@@ -171,25 +171,25 @@ define([
 		PICmaster.INT.lower();
 		
 		// Check for spurious (extra/unnecessary) interrupt
-		if ( PICmaster.regInterruptRequest.get() === 0 ) {
+		if (PICmaster.regInterruptRequest.get() === 0) {
 			return PICmaster.offsetInterrupt + 7;
 		}
 		// In level-sensitive mode, don't clear the IRR bit
-		if ( !(PICmaster.modeIRQ & (1 << PICmaster.irq)) ) {
+		if (!(PICmaster.modeIRQ & (1 << PICmaster.irq))) {
 			PICmaster.regInterruptRequest.set(
 				PICmaster.regInterruptRequest.get()
 				& (~(1 << PICmaster.irq)));
 		}
 		// In Auto-EOI mode, don't set the ISR bit
-		if ( !PICmaster.useAutoEOI ) {
+		if (!PICmaster.useAutoEOI) {
 			PICmaster.regInService.set(PICmaster.regInService.get()
 				| (1 << PICmaster.irq));
-		} else if ( PICmaster.doRotateOnAutoEOI ) {
+		} else if (PICmaster.doRotateOnAutoEOI) {
 			PICmaster.irqLowestPriority = PICmaster.irq;
 		}
 		
 		// Handled by master PIC (non-IRQ2 interrupt)
-		if ( PICmaster.irq !== 2 ) {
+		if (PICmaster.irq !== 2) {
 			irq = PICmaster.irq;
 			vector = irq + PICmaster.offsetInterrupt;
 		// Handled by slave PIC (IRQ2, slave PIC IRQs 8 -> 15)
@@ -199,22 +199,22 @@ define([
 			PICmaster.inIRQ &= ~(1 << 2);
 			
 			// Check for spurious (extra/unnecessary) interrupt
-			if ( PICslave.regInterruptRequest.get() === 0 ) {
+			if (PICslave.regInterruptRequest.get() === 0) {
 				return PICslave.offsetInterrupt + 7;
 			}
 			irq = PICslave.irq;
 			vector = irq + PICslave.offsetInterrupt;
 			// In level-sensitive mode, don't clear the IRR bit
-			if ( !(PICslave.modeIRQ & (1 << PICslave.irq)) ) {
+			if (!(PICslave.modeIRQ & (1 << PICslave.irq))) {
 				PICslave.regInterruptRequest.set(
 					PICslave.regInterruptRequest.get()
 					& (~(1 << PICslave.irq)));
 			}
 			// In Auto-EOI mode, don't set the ISR bit
-			if ( !PICslave.useAutoEOI ) {
+			if (!PICslave.useAutoEOI) {
 				PICslave.regInService.set(PICslave.regInService.get()
 					| (1 << PICslave.irq));
-			} else if ( PICslave.doRotateOnAutoEOI ) {
+			} else if (PICslave.doRotateOnAutoEOI) {
 				PICslave.irqLowestPriority = PICslave.irq;
 			}
 			PICslave.service();
@@ -229,7 +229,7 @@ define([
 	};
 	
 	// There are 2 PIC cores: master & slave; this is their class
-	function PIC_Core( cntrlr, isMaster ) {
+	function PIC_Core(cntrlr, isMaster) {
 		this.cntrlr = cntrlr;
 		
 		// False = Cascaded PIC, true = Master only
@@ -242,13 +242,13 @@ define([
 		this.name = isMaster ? "master" : "slave";
 		this.isMaster = isMaster;
 		this.useAutoEOI = false; // Manual EOI from CPU
-		this.regInterruptMask = new Register( "IMR", 1 );
-		this.regInService = new Register( "ISR", 1 );
-		this.regInterruptRequest = new Register( "IRR", 1 );
+		this.regInterruptMask = new Register("IMR", 1);
+		this.regInService = new Register("ISR", 1);
+		this.regInterruptRequest = new Register("IRR", 1);
 		this.regReadSelect = this.regInterruptRequest; // Use IRR
 		this.irq = 0;
 		this.irqLowestPriority;
-		this.INT = new Pin( "INT" ); // #INT request pin of PIC
+		this.INT = new Pin("INT"); // #INT request pin of PIC
 		this.INT.lower();
 		this.inIRQ = 0; // IRQ pins of PIC (data-in line)
 		this.init = {
@@ -262,11 +262,11 @@ define([
 		this.doRotateOnAutoEOI = false;
 		this.modeIRQ = 0; // IRQ mode bitmap (bit #0=edge, bit #1=level)
 	}
-	PIC_Core.prototype.initCommand = function ( val ) {
+	PIC_Core.prototype.initCommand = function (val) {
 		var machine = this.cntrlr.machine, cpu = machine.cpu;
 		
 		// Initialization command 1
-		if ( val & 0x10 ) {
+		if (val & 0x10) {
 			debug("PIC(" + this.name + ") writeHandler() ::"
 				+ " Init command 1 found");
 			debug(" -> requires 4 = " + (val & 0x01));
@@ -280,18 +280,18 @@ define([
 			this.regInterruptRequest.set(0x00); // No IRQ's requested
 			this.irqLowestPriority = 7;
 			this.INT.lower(); // Reprogramming clears previous INTR request
-			if ( !this.isMaster ) {
+			if (!this.isMaster) {
 				this.inIRQ &= ~(1 << 2);
 			}
 			this.useAutoEOI = false;
 			this.doRotateOnAutoEOI = false;
             
-			if ( val & 0x02 ) {
+			if (val & 0x02) {
                 util.panic("PIC(" + this.name + ")"
 				+ " writeHandler() :: ICW1: single mode not supported");
                 return;
             }
-			if ( val & 0x08 ) {
+			if (val & 0x08) {
 				util.panic("PIC(" + this.name + ") writeHandler() ::"
 					+ " ICW1: level sensitive mode not supported");
                 return;
@@ -299,35 +299,35 @@ define([
 				debug("PIC(" + this.name + ") writeHandler() ::"
 					+ " ICW1: edge triggered mode selected");
 			}
-			if ( this.isMaster ) {
+			if (this.isMaster) {
                 cpu.INTR.lower();
             }
 			return;
 		}
 		
 		// OCW3
-		if ( (val & 0x18) === 0x08 ) {
+		if ((val & 0x18) === 0x08) {
 			var special_mask, poll, read_op;
 			
 			special_mask = (val & 0x60) >> 5;
 			poll         = (val & 0x04) >> 2;
 			read_op      = (val & 0x03);
-			if ( poll ) {
+			if (poll) {
 				this.isPolled = 1;
 				return;
 			}
 			// Read IRR
-			if ( read_op == 0x02 ) {
+			if (read_op == 0x02) {
 				this.regReadSelect = this.regInterruptRequest;
 			// Read ISR
-			} else if ( read_op == 0x03 ) {
+			} else if (read_op == 0x03) {
 				this.regReadSelect = this.regInService;
 			}
 			// Cancel special mask
-			if ( special_mask == 0x02 ) {
+			if (special_mask == 0x02) {
 				this.useSpecialMask = false;
 			// Set special mask
-			} else if ( special_mask == 0x03 ) { /* set specific mask */
+			} else if (special_mask == 0x03) { /* set specific mask */
 				this.useSpecialMask = true;
 				this.service();
 			}
@@ -335,7 +335,7 @@ define([
 		}
 		
 		// OCW2
-		switch ( val ) {
+		switch (val) {
 		case 0x00: // Rotate in auto eoi mode clear
 		case 0x80: // Rotate in auto eoi mode set
 			this.doRotateOnAutoEOI = (val != 0);
@@ -350,9 +350,9 @@ define([
 		case 0x20: // End of interrupt command
 			this.clearHighestInterrupt();
 			// Rotate in Auto-EOI mode
-			if ( val == 0xA0 ) {
+			if (val == 0xA0) {
 				++this.irqLowestPriority;
-				if ( this.irqLowestPriority > 7 ) {
+				if (this.irqLowestPriority > 7) {
 					this.irqLowestPriority = 0;
 				}
 			}
@@ -408,11 +408,11 @@ define([
 				+ " Write to port A0h = " + util.format("hex", val));
 		}
 	};
-	PIC_Core.prototype.initModeOperation = function ( val ) {
+	PIC_Core.prototype.initModeOperation = function (val) {
 		var core = this;
 		
-		if ( core.init.inInit ) {
-			switch ( core.init.bytExpected ) {
+		if (core.init.inInit) {
+			switch (core.init.bytExpected) {
 			case 2:
 				core.offsetInterrupt = val & 0xf8;
 				core.init.bytExpected = 3;
@@ -424,7 +424,7 @@ define([
 			case 3:
 				debug("PIC(" + this.name + ") writeHandler() ::"
 					+ " Init command 3 = " + util.format("hex", val));
-				if ( core.init.requires4 ) {
+				if (core.init.requires4) {
 					core.init.bytExpected = 4;
 				} else {
 					core.init.inInit = false;
@@ -433,14 +433,14 @@ define([
 			case 4:
 				debug("PIC(" + this.name + ") writeHandler() ::"
 					+ " Init command 4 = " + util.format("hex", val));
-				if ( val & 0x02 ) {
+				if (val & 0x02) {
 					debug(" -> auto EOI");
 					core.useAutoEOI = true;
 				} else {
 					debug(" -> Normal EOI interrupt");
 					core.useAutoEOI = false;
 				}
-				if ( val & 0x01 ) {
+				if (val & 0x01) {
 					debug(" -> 80x86 mode");
 				} else {
 					return util.panic(" -> not 80x86 mode");
@@ -466,21 +466,21 @@ define([
 			, valISR;
 		
 		// Wrap around to zero if out-of-bounds
-		if ( irqHighestPriority > 7 ) { irqHighestPriority = 0; }
+		if (irqHighestPriority > 7) { irqHighestPriority = 0; }
 		
 		irq = irqHighestPriority;
 		do {
 			valISR = this.regInService.get();
 			// This IRQ is in service
-			if ( valISR & (1 << irq) ) {
+			if (valISR & (1 << irq)) {
 				// Take out of service (perform the "clear")
 				this.regInService.set(valISR & ~(1 << irq));
 				break;
 			}
 			
 			++irq;
-			if ( irq > 7 ) { irq = 0; }
-		} while ( irq != irqHighestPriority );
+			if (irq > 7) { irq = 0; }
+		} while (irq != irqHighestPriority);
 	};
 	PIC_Core.prototype.service = function () {
 		var cntrlr = this.cntrlr
@@ -492,10 +492,10 @@ define([
 			, irqHighestPriority = this.irqLowestPriority + 1;
 		
 		// Wrap around to zero if out-of-bounds
-		if ( irqHighestPriority > 7 ) { irqHighestPriority = 0; }
+		if (irqHighestPriority > 7) { irqHighestPriority = 0; }
 		
 		// Last interrupt still not acknowleged
-		if ( this.INT.isHigh() ) {
+		if (this.INT.isHigh()) {
 			return;
 		}
 		
@@ -503,22 +503,22 @@ define([
 		 *	All priorities may be enabled.  check all IRR bits except ones
 		 *	which have corresponding ISR bits set
 		 */
-		if ( this.useSpecialMask ) {
+		if (this.useSpecialMask) {
 			irqMax = irqHighestPriority;
 		// Normal mode
 		} else {
 			// Find the highest priority IRQ that is enabled due to current ISR
             valISR = this.regInService.get();
-			if ( valISR ) {
+			if (valISR) {
 				irqMax = irqHighestPriority;
-				while ( (valISR & (1 << irqMax)) === 0 ) {
+				while ((valISR & (1 << irqMax)) === 0) {
 					++irqMax;
-					if ( irqMax > 7 ) { irqMax = 0; }
+					if (irqMax > 7) { irqMax = 0; }
 				}
 				// Highest priority interrupt in-service,
 				//	no other priorities allowed
-				if ( irqMax == irqHighestPriority ) { return; }
-				if ( irqMax > 7 ) { return util.panic("PIC("
+				if (irqMax == irqHighestPriority) { return; }
+				if (irqMax > 7) { return util.panic("PIC("
 					+ this.name + ").service() :: Error, irqMax > 7"); }
 			} else {
 				irqMax = irqHighestPriority; // 0..7 bits in ISR are cleared
@@ -531,7 +531,7 @@ define([
 			& ~this.regInterruptMask.get()
         );
         
-		if ( unmasked_requests ) {
+		if (unmasked_requests) {
 			irq = irqHighestPriority;
 			do {
 				/*
@@ -541,14 +541,14 @@ define([
 				if ( !(this.useSpecialMask
                     && ((this.regInService.get() >> irq) & 0x01))
                 ) {
-					if ( unmasked_requests & (1 << irq) ) {
+					if (unmasked_requests & (1 << irq)) {
 						debug(util.sprintf(
 							"PIC(%s).service() :: Signalling IRQ #%d"
 							, this.name, this.isMaster ? irq : 8 + irq
 						));
 						this.INT.raise();
 						this.irq = irq;
-						if ( this.isMaster ) {
+						if (this.isMaster) {
 							cpu.INTR.raise();
 						} else {
 							// Request IRQ 2 on the master PIC
@@ -559,13 +559,13 @@ define([
 					}
 				}
 				++irq;
-				if ( irq > 7 ) { irq = 0; }
-			} while ( irq != irqMax );
+				if (irq > 7) { irq = 0; }
+			} while (irq != irqMax);
 		}
 	};
 	
 	// PIC chip's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		var state = device.state; // "device" will be PIC
 		var result8; // 8-bit result
 		
@@ -604,7 +604,7 @@ define([
 				: ((state.PICslave.irq << 8) | state.PICslave.irq);
 		}
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x0020: // Read from Master "read register"
 			result8 = state.PICmaster.regReadSelect.get();
 			debug("PIC(master) readHandler() :: Read Master "
@@ -634,7 +634,7 @@ define([
 		}
 	}
 	// PIC chip's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len ) {
+	function writeHandler(device, addr, val, io_len) {
 		var state = device.state; // "device" will be PIC
 		var PICmaster = state.PICmaster, PICslave = state.PICslave;
 		
@@ -643,7 +643,7 @@ define([
 		
 		/** NB: This is an 8259A PIC **/
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x20:
 			PICmaster.initCommand(val);
 			break;

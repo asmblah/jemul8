@@ -7,10 +7,10 @@
 
 define([
 	"../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	// Emulator settings system class
-	function Settings( defaults ) {
+	function Settings(defaults) {
 		/* ==== Guards ==== */
 		util.assert(this && (this instanceof Settings), "Settings ctor ::"
 			+ " error - constructor not called properly");
@@ -20,11 +20,11 @@ define([
 		this.settings = $.extend({}, defaults);
 	}
 	$.extend(Settings.prototype, {
-		load: function ( options ) {
+		load: function (options) {
 			$.extend(this.settings, options);
-		}, get: function ( name ) {
+		}, get: function (name) {
 			return this.settings[ name ];
-		}, set: function ( name, val ) {
+		}, set: function (name, val) {
 			this.settings[ name ] = val;
 		}
 	});

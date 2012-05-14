@@ -7,7 +7,7 @@
 
 define([
 	"../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	// Segment Selector class constructor
 	function Selector() {
@@ -21,7 +21,7 @@ define([
 	}
 	util.extend(Selector, {
 		// Parse a raw segment selector
-		parse: function ( raw ) {
+		parse: function (raw) {
 			var selector = new Selector();
 			return selector.parse(raw);
 		}
@@ -33,7 +33,7 @@ define([
 				| (this.table << 2)
 				| (this.index << 3);
 		// Parse raw selector into components
-		}, parse: function ( raw ) {
+		}, parse: function (raw) {
 			this.rpl = raw & 0x03          // RPL
 			this.table = (raw >> 2) & 0x01 // Table Indicator
 			this.index = raw >> 3          // Table Index

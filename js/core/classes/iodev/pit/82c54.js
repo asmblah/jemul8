@@ -7,7 +7,7 @@
 
 define([
 	"../../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	/* ==== Const ==== */
 	var MAX_COUNTER = 2, MAX_ADDRESS = 3, CONTROL_ADDRESS = 3, MAX_MODE = 5
@@ -23,12 +23,12 @@ define([
 	// TODO: Should be a config setting
 	var enableDebug = false;
 	
-	var debug = enableDebug ? function ( msg ) {
+	var debug = enableDebug ? function (msg) {
 		util.debug(msg);
 	} : function () {};
 	
 	// Constructor / pre-init
-	function PIT_82C54( wrapper ) {
+	function PIT_82C54(wrapper) {
 		util.assert(this && (this instanceof PIT_82C54), "PIT_82C54 ctor ::"
 			+ " error - constructor not called properly");
 		
@@ -43,7 +43,7 @@ define([
 		this.init();
 	}
 	util.extend(PIT_82C54.prototype, {
-		print_counter: function ( thisctr ) {
+		print_counter: function (thisctr) {
 			util.info(("Printing Counter"));
 			util.info(util.sprintf(
 				"count: %d"
@@ -65,20 +65,20 @@ define([
 				, thisctr.next_change_time
 			));
 			util.info(("End Counter Printout"));
-		}, print_cnum: function ( cnum ) {
-			if ( cnum > 0xFF ) {
+		}, print_cnum: function (cnum) {
+			if (cnum > 0xFF) {
 				util.problem("PIT_82C54.print_cnum() :: Must be 8-bit");
 			}
-			if ( cnum > MAX_COUNTER ) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Bad counter index to print_cnum"));
 			} else {
 				this.print_counter(this.counter[ cnum ]);
 			}
-		}, latch_counter: function ( thisctr ) {
-			if ( thisctr.count_LSB_latched || thisctr.count_MSB_latched ) {
+		}, latch_counter: function (thisctr) {
+			if (thisctr.count_LSB_latched || thisctr.count_MSB_latched) {
 				// [Bochs] Do nothing because previous latch has not been read.;
 			} else {
-				switch ( thisctr.read_state ) {
+				switch (thisctr.read_state) {
 				case MSByte:
 					thisctr.outlatch = thisctr.count & 0xFFFF;
 					thisctr.count_MSB_latched = 1;
@@ -93,7 +93,7 @@ define([
 					thisctr.count_MSB_latched = 1;
 					break;
 				case MSByte_multiple:
-					if ( !(this.seen_problems & UNL_2P_READ) ) {
+					if (!(this.seen_problems & UNL_2P_READ)) {
 						// this.seen_problems |= UNL_2P_READ;
 						util.problem(("Unknown behavior when latching during 2-part read."));
 						util.problem(("  This message will not be repeated."));
@@ -109,18 +109,18 @@ define([
 					util.problem(("Unknown read mode found during latch command."));
 				}
 			}
-		}, set_OUT: function ( thisctr, data ) {
-			if ( thisctr.OUTpin != data ) {
+		}, set_OUT: function (thisctr, data) {
+			if (thisctr.OUTpin != data) {
 				thisctr.OUTpin = data;
-				if ( thisctr.out_handler != null ) {
+				if (thisctr.out_handler != null) {
 					thisctr.out_handler[ 1 ].call(thisctr.out_handler[ 0 ], data);
 				}
 			}
-		}, set_count: function ( thisctr, data ) {
+		}, set_count: function (thisctr, data) {
 			thisctr.count = data & 0xFFFF;
 			this.set_binary_to_count(thisctr);
-		}, set_count_to_binary: function ( thisctr ) {
-			if ( thisctr.bcd_mode ) {
+		}, set_count_to_binary: function (thisctr) {
+			if (thisctr.bcd_mode) {
 				thisctr.count =
 					(((thisctr.count_binary/1)%10)<<0) |
 					(((thisctr.count_binary/10)%10)<<4) |
@@ -129,8 +129,8 @@ define([
 			} else {
 				thisctr.count = thisctr.count_binary;
 			}
-		}, set_binary_to_count: function ( thisctr ) {
-			if ( thisctr.bcd_mode ) {
+		}, set_binary_to_count: function (thisctr) {
+			if (thisctr.bcd_mode) {
 				thisctr.count_binary =
 					(1*((thisctr.count>>0)&0xF)) +
 					(10*((thisctr.count>>4)&0xF)) +
@@ -139,9 +139,9 @@ define([
 			} else {
 				thisctr.count_binary = thisctr.count;
 			}
-		}, decrement: function ( thisctr ) {
-			if ( !thisctr.count ) {
-				if ( thisctr.bcd_mode ) {
+		}, decrement: function (thisctr) {
+			if (!thisctr.count) {
+				if (thisctr.bcd_mode) {
 					thisctr.count = 0x9999;
 					thisctr.count_binary = 9999;
 				} else {
@@ -155,16 +155,16 @@ define([
 		}, init: function () {
 			var i;
 			
-			for ( i = 0 ; i < 3 ; i++ ) {
+			for (i = 0 ; i < 3 ; i++) {
 				this.counter[ i ].init();
 			}
 			this.seen_problems = 0;
 		}, reset: function (type) {
 			// ???
 		}, register_state: function () {
-		}, decrement_multiple: function ( thisctr, cycles ) {
-			while ( cycles > 0 ) {
-				if ( cycles <= thisctr.count_binary ) {
+		}, decrement_multiple: function (thisctr, cycles) {
+			while (cycles > 0) {
+				if (cycles <= thisctr.count_binary) {
 					thisctr.count_binary -= cycles;
 					cycles -= cycles;
 					this.set_count_to_binary(thisctr);
@@ -175,17 +175,17 @@ define([
 					this.decrement(thisctr);
 				}
 			}
-		}, clock_multiple: function ( cnum, cycles ) {
-			if ( cnum > MAX_COUNTER ) {
+		}, clock_multiple: function (cnum, cycles) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number too high in clock"));
 			} else {
 				var thisctr = this.counter[ cnum ];
-				while ( cycles > 0 ) {
-					if ( thisctr.next_change_time == 0 ) {
-						if ( thisctr.count_written ) {
-							switch ( thisctr.mode ) {
+				while (cycles > 0) {
+					if (thisctr.next_change_time == 0) {
+						if (thisctr.count_written) {
+							switch (thisctr.mode) {
 							case 0:
-								if ( thisctr.GATE && (thisctr.write_state != MSByte_multiple) ) {
+								if (thisctr.GATE && (thisctr.write_state != MSByte_multiple)) {
 									this.decrement_multiple(thisctr, cycles);
 								}
 								break;
@@ -193,17 +193,17 @@ define([
 								this.decrement_multiple(thisctr, cycles);
 								break;
 							case 2:
-								if ( !thisctr.first_pass && thisctr.GATE ) {
+								if (!thisctr.first_pass && thisctr.GATE) {
 									this.decrement_multiple(thisctr, cycles);
 								}
 								break;
 							case 3:
-								if ( !thisctr.first_pass && thisctr.GATE ) {
+								if (!thisctr.first_pass && thisctr.GATE) {
 									this.decrement_multiple(thisctr, 2 * cycles);
 								}
 								break;
 							case 4:
-								if ( thisctr.GATE ) {
+								if (thisctr.GATE) {
 									this.decrement_multiple(thisctr, cycles);
 								}
 								break;
@@ -215,13 +215,13 @@ define([
 						}
 						cycles -= cycles;
 					} else {
-						switch ( thisctr.mode ) {
+						switch (thisctr.mode) {
 						case 0:
 						case 1:
 						case 2:
 						case 4:
 						case 5:
-							if ( thisctr.next_change_time > cycles ) {
+							if (thisctr.next_change_time > cycles) {
 								this.decrement_multiple(thisctr,cycles);
 								thisctr.next_change_time -= cycles;
 								cycles -= cycles;
@@ -232,7 +232,7 @@ define([
 							}
 							break;
 						case 3:
-							if ( thisctr.next_change_time > cycles ) {
+							if (thisctr.next_change_time > cycles) {
 								this.decrement_multiple(thisctr,cycles * 2);
 								thisctr.next_change_time -= cycles;
 								cycles -= cycles;
@@ -251,18 +251,18 @@ define([
 				//this.print_counter(thisctr);
 				//#endif
 			}
-		}, clock: function ( cnum ) {
-			if ( cnum > MAX_COUNTER ) {
+		}, clock: function (cnum) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number too high in clock"));
 			} else {
 				var thisctr = this.counter[ cnum ];
-				switch ( thisctr.mode ) {
+				switch (thisctr.mode) {
 				case 0:
-					if ( thisctr.count_written ) {
-						if ( thisctr.null_count ) {
+					if (thisctr.count_written) {
+						if (thisctr.null_count) {
 							this.set_count(thisctr, thisctr.inlatch);
-							if ( thisctr.GATE ) {
-								if ( thisctr.count_binary == 0 ) {
+							if (thisctr.GATE) {
+								if (thisctr.count_binary == 0) {
 									thisctr.next_change_time = 1;
 								} else {
 									thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
@@ -272,11 +272,11 @@ define([
 							}
 							thisctr.null_count = 0;
 						} else {
-							if ( thisctr.GATE && (thisctr.write_state != MSByte_multiple) ) {
+							if (thisctr.GATE && (thisctr.write_state != MSByte_multiple)) {
 								this.decrement(thisctr);
-								if ( !thisctr.OUTpin ) {
+								if (!thisctr.OUTpin) {
 									thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
-									if ( !thisctr.count ) {
+									if (!thisctr.count) {
 										this.set_OUT(thisctr,1);
 									}
 								} else {
@@ -292,28 +292,28 @@ define([
 					thisctr.triggerGATE=0;
 					break;
 				case 1:
-					if ( thisctr.count_written ) {
-						if ( thisctr.triggerGATE ) {
+					if (thisctr.count_written) {
+						if (thisctr.triggerGATE) {
 							this.set_count(thisctr, thisctr.inlatch);
-							if ( thisctr.count_binary == 0 ) {
+							if (thisctr.count_binary == 0) {
 								thisctr.next_change_time = 1;
 							} else {
 								thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
 							}
 							thisctr.null_count = 0;
 							this.set_OUT(thisctr, 0);
-							if ( thisctr.write_state == MSByte_multiple ) {
+							if (thisctr.write_state == MSByte_multiple) {
 								util.problem(("Undefined behavior when loading a half loaded count."));
 							}
 						} else {
 							this.decrement(thisctr);
-							if ( !thisctr.OUTpin ) {
-								if ( thisctr.count_binary == 0 ) {
+							if (!thisctr.OUTpin) {
+								if (thisctr.count_binary == 0) {
 									thisctr.next_change_time = 1;
 								} else {
 									thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
 								}
-								if ( thisctr.count == 0 ) {
+								if (thisctr.count == 0) {
 									this.set_OUT(thisctr,1);
 								}
 							} else {
@@ -326,26 +326,26 @@ define([
 					thisctr.triggerGATE = 0;
 					break;
 				case 2:
-					if ( thisctr.count_written ) {
-						if ( thisctr.triggerGATE || thisctr.first_pass ) {
+					if (thisctr.count_written) {
+						if (thisctr.triggerGATE || thisctr.first_pass) {
 							this.set_count(thisctr, thisctr.inlatch);
 							thisctr.next_change_time = (thisctr.count_binary - 1) & 0xFFFF;
 							thisctr.null_count = 0;
-							if ( thisctr.inlatch == 1 ) {
+							if (thisctr.inlatch == 1) {
 								util.problem(("ERROR: count of 1 is invalid in pit mode 2."));
 							}
-							if ( !thisctr.OUTpin ) {
+							if (!thisctr.OUTpin) {
 								this.set_OUT(thisctr, 1);
 							}
-							if ( thisctr.write_state == MSByte_multiple ) {
+							if (thisctr.write_state == MSByte_multiple) {
 								util.problem(("Undefined behavior when loading a half loaded count."));
 							}
 							thisctr.first_pass = 0;
 						} else {
-							if ( thisctr.GATE ) {
+							if (thisctr.GATE) {
 								this.decrement(thisctr);
 								thisctr.next_change_time = (thisctr.count_binary - 1) & 0xFFFF;
-								if ( thisctr.count == 1 ) {
+								if (thisctr.count == 1) {
 									thisctr.next_change_time = 1;
 									this.set_OUT(thisctr, 0);
 									thisctr.first_pass = 1;
@@ -360,49 +360,49 @@ define([
 					thisctr.triggerGATE = 0;
 					break;
 				case 3:
-					if ( thisctr.count_written ) {
+					if (thisctr.count_written) {
 						if ( (thisctr.triggerGATE || thisctr.first_pass
 							|| thisctr.state_bit_2) && thisctr.GATE
 						) {
 							this.set_count(thisctr, thisctr.inlatch & 0xFFFE);
 							thisctr.state_bit_1 = thisctr.inlatch & 0x1;
-							if ( !thisctr.OUTpin || !thisctr.state_bit_1 ) {
-								if ( ((thisctr.count_binary / 2) - 1) == 0 ) {
+							if (!thisctr.OUTpin || !thisctr.state_bit_1) {
+								if (((thisctr.count_binary / 2) - 1) == 0) {
 									thisctr.next_change_time = 1;
 								} else {
 									thisctr.next_change_time = ((thisctr.count_binary / 2) - 1) & 0xFFFF;
 								}
 							} else {
-								if ( (thisctr.count_binary / 2) == 0 ) {
+								if ((thisctr.count_binary / 2) == 0) {
 									thisctr.next_change_time = 1;
 								} else {
 									thisctr.next_change_time = (thisctr.count_binary / 2) & 0xFFFF;
 								}
 							}
 							thisctr.null_count = 0;
-							if ( thisctr.inlatch == 1 ) {
+							if (thisctr.inlatch == 1) {
 								util.problem(("Count of 1 is invalid in pit mode 3."));
 							}
-							if ( !thisctr.OUTpin ) {
+							if (!thisctr.OUTpin) {
 								this.set_OUT(thisctr, 1);
-							} else if ( thisctr.OUTpin && !thisctr.first_pass ) {
+							} else if (thisctr.OUTpin && !thisctr.first_pass) {
 								this.set_OUT(thisctr, 0);
 							}
-							if ( thisctr.write_state == MSByte_multiple ) {
+							if (thisctr.write_state == MSByte_multiple) {
 								util.problem(("Undefined behavior when loading a half loaded count."));
 							}
 							thisctr.state_bit_2 = 0;
 							thisctr.first_pass = 0;
 						} else {
-							if ( thisctr.GATE ) {
+							if (thisctr.GATE) {
 								this.decrement(thisctr);
 								this.decrement(thisctr);
-								if ( !thisctr.OUTpin || !thisctr.state_bit_1 ) {
+								if (!thisctr.OUTpin || !thisctr.state_bit_1) {
 									thisctr.next_change_time = ((thisctr.count_binary / 2) - 1) & 0xFFFF;
 								} else {
 									thisctr.next_change_time = (thisctr.count_binary / 2) & 0xFFFF;
 								}
-								if ( thisctr.count == 0 ) {
+								if (thisctr.count == 0) {
 									thisctr.state_bit_2 = 1;
 									thisctr.next_change_time = 1;
 								}
@@ -422,14 +422,14 @@ define([
 					thisctr.triggerGATE = 0;
 					break;
 				case 4:
-					if ( thisctr.count_written ) {
-						if ( !thisctr.OUTpin ) {
+					if (thisctr.count_written) {
+						if (!thisctr.OUTpin) {
 							this.set_OUT(thisctr, 1);
 						}
-						if ( thisctr.null_count ) {
+						if (thisctr.null_count) {
 							this.set_count(thisctr, thisctr.inlatch);
-							if ( thisctr.GATE ) {
-								if ( thisctr.count_binary == 0 ) {
+							if (thisctr.GATE) {
+								if (thisctr.count_binary == 0) {
 									thisctr.next_change_time = 1;
 								} else {
 									thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
@@ -438,16 +438,16 @@ define([
 								thisctr.next_change_time = 0;
 							}
 							thisctr.null_count = 0;
-							if ( thisctr.write_state == MSByte_multiple ) {
+							if (thisctr.write_state == MSByte_multiple) {
 								util.problem(("Undefined behavior when loading a half loaded count."));
 							}
 							thisctr.first_pass = 1;
 						} else {
-							if ( thisctr.GATE ) {
+							if (thisctr.GATE) {
 								this.decrement(thisctr);
-								if ( thisctr.first_pass ) {
+								if (thisctr.first_pass) {
 									thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
-									if ( !thisctr.count ) {
+									if (!thisctr.count) {
 										this.set_OUT(thisctr, 0);
 										thisctr.next_change_time = 1;
 										thisctr.first_pass = 0;
@@ -465,27 +465,27 @@ define([
 					thisctr.triggerGATE = 0;
 					break;
 				case 5:
-					if ( thisctr.count_written ) {
-						if ( !thisctr.OUTpin ) {
+					if (thisctr.count_written) {
+						if (!thisctr.OUTpin) {
 							this.set_OUT(thisctr, 1);
 						}
-						if ( thisctr.triggerGATE ) {
+						if (thisctr.triggerGATE) {
 							this.set_count(thisctr, thisctr.inlatch);
-							if ( thisctr.count_binary == 0 ) {
+							if (thisctr.count_binary == 0) {
 								thisctr.next_change_time = 1;
 							} else {
 								thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
 							}
 							thisctr.null_count = 0;
-							if ( thisctr.write_state == MSByte_multiple ) {
+							if (thisctr.write_state == MSByte_multiple) {
 								util.problem(("Undefined behavior when loading a half loaded count."));
 							}
 							thisctr.first_pass = 1;
 						} else {
 							this.decrement(thisctr);
-							if ( thisctr.first_pass ) {
+							if (thisctr.first_pass) {
 								thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
-								if ( !thisctr.count ) {
+								if (!thisctr.count) {
 									this.set_OUT(thisctr, 0);
 									thisctr.next_change_time = 1;
 									thisctr.first_pass = 0;
@@ -506,7 +506,7 @@ define([
 					break;
 				}
 			}
-		}, clock_all: function ( cycles ) {
+		}, clock_all: function (cycles) {
 			debug(util.sprintf(
 				"clock_all: cycles=%d"
 				, cycles
@@ -514,10 +514,10 @@ define([
 			this.clock_multiple(0, cycles);
 			this.clock_multiple(1, cycles);
 			this.clock_multiple(2, cycles);
-		}, read: function ( address ) {
-			if ( address > MAX_ADDRESS ) {
+		}, read: function (address) {
+			if (address > MAX_ADDRESS) {
 				util.problem(("Counter address incorrect in data read."));
-			} else if ( address == CONTROL_ADDRESS ) {
+			} else if (address == CONTROL_ADDRESS) {
 				debug(("PIT Read: Control Word Register."));
 				// Read from control word register;
 				/* This might be okay.  If so, 0 seems the most logical
@@ -532,7 +532,7 @@ define([
 					, address
 				));
 				var thisctr = this.counter[ address ];
-				if ( thisctr.status_latched ) {
+				if (thisctr.status_latched) {
 					// Latched Status Read;
 					if ( thisctr.count_MSB_latched
 						&& (thisctr.read_state == MSByte_multiple)
@@ -544,17 +544,17 @@ define([
 					}
 				} else {
 					// Latched Count Read;
-					if ( thisctr.count_LSB_latched ) {
+					if (thisctr.count_LSB_latched) {
 						// Read Least Significant Byte;
-						if ( thisctr.read_state == LSByte_multiple ) {
+						if (thisctr.read_state == LSByte_multiple) {
 							debug(("Setting read_state to MSB_mult"));
 							thisctr.read_state = MSByte_multiple;
 						}
 						thisctr.count_LSB_latched = 0;
 						return (thisctr.outlatch & 0xFF);
-					} else if ( thisctr.count_MSB_latched ) {
+					} else if (thisctr.count_MSB_latched) {
 						// Read Most Significant Byte;
-						if ( thisctr.read_state == MSByte_multiple ) {
+						if (thisctr.read_state == MSByte_multiple) {
 							debug(("Setting read_state to LSB_mult"));
 							thisctr.read_state = LSByte_multiple;
 						}
@@ -562,16 +562,16 @@ define([
 						return ((thisctr.outlatch >> 8) & 0xFF);
 					} else {
 						// Unlatched Count Read;
-						if ( !(thisctr.read_state & 0x1) ) {
+						if (!(thisctr.read_state & 0x1)) {
 							// Read Least Significant Byte;
-							if ( thisctr.read_state == LSByte_multiple ) {
+							if (thisctr.read_state == LSByte_multiple) {
 								thisctr.read_state = MSByte_multiple;
 								debug(("Setting read_state to MSB_mult"));
 							}
 							return (thisctr.count & 0xFF);
 						} else {
 							//Read Most Significant Byte;
-							if ( thisctr.read_state == MSByte_multiple ) {
+							if (thisctr.read_state == MSByte_multiple) {
 								debug(("Setting read_state to LSB_mult"));
 								thisctr.read_state = LSByte_multiple;
 							}
@@ -583,10 +583,10 @@ define([
 			
 			// Should only get here on errors;
 			return 0;
-		}, write: function ( address, data ) {
-			if ( address > MAX_ADDRESS ) {
+		}, write: function (address, data) {
+			if (address > MAX_ADDRESS) {
 				util.problem(("Counter address incorrect in data write."));
-			} else if ( address == CONTROL_ADDRESS ) {
+			} else if (address == CONTROL_ADDRESS) {
 				var SC, RW, M, BCD;
 				this.controlword = data;
 				debug(("Control Word Write."));
@@ -594,21 +594,21 @@ define([
 				RW = (this.controlword >> 4) & 0x3;
 				M = (this.controlword >> 1) & 0x7;
 				BCD = this.controlword & 0x1;
-				if ( SC == 3 ) {
+				if (SC == 3) {
 					// [Bochs] READ_BACK command;
 					var i;
 					debug(("READ_BACK command."));
-					for( i = 0 ; i <= MAX_COUNTER ; i++ ) {
-						if ( (M >> i) & 0x1 ) {
+					for(i = 0 ; i <= MAX_COUNTER ; i++) {
+						if ((M >> i) & 0x1) {
 							// [Bochs] If we are using this counter;
 							var thisctr = this.counter[ i ];
-							if ( !((this.controlword>>5) & 1) ) {
+							if (!((this.controlword>>5) & 1)) {
 								// [Bochs] Latch Count;
 								this.latch_counter(thisctr);
 							}
-							if ( !((this.controlword>>4) & 1) ) {
+							if (!((this.controlword>>4) & 1)) {
 								// [Bochs] Latch Status;
-								if ( thisctr.status_latched ) {
+								if (thisctr.status_latched) {
 									// [Bochs] Do nothing because latched status has not been read.;
 								} else {
 									thisctr.status_latch =
@@ -624,7 +624,7 @@ define([
 					}
 				} else {
 					var thisctr = this.counter[ SC ];
-					if ( !RW ) {
+					if (!RW) {
 						// [Bochs] Counter Latch command;
 						debug(util.sprintf(
 							"Counter Latch command.  SC=%d"
@@ -647,7 +647,7 @@ define([
 						thisctr.rw_mode = RW;
 						thisctr.bcd_mode = (BCD > 0);
 						thisctr.mode = M;
-						switch ( RW ) {
+						switch (RW) {
 						case 0x1:
 							debug(("Setting read_state to LSB"));
 							thisctr.read_state = LSByte;
@@ -667,7 +667,7 @@ define([
 							util.problem(("RW field invalid in control word write."));
 						}
 						// [Bochs] All modes except mode 0 have initial output of 1.;
-						if ( M ) {
+						if (M) {
 							this.set_OUT(thisctr, 1);
 						} else {
 							this.set_OUT(thisctr, 0);
@@ -682,7 +682,7 @@ define([
 					"Write Initial Count: counter=%d, count=%d"
 					, address, data
 				));
-				switch ( thisctr.write_state ) {
+				switch (thisctr.write_state) {
 				case LSByte_multiple:
 					thisctr.inlatch = data;
 					thisctr.write_state = MSByte_multiple;
@@ -703,19 +703,19 @@ define([
 				default:
 					util.problem(("write counter in invalid write state."));
 				}
-				if ( thisctr.count_written && thisctr.write_state != MSByte_multiple ) {
+				if (thisctr.count_written && thisctr.write_state != MSByte_multiple) {
 					thisctr.null_count = 1;
 					this.set_count(thisctr, thisctr.inlatch);
 				}
-				switch ( thisctr.mode ) {
+				switch (thisctr.mode) {
 				case 0:
-					if ( thisctr.write_state == MSByte_multiple ) {
+					if (thisctr.write_state == MSByte_multiple) {
 						this.set_OUT(thisctr, 0);
 					}
 					thisctr.next_change_time = 1;
 					break;
 				case 1:
-					if ( thisctr.triggerGATE ) { // [Bochs] for initial writes, if already saw trigger.
+					if (thisctr.triggerGATE) { // [Bochs] for initial writes, if already saw trigger.
 						thisctr.next_change_time = 1;
 					} // [Bochs] Otherwise, no change.
 					break;
@@ -731,36 +731,36 @@ define([
 					thisctr.next_change_time = 1;
 					break;
 				case 5:
-					if ( thisctr.triggerGATE ) { // [Bochs] for initial writes, if already saw trigger.
+					if (thisctr.triggerGATE) { // [Bochs] for initial writes, if already saw trigger.
 						thisctr.next_change_time = 1;
 					} //Otherwise, no change.
 					break;
 				}
 			}
-		}, set_GATE: function ( cnum, data ) {
-			if ( cnum > MAX_COUNTER ) {
+		}, set_GATE: function (cnum, data) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number incorrect in 82C54 set_GATE"));
 			} else {
 				var thisctr = this.counter[ cnum ];
-				if ( !((thisctr.GATE && data) || (!(thisctr.GATE || data))) ) {
+				if (!((thisctr.GATE && data) || (!(thisctr.GATE || data)))) {
 					util.info(util.sprintf(
 						"Changing GATE %d to: %d"
 						, cnum, data
 					));
 					thisctr.GATE = data;
-					if ( thisctr.GATE ) {
+					if (thisctr.GATE) {
 						thisctr.triggerGATE = 1;
 					}
-					switch ( thisctr.mode ) {
+					switch (thisctr.mode) {
 					case 0:
-						if ( data && thisctr.count_written ) {
-							if ( thisctr.null_count ) {
+						if (data && thisctr.count_written) {
+							if (thisctr.null_count) {
 								thisctr.next_change_time = 1;
 							} else {
 								if ( (!thisctr.OUTpin)
 									&& (thisctr.write_state != MSByte_multiple)
 								) {
-									if ( thisctr.count_binary == 0 ) {
+									if (thisctr.count_binary == 0) {
 										thisctr.next_change_time = 1;
 									} else {
 										thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
@@ -770,7 +770,7 @@ define([
 								}
 							}
 						} else {
-							if ( thisctr.null_count ) {
+							if (thisctr.null_count) {
 								thisctr.next_change_time = 1;
 							} else {
 								thisctr.next_change_time = 0;
@@ -778,16 +778,16 @@ define([
 						}
 						break;
 					case 1:
-						if ( data && thisctr.count_written ) { // [Bochs] only triggers cause a change.
+						if (data && thisctr.count_written) { // [Bochs] only triggers cause a change.
 							thisctr.next_change_time = 1;
 						}
 						break;
 					case 2:
-						if ( !data ) {
+						if (!data) {
 							this.set_OUT(thisctr, 1);
 							thisctr.next_change_time = 0;
 						} else {
-							if ( thisctr.count_written ) {
+							if (thisctr.count_written) {
 								thisctr.next_change_time = 1;
 							} else {
 								thisctr.next_change_time = 0;
@@ -795,7 +795,7 @@ define([
 						}
 						break;
 					case 3:
-						if ( !data ) {
+						if (!data) {
 							this.set_OUT(thisctr, 1);
 							thisctr.first_pass = 1;
 							thisctr.next_change_time = 0;
@@ -808,12 +808,12 @@ define([
 						}
 						break;
 					case 4:
-						if ( !thisctr.OUTpin || thisctr.null_count ) {
+						if (!thisctr.OUTpin || thisctr.null_count) {
 							thisctr.next_change_time = 1;
 						} else {
-							if ( data && thisctr.count_written ) {
-								if ( thisctr.first_pass ) {
-									if ( thisctr.count_binary == 0 ) {
+							if (data && thisctr.count_written) {
+								if (thisctr.first_pass) {
+									if (thisctr.count_binary == 0) {
 										thisctr.next_change_time = 1;
 									} else {
 										thisctr.next_change_time = thisctr.count_binary & 0xFFFF;
@@ -827,7 +827,7 @@ define([
 						}
 						break;
 					case 5:
-						if ( data && thisctr.count_written ) { // [Bochs] only triggers cause a change.
+						if (data && thisctr.count_written) { // [Bochs] only triggers cause a change.
 							thisctr.next_change_time = 1;
 						}
 						break;
@@ -835,22 +835,22 @@ define([
 					}
 				}
 			}
-		}, read_OUT: function ( cnum ) {
-			if ( cnum > MAX_COUNTER ) {
+		}, read_OUT: function (cnum) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number incorrect in 82C54 read_OUT"));
 				return 0;
 			}
 			
 			return this.counter[ cnum ].OUTpin;
-		}, read_GATE: function ( cnum ) {
-			if ( cnum > MAX_COUNTER ) {
+		}, read_GATE: function (cnum) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number incorrect in 82C54 read_GATE"));
 				return 0;
 			}
 			
 			return this.counter[ cnum ].GATE;
-		}, get_clock_event_time: function ( cnum ) {
-			if ( cnum > MAX_COUNTER ) {
+		}, get_clock_event_time: function (cnum) {
+			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number incorrect in 82C54 read_GATE"));
 				return 0;
 			}
@@ -862,16 +862,16 @@ define([
 			var time2 = this.get_clock_event_time(2);
 			
 			var out = time0;
-			if ( time1 && (time1 < out) ) {
+			if (time1 && (time1 < out)) {
 				out = time1;
 			}
-			if ( time2 && (time2 < out) ) {
+			if (time2 && (time2 < out)) {
 				out = time2;
 			}
 			return out;
-		}, get_inlatch: function ( counternum ) {
+		}, get_inlatch: function (counternum) {
 			return this.counter[ counternum ].inlatch;
-		}, set_OUT_handler: function ( counternum, thisObj, outh ) {
+		}, set_OUT_handler: function (counternum, thisObj, outh) {
 			this.counter[ counternum ].out_handler = [ thisObj, outh ];
 		}
 	});

@@ -8,7 +8,7 @@
 define([
 	"../util"
 	, "./memory/buffer"
-], function ( util, Buffer ) { "use strict";
+], function (util, Buffer) { "use strict";
 	
 	var isIE = self.ActiveXObject && !self.opera;
 	var useProxy = isIE;
@@ -18,8 +18,8 @@ define([
 		util.problem("HTTP is static-only!");
 	}
 	
-	function getURL( path ) {
-		if ( useProxy ) {
+	function getURL(path) {
+		if (useProxy) {
 			// NB: random parameter added to URL to ensure caching systems
 			//	 are defeated - ( we MUST always have the latest copy of data
 			//	 to prevent synchronisation problems )
@@ -36,7 +36,7 @@ define([
 	}
 	
 	// Synchronously download a file over HTTP
-	/* static */HTTP.getHTTP = function ( path ) {
+	/* static */HTTP.getHTTP = function (path) {
 		var xhr = createXHR();
 
 		xhr.open("GET", path, false);
@@ -46,8 +46,8 @@ define([
 	};
 	
 	// Ultra-modern, fast Typed Arrays support (faster)
-	if ( util.support.typedArrays ) {
-		HTTP.get = function ( path, done, fail, minSize ) {
+	if (util.support.typedArrays) {
+		HTTP.get = function (path, done, fail, minSize) {
 			var xhr = createXHR();
 
 			path = getURL(path);
@@ -57,9 +57,9 @@ define([
 			xhr.onreadystatechange = function () {
 				var buffer, bufIn, bufOut;
 				
-				if ( this.readyState === 4 ) {
-					if ( this.status === 200 ) {
-						if ( !minSize || this.response.byteLength >= minSize ) {
+				if (this.readyState === 4) {
+					if (this.status === 200) {
+						if (!minSize || this.response.byteLength >= minSize) {
 							buffer = Buffer.wrapMultibyteBuffer(this.response);
 						// Make sure result buffer is of minimum size
 						} else {
@@ -79,7 +79,7 @@ define([
 		};
 	// Legacy native Arrays support (slower)
 	} else {
-		HTTP.get = function ( path, done, fail ) {
+		HTTP.get = function (path, done, fail) {
 			var idx, len, chars, bytes;
 			
 			path = getURL(path);
@@ -88,8 +88,8 @@ define([
 			// Force to x-user-defined encoding (Latin-1 ASCII, UTF-8 fail
 			//	in reserved 128-160 range - force to UNICODE Private Area
 			//	(0xF700-0xF7FF) range)
-			//	( NB: fix from http://mgran.blogspot.com/2006/08/downloading-binary-streams-with.html )
-			if ( !useProxy ) {
+			//	(NB: fix from http://mgran.blogspot.com/2006/08/downloading-binary-streams-with.html)
+			if (!useProxy) {
 				xmlhttp.overrideMimeType("text/plain; charset=x-user-defined");
 			}
 			xmlhttp.send("");
@@ -97,11 +97,11 @@ define([
 			chars = xmlhttp.responseText;
 			len = chars.length;
 			// Optimize by reserving array length in advance
-			bytes = new Array( len );
+			bytes = new Array(len);
 			
 			// Clip charCodes into ASCII range
 			//	00h->FFh (from UNICODE F700h->F7FFh)
-			for ( idx = 0 ; idx < len ; ++idx ) {
+			for (idx = 0 ; idx < len ; ++idx) {
 				bytes[ idx ] = chars.charCodeAt(idx) & 0xFF;
 			}
 			return bytes;

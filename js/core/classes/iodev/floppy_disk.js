@@ -9,7 +9,7 @@ define([
 	"../../util"
 	, "../http"
 	, "../memory/buffer"
-], function ( util, HTTP, Buffer ) { "use strict";
+], function (util, HTTP, Buffer) { "use strict";
 	
 	// Constructor / pre-init
 	function FloppyDisk( fd              // File descriptor
@@ -34,7 +34,7 @@ define([
 		
 		this.data = null;
 	}
-	FloppyDisk.prototype.loadFile = function ( path, done, fail ) {
+	FloppyDisk.prototype.loadFile = function (path, done, fail) {
 		// FIXME: This value should be different
 		//        for different types of diskette
 		//this.data = HTTP.get(path);//, 1474560);
@@ -42,7 +42,7 @@ define([
 		//return this.data !== null;
 		var disk = this;
 
-		HTTP.get(path, function ( path, buffer ) {
+		HTTP.get(path, function (path, buffer) {
 			disk.data = buffer;
 			done();
 		}, fail);

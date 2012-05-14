@@ -8,7 +8,7 @@
 define([
 	"../../util"
 	, "../iodev"
-], function ( util, IODevice ) { "use strict";
+], function (util, IODevice) { "use strict";
 	
 	/* ====== Private ====== */
 	
@@ -17,7 +17,7 @@ define([
 	/* ==== /Const ==== */
 	
 	// Constructor / pre-init
-	function Guest2Host( machine ) {
+	function Guest2Host(machine) {
 		util.assert(this && (this instanceof Guest2Host), "Guest2Host ctor ::"
 			+ " error - constructor not called properly");
 		
@@ -36,7 +36,7 @@ define([
 		};
 	}
 	util.inherit(Guest2Host, IODevice, "Guest2Host"); // Inheritance
-	Guest2Host.prototype.init = function ( done, fail ) {
+	Guest2Host.prototype.init = function (done, fail) {
 		var state = this.state;
 		
 		// I/O port addresses used
@@ -49,7 +49,7 @@ define([
 
 		done();
 	};
-	Guest2Host.prototype.reset = function ( type ) {
+	Guest2Host.prototype.reset = function (type) {
 		// Nothing to do
 	};
 	Guest2Host.prototype.registerState = function () {
@@ -64,13 +64,13 @@ define([
 	};
 	
 	// Guest2Host interface's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		var state = device.state; // "device" will be Guest2Host
 		
 		util.info("Guest2Host readHandler() :: Read from address: "
 			+ util.format("hex", addr));
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x0402: // INFO_PORT
 			// ??
 			break;
@@ -87,20 +87,20 @@ define([
 		}
 	}
 	// Guest2Host interface's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len ) {
+	function writeHandler(device, addr, val, io_len) {
 		var state = device.state // "device" will be Guest2Host
 			, idx, text;
 		
 		//util.info("Guest2Host writeHandler() :: Write to address: "
 		//	+ util.format("hex", addr) + " = " + util.format("hex", val));
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x0402: // INFO_PORT
-			if ( val !== 0x0A/* && val !== "$".charCodeAt(0)*/ ) {
+			if (val !== 0x0A/* && val !== "$".charCodeAt(0)*/) {
 				state.bufferInfo.buffer[ state.bufferInfo.pos++ ] = val;
 			} else {
 				text = "";
-				for ( idx = 0 ; idx < state.bufferInfo.pos ; ++idx ) {
+				for (idx = 0 ; idx < state.bufferInfo.pos ; ++idx) {
 					text += String.fromCharCode(
 						state.bufferInfo.buffer[ idx ]);
 				}
@@ -110,11 +110,11 @@ define([
 			}
 			break;
 		case 0x0403: // DEBUG_PORT
-			if ( val !== 0x0A/* && val !== "$".charCodeAt(0)*/ ) {
+			if (val !== 0x0A/* && val !== "$".charCodeAt(0)*/) {
 				state.bufferDebug.buffer[ state.bufferDebug.pos++ ] = val;
 			} else {
 				text = "";
-				for ( idx = 0 ; idx < state.bufferDebug.pos ; ++idx ) {
+				for (idx = 0 ; idx < state.bufferDebug.pos ; ++idx) {
 					text += String.fromCharCode(
 						state.bufferDebug.buffer[ idx ]);
 				}

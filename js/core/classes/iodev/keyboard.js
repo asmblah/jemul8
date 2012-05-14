@@ -15,7 +15,7 @@ define([
 	, "../register"
 	, "../pc"
 	, "./keyboard/scancode"
-], function ( util, IODevice, Register, PC, Scancode ) { "use strict";
+], function (util, IODevice, Register, PC, Scancode) { "use strict";
 	
 	/* ====== Private ====== */
 	
@@ -28,7 +28,7 @@ define([
 	/* ==== /Const ==== */
 	
 	// Constructor / pre-init
-	function KeyboardCntrlr( machine ) {
+	function KeyboardCntrlr(machine) {
 		util.assert(this && (this instanceof KeyboardCntrlr)
 			, "KeyboardCntrlr ctor ::"
 			+ " error - constructor not called properly");
@@ -42,14 +42,14 @@ define([
 		
 		this.timerHandle = null;
 		
-		this.keyboard = new Keyboard( this );
-		this.mouse = new Mouse( this );
+		this.keyboard = new Keyboard(this);
+		this.mouse = new Mouse(this);
 		
 		this.inited = false;
 	}
 	// Methods based on Bochs /iodev/keyboard.h & keyboard.cc
 	util.inherit(KeyboardCntrlr, IODevice, "KeyboardCntrlr"); // Inheritance
-	KeyboardCntrlr.prototype.init = function ( done, fail ) {
+	KeyboardCntrlr.prototype.init = function (done, fail) {
 		var machine = this.machine, state
 			, keyboard = this.keyboard, mouse = this.mouse;
 		
@@ -82,17 +82,17 @@ define([
 		
 		done();
 	};
-	KeyboardCntrlr.prototype.reset = function ( type ) {
+	KeyboardCntrlr.prototype.reset = function (type) {
 		// ...
 	};
 	// Flush internal buffer and reset keyboard settings to power-up condition
 	// Based on [bx_keyb_c::resetinternals]
-	KeyboardCntrlr.prototype.resetInternals = function ( isPowerUp ) {
+	KeyboardCntrlr.prototype.resetInternals = function (isPowerUp) {
 		var keyboard = this.keyboard
 			, idx;
 		
 		keyboard.bufInternal.num_elements = 0;
-		for ( idx = 0 ; idx < KBD_ELEMENTS ; ++idx ) {
+		for (idx = 0 ; idx < KBD_ELEMENTS ; ++idx) {
 			keyboard.bufInternal.buffer[ idx ] = 0;
 		}
 		keyboard.bufInternal.head = 0;
@@ -103,7 +103,7 @@ define([
 		keyboard.state.expecting_scancodes_set = false;
 		keyboard.state.current_scancodes_set = 1;
 		
-		if ( isPowerUp ) {
+		if (isPowerUp) {
 			keyboard.bufInternal.expecting_led_write = 0;
 			keyboard.bufInternal.delay = 1; // 500 mS
 			keyboard.bufInternal.repeat_rate = 0x0b; // 10.9 chars/sec
@@ -120,7 +120,7 @@ define([
 	
 	// Based on [bx_keyb_c::activate_timer]
 	KeyboardCntrlr.prototype.activateTimer = function () {
-		if ( !this.keyboard.state.timer_pending ) {
+		if (!this.keyboard.state.timer_pending) {
 			this.keyboard.state.timer_pending = true;
 		}
 	};
@@ -128,16 +128,16 @@ define([
 	// Simulates the physical 8042 controller->keyboard connection:
 	//	the actual command bytes involved are used
 	// Based on [bx_keyb_c::kbd_ctrl_to_kbd]
-	KeyboardCntrlr.prototype.sendToKeyboard = function ( val ) {
+	KeyboardCntrlr.prototype.sendToKeyboard = function (val) {
 		var keyboard = this.keyboard
 			, cps;
 		util.debug("KeyboardCntrlr.sendToKeyboard() :: Controller passed byte "
 			+ util.format("hex", val) + " to keyboard");
 		
-		if ( keyboard.bufInternal.expecting_typematic ) {
+		if (keyboard.bufInternal.expecting_typematic) {
 			keyboard.bufInternal.expecting_typematic = false;
 			keyboard.bufInternal.delay = (val >> 5) & 0x03;
-			switch ( keyboard.bufInternal.delay ) {
+			switch (keyboard.bufInternal.delay) {
 			case 0: util.info("KeyboardCntrlr.sendToKeyboard() ::"
 				+ " Setting delay to 250 mS (unused)"); break;
 			case 1: util.info("KeyboardCntrlr.sendToKeyboard() ::"
@@ -159,7 +159,7 @@ define([
 			return;
 		}
 		
-		if ( keyboard.bufInternal.expecting_led_write ) {
+		if (keyboard.bufInternal.expecting_led_write) {
 			keyboard.bufInternal.expecting_led_write = 0;
 			keyboard.bufInternal.led_status = val;
 			util.debug("KeyboardCntrlr.sendToKeyboard() :: LED status set to "
@@ -173,10 +173,10 @@ define([
 			return;
 		}
 		
-		if ( keyboard.state.expecting_scancodes_set ) {
+		if (keyboard.state.expecting_scancodes_set) {
 			keyboard.state.expecting_scancodes_set = false;
-			if ( val !== 0 ) {
-				if ( val < 4 ) {
+			if (val !== 0) {
+				if (val < 4) {
 					keyboard.state.current_scancodes_set = (val - 1);
 					util.info("KeyboardCntrlr.sendToKeyboard() ::"
 						+ " Switched to scancode set"
@@ -197,7 +197,7 @@ define([
 			return;
 		}
 		
-		switch ( val ) {
+		switch (val) {
 		case 0x00: // ??? Ignore and let OS timeout with no response
 			keyboard.enqueueKey(0xFA); // Send (ACK)nowledge
 			break;
@@ -299,7 +299,7 @@ define([
 	// Simulates the physical 8042 controller->mouse connection:
 	//	the actual command bytes involved are used
 	// Based on [bx_keyb_c::kbd_ctrl_to_mouse]
-	KeyboardCntrlr.prototype.sendToMouse = function ( val ) {
+	KeyboardCntrlr.prototype.sendToMouse = function (val) {
 		var keyboard = this.keyboard, mouse = this.mouse
 			, cps;
 		util.debug("KeyboardCntrlr.sendToMouse() :: Controller passed byte "
@@ -317,18 +317,18 @@ define([
 		
 		// A command was received, now a parameter/argument to that command
 		//	is expected to be passed
-		if ( keyboard.state.expecting_mouse_parameter ) {
+		if (keyboard.state.expecting_mouse_parameter) {
 			keyboard.state.expecting_mouse_parameter = false;
-			switch ( keyboard.state.last_mouse_command ) {
+			switch (keyboard.state.last_mouse_command) {
 			case 0xF3: // Set Mouse Sample Rate
 				mouse.state.sample_rate = val;
 				util.debug("KeyboardCntrlr.sendToMouse() ::"
 					+ " Sampling rate set: " + val + " Hz");
-				if ( (val === 200) && (!mouse.state.im_request) ) {
+				if ((val === 200) && (!mouse.state.im_request)) {
 					mouse.state.im_request = 1;
-				} else if ( (val === 100) && (mouse.state.im_request === 1) ) {
+				} else if ((val === 100) && (mouse.state.im_request === 1)) {
 					mouse.state.im_request = 2;
-				} else if ( (val === 80) && (mouse.state.im_request === 2) ) {
+				} else if ((val === 80) && (mouse.state.im_request === 2)) {
 					util.info("KeyboardCntrlr.sendToMouse() ::"
 						+ " Wheel mouse mode enabled");
 					mouse.state.im_mode = true;
@@ -341,7 +341,7 @@ define([
 				break;
 			
 			case 0xE8: // Set Mouse Resolution
-				switch ( val ) {
+				switch (val) {
 				case 0:
 					mouse.state.resolution_cpmm = 1;
 					break;
@@ -374,10 +374,10 @@ define([
 			keyboard.state.last_mouse_command = val;
 			
 			// Test for wrap mode first
-			if ( mouse.state.mode === MOUSE_MODE_WRAP ) {
+			if (mouse.state.mode === MOUSE_MODE_WRAP) {
 				// Not a reset command or reset wrap mode:
 				//	just echo the byte.
-				if ( (val !== 0xFF) && (val !== 0xEC) ) {
+				if ((val !== 0xFF) && (val !== 0xEC)) {
 					util.debug("KeyboardCntrlr.sendToMouse() ::"
 						+ " Wrap mode: ignoring command ("
 						+ util.format("hex", val) + ")");
@@ -386,7 +386,7 @@ define([
 					return;
 				}
 			}
-			switch ( val ) {
+			switch (val) {
 			case 0xE6: // Set Mouse Scaling to 1:1
 				mouse.enqueueCntrlr(0xFA); // (ACK)nowledge
 				mouse.state.scaling = 2;
@@ -412,7 +412,7 @@ define([
 			
 			case 0xEC: // Reset Wrap Mode
 				// Unless we are in wrap mode ignore the command
-				if ( mouse.state.mode === MOUSE_MODE_WRAP ) {
+				if (mouse.state.mode === MOUSE_MODE_WRAP) {
 					util.debug("KeyboardCntrlr.sendToMouse() :: Wrap mode off");
 					// Restore previous mode except disable stream mode reporting.
 					// ### TODO disabling reporting in stream mode
@@ -439,7 +439,7 @@ define([
 			
 			case 0xF2: // Read Device Type
 				mouse.enqueueCntrlr(0xFA); // (ACK)nowledge
-				if ( mouse.state.im_mode ) {
+				if (mouse.state.im_mode) {
 					mouse.enqueueCntrlr(0x03); // Device ID (wheel z-mouse)
 				} else {
 					mouse.enqueueCntrlr(0x00); // Device ID (standard)
@@ -482,7 +482,7 @@ define([
 				mouse.state.scaling         = 1;	// 1:1 (default)
 				mouse.state.mode            = MOUSE_MODE_RESET;
 				mouse.state.enable          = 0;
-				if ( mouse.state.im_mode ) {
+				if (mouse.state.im_mode) {
 					util.info("KeyboardCntrlr.sendToMouse() ::"
 						+ " Wheel mouse mode disabled");
 					mouse.state.im_mode = false;
@@ -530,14 +530,14 @@ define([
 		}
 	};
 	//	Based on [bx_keyb_c::periodic]
-	KeyboardCntrlr.prototype.periodic = function ( delta_usecs ) {
+	KeyboardCntrlr.prototype.periodic = function (delta_usecs) {
 		//static unsigned count_before_paste=0;
 		var keyboard = this.keyboard, mouse = this.mouse
 			, retval;
 		
-		if ( keyboard.state.kbd_clock_enabled ) {
+		if (keyboard.state.kbd_clock_enabled) {
 			// TODO: Implement paste buffer!!!
-			/* if ( ++count_before_paste >= BX_KEY_THIS pastedelay ) {
+			/* if (++count_before_paste >= BX_KEY_THIS pastedelay) {
 				// after the paste delay, consider adding moving more chars
 				// from the paste buffer to the keyboard buffer.
 				BX_KEY_THIS service_paste_buf();
@@ -550,18 +550,18 @@ define([
 		keyboard.state.irq1_requested = 0;
 		keyboard.state.irq12_requested = 0;
 		
-		if ( !keyboard.state.timer_pending ) {
+		if (!keyboard.state.timer_pending) {
 			return retval;
 		}
 		
-		if ( delta_usecs >= keyboard.state.timer_pending ) {
+		if (delta_usecs >= keyboard.state.timer_pending) {
 			keyboard.state.timer_pending = 0;
 		} else {
 			keyboard.state.timer_pending -= delta_usecs;
 			return retval;
 		}
 		
-		if ( keyboard.state.outb ) {
+		if (keyboard.state.outb) {
 			return retval;
 		}
 		
@@ -581,7 +581,7 @@ define([
 			keyboard.bufInternal.head = (keyboard.bufInternal.head + 1)
 				% KBD_ELEMENTS;
 			--keyboard.bufInternal.num_elements;
-			if ( keyboard.state.allow_irq1 ) {
+			if (keyboard.state.allow_irq1) {
 				keyboard.state.irq1_requested = true;
 			}
 		} else {
@@ -597,7 +597,7 @@ define([
 				mouse.bufInternal.head = (mouse.bufInternal.head + 1)
 					% MOUSE_BUFF_SIZE;
 				--mouse.bufInternal.num_elements;
-				if ( keyboard.state.allow_irq12 ) {
+				if (keyboard.state.allow_irq12) {
 					keyboard.state.irq12_requested = true;
 				}
 			} else {
@@ -607,14 +607,14 @@ define([
 		}
 		return retval;
 	};
-	KeyboardCntrlr.prototype.enqueueKey = function ( scancode ) {
+	KeyboardCntrlr.prototype.enqueueKey = function (scancode) {
 		this.keyboard.enqueueKey(scancode);
 	};
-	KeyboardCntrlr.prototype.updateMouse = function ( x, y ) {
+	KeyboardCntrlr.prototype.updateMouse = function (x, y) {
 		util.warning("KeyboardCntrlr.updateMouse() :: Not yet implemented");
 	};
 	
-	function Keyboard( cntrlr ) {
+	function Keyboard(cntrlr) {
 		this.cntrlr = cntrlr;
 		
 		this.state = {
@@ -639,8 +639,8 @@ define([
 			, aux_output_buffer: 0x00
 			, /* byte */last_comm: 0
 			, expecting_port60h: false
-			, expecting_mouse_parameter: new Register( "EXP_MOUSE_PARAM", 1 )
-			, last_mouse_command: new Register( "LAST_MOUSE_CMD", 1 )
+			, expecting_mouse_parameter: new Register("EXP_MOUSE_PARAM", 1)
+			, last_mouse_command: new Register("LAST_MOUSE_CMD", 1)
 			, timer_pending: false
 			, irq1_requested: false
 			, irq12_requested: false
@@ -650,18 +650,18 @@ define([
 			// (B)asic (A)ssurance (T)est - a self-test for the keyboard
 			, bat_in_progress: false
 			
-			, queue: new Array( KBD_CONTROLLER_QSIZE )
+			, queue: new Array(KBD_CONTROLLER_QSIZE)
 			, sizeQueue: 0
 			, sourceQueue: 0 // 0 = keyboard, 1 = mouse
 		};
 		
 		this.bufInternal = {
 			num_elements: 0
-			, buffer: new Array( KBD_ELEMENTS )
+			, buffer: new Array(KBD_ELEMENTS)
 			, head: 0
 			, expecting_typematic: false
 			, expecting_led_write: false
-			, delay: new Register( "DELAY", 1 )
+			, delay: new Register("DELAY", 1)
 			, repeat_rate: 0
 			, led_status: 0
 			, scanning_enabled: false
@@ -699,17 +699,17 @@ define([
 		
 		state.timer_pending = false;
 		
-		for ( idx = 0 ; idx < KBD_CONTROLLER_QSIZE ; ++idx ) {
+		for (idx = 0 ; idx < KBD_CONTROLLER_QSIZE ; ++idx) {
 			state.queue[ idx ] = 0;
 		}
 		state.sizeQueue = 0;
 		state.sourceQueue = 0;
 	};
-	Keyboard.prototype.generateScancode = function ( /* Byte */key, makeOrBreak ) {
+	Keyboard.prototype.generateScancode = function (/* Byte */key, makeOrBreak) {
 		var state = this.state
 			, i, scancode;
 		
-		//if ( (BX_KEY_THIS pastebuf != NULL) && (!BX_KEY_THIS paste_service) ) {
+		//if ((BX_KEY_THIS pastebuf != NULL) && (!BX_KEY_THIS paste_service)) {
 		//	BX_KEY_THIS stop_paste = 1;
 		//	return;
 		//}
@@ -719,19 +719,19 @@ define([
 			, Scancode.getKeyName(key), makeOrBreak === "make" ? "pressed" : "released"
 		));
 		
-		if ( !state.scancodes_translate ) {
+		if (!state.scancodes_translate) {
 			util.debug(("keyboard: gen_scancode with scancode_translate cleared"));
 		}
 		
 		// Ignore scancode if keyboard clock is driven low
-		if ( !state.kbd_clock_enabled ) { return; }
+		if (!state.kbd_clock_enabled) { return; }
 		
 		// Ignore scancode if scanning is disabled
-		if ( !this.bufInternal.scanning_enabled ) { return; }
+		if (!this.bufInternal.scanning_enabled) { return; }
 		
 		// Switch between make and break code
 		scancode = Scancode.scancodes[ key ];
-		if ( !scancode ) {
+		if (!scancode) {
 			util.problem("Invalid key: " + key + ", ignoring");
 			return;
 		}
@@ -743,11 +743,11 @@ define([
 		//}
 		
 		// Translate before send if needed
-		if ( state.scancodes_translate ) {
+		if (state.scancodes_translate) {
 			var escaped = 0x00;
 			
-			for ( i = 0 ; i < scancode.length ; ++i ) {
-				if ( scancode[ i ] == 0xF0 ) {
+			for (i = 0 ; i < scancode.length ; ++i) {
+				if (scancode[ i ] == 0xF0) {
 					escaped = 0x80;
 				} else {
 					util.debug(util.sprintf(
@@ -760,7 +760,7 @@ define([
 			}
 		// Otherwise just send raw data
 		} else {
-			for ( i = 0 ; i < scancode.length ; ++i ) {
+			for (i = 0 ; i < scancode.length ; ++i) {
 				util.debug(util.sprintf(
 					"gen_scancode(): writing raw %02x"
 					, scancode[ i ]
@@ -771,10 +771,10 @@ define([
 	};
 	// For turning the keyboard clock on or off
 	//	Based on [bx_keyb_c::set_kbd_clock_enable]
-	Keyboard.prototype.setClockEnabled = function ( val ) {
+	Keyboard.prototype.setClockEnabled = function (val) {
 		var state = this.state, old_enabled;
 		
-		if ( !val ) {
+		if (!val) {
 			state.kbd_clock_enabled = false;
 		} else {
 			// Is another byte waiting to be sent from the keyboard?
@@ -782,20 +782,20 @@ define([
 			state.kbd_clock_enabled = true;
 			
 			// Enable timer if switching from disabled -> enabled
-			if ( !old_enabled && state.outb === 0 ) {
+			if (!old_enabled && state.outb === 0) {
 				this.cntrlr.activateTimer();
 			}
 		}
 	};
 	// Based on (part of) [bx_keyb_c::controller_enQ]
-	Keyboard.prototype.enqueueCntrlr = function ( data ) {
+	Keyboard.prototype.enqueueCntrlr = function (data) {
 		var state = this.state;
 		
 		util.debug("KeyboardCntrlr.enqueueCntrlr(" + util.format("hex", data) + ")");
 		
 		// See if we need to queue this byte from the controller
-		if ( state.outb ) {
-			if ( state.sizeQueue >= KBD_CONTROLLER_QSIZE ) {
+		if (state.outb) {
+			if (state.sizeQueue >= KBD_CONTROLLER_QSIZE) {
 				util.panic("KeyboardCntrlr.enqueueCntrlr(" + util.format("hex", data)
 					+ ") :: state.queue full!");
 			}
@@ -810,15 +810,15 @@ define([
 		state.outb = 1;
 		state.auxb = 0;
 		state.inpb = 0;
-		if ( state.allow_irq1 ) {
+		if (state.allow_irq1) {
 			state.irq1_requested = true;
 		}
 	};
-	Keyboard.prototype.enqueueKey = function ( scancode ) {
+	Keyboard.prototype.enqueueKey = function (scancode) {
 		util.debug("Keyboard.enqueueKey(scancode = "
 			+ util.format("hex", scancode) + ")");
 		
-		if ( this.bufInternal.num_elements >= KBD_ELEMENTS ) {
+		if (this.bufInternal.num_elements >= KBD_ELEMENTS) {
 			util.info("Keyboard.enqueueKey(...) ::"
 				+ " Internal keyboard buffer full, ignoring scancode.");
 			return;
@@ -835,14 +835,14 @@ define([
 		] = scancode;
 		++this.bufInternal.num_elements;
 		
-		if ( !this.state.outb && this.state.kbd_clock_enabled ) {
+		if (!this.state.outb && this.state.kbd_clock_enabled) {
 			this.cntrlr.activateTimer();
 			util.debug("Keyboard.enqueueKey(...) :: Activating timer...");
 			return;
 		}
 	};
 	
-	function Mouse( cntrlr ) {
+	function Mouse(cntrlr) {
 		this.cntrlr = cntrlr;
 		
 		this.state = {
@@ -865,7 +865,7 @@ define([
 			}, get_resolution_byte: function () {
 				var ret = 0;
 				
-				switch ( this.resolution_cpmm ) {
+				switch (this.resolution_cpmm) {
 				case 1:
 					ret = 0;
 					break;
@@ -897,7 +897,7 @@ define([
 		};
 		this.bufInternal = {
 			num_elements: 0
-			, buffer: new Array( MOUSE_BUFF_SIZE )
+			, buffer: new Array(MOUSE_BUFF_SIZE)
 			, head: 0
 		};
 	}
@@ -906,7 +906,7 @@ define([
 			, idx, list, len;
 		
 		this.bufInternal.num_elements = 0;
-		for ( idx = 0 ; idx < MOUSE_BUFF_SIZE ; ++idx ) {
+		for (idx = 0 ; idx < MOUSE_BUFF_SIZE ; ++idx) {
 			this.bufInternal.buffer[ idx ] = 0;
 		}
 		this.bufInternal.head = 0;
@@ -926,10 +926,10 @@ define([
 	};
 	// For turning the keyboard clock on or off
 	//	Based on [bx_keyb_c::set_aux_clock_enable]
-	Mouse.prototype.setClockEnabled = function ( val ) {
+	Mouse.prototype.setClockEnabled = function (val) {
 		var state = this.state, old_enabled;
 		
-		if ( !val ) {
+		if (!val) {
 			state.aux_clock_enabled = false;
 		} else {
 			// Is another byte waiting to be sent from the keyboard?
@@ -937,21 +937,21 @@ define([
 			state.aux_clock_enabled = true;
 			
 			// Enable timer if switching from disabled -> enabled
-			if ( !old_enabled && state.outb === 0 ) {
+			if (!old_enabled && state.outb === 0) {
 				this.cntrlr.activateTimer();
 			}
 		}
 	};
 	//	Based on (part of) [bx_keyb_c::controller_enQ]
-	Mouse.prototype.enqueueCntrlr = function ( data ) {
+	Mouse.prototype.enqueueCntrlr = function (data) {
 		var state = this.state;
 		
 		util.debug("Mouse.enqueueCntrlr(" + util.format("hex", data) + ")");
 		
 		// See if we need to queue this byte from the controller
 		//	(even for mouse bytes)
-		if ( state.outb ) {
-			if ( state.sizeQueue >= KBD_CONTROLLER_QSIZE ) {
+		if (state.outb) {
+			if (state.sizeQueue >= KBD_CONTROLLER_QSIZE) {
 				util.panic("Mouse.enqueueCntrlr(" + util.format("hex", data)
 					+ ") :: state.queue full!");
 			}
@@ -966,31 +966,31 @@ define([
 		state.outb = 1;
 		state.auxb = 1;
 		state.inpb = 0;
-		if ( state.allow_irq12 ) {
+		if (state.allow_irq12) {
 			state.irq12_requested = true;
 		}
 	};
 	// Based on [bx_keyb_c::mouse_enQ_packet]
-	Mouse.prototype.enqueuePacket = function ( byt1, byt2, byt3, byt4 ) {
+	Mouse.prototype.enqueuePacket = function (byt1, byt2, byt3, byt4) {
 		var bytes = this.state.im_mode ? 4 : 3;
 		
-		if ( (this.bufInternal.num_elements + bytes) >= MOUSE_BUFF_SIZE ) {
+		if ((this.bufInternal.num_elements + bytes) >= MOUSE_BUFF_SIZE) {
 			return false; // Not enough space in buffer
 		}
 		
 		this.enqueueData(byt1);
 		this.enqueueData(byt2);
 		this.enqueueData(byt3);
-		if ( this.state.im_mode ) { this.enqueueData(byt4); }
+		if (this.state.im_mode) { this.enqueueData(byt4); }
 		
 		return true;
 	};
 	// Based on [bx_keyb_c::mouse_enQ]
-	Mouse.prototype.enqueueData = function ( data ) {
+	Mouse.prototype.enqueueData = function (data) {
 		util.debug("Mouse.enqueueData(data = "
 			+ util.format("hex", data) + ")");
 		
-		if ( this.bufInternal.num_elements >= MOUSE_BUFF_SIZE ) {
+		if (this.bufInternal.num_elements >= MOUSE_BUFF_SIZE) {
 			util.info("Mouse.enqueueData(...) ::"
 				+ " Internal mouse buffer full, ignoring mouse data.");
 			return;
@@ -1007,17 +1007,17 @@ define([
 		] = data;
 		++this.bufInternal.num_elements;
 		
-		if ( !this.cntrlr.state.outb && this.cntrlr.state.aux_clock_enabled ) {
+		if (!this.cntrlr.state.outb && this.cntrlr.state.aux_clock_enabled) {
 			this.cntrlr.activateTimer();
 			util.debug("Mouse.enqueueData(...) :: Activating timer...");
 			return;
 		}
 	};
 	// Based on [bx_keyb_c::create_mouse_packet]
-	Mouse.prototype.createPacket = function ( forceEnqueue ) {
+	Mouse.prototype.createPacket = function (forceEnqueue) {
 		var byt1, byt2, byt3, byt4, delta_x, delta_y, button_state;
 		
-		if ( this.bufInternal.num_elements && !forceEnqueue ) {
+		if (this.bufInternal.num_elements && !forceEnqueue) {
 			return;
 		}
 		
@@ -1025,25 +1025,25 @@ define([
 		delta_y = this.state.delayed_dy;
 		button_state = this.state.button_status | 0x08;
 		
-		if ( !forceEnqueue && !delta_x && !delta_y ) {
+		if (!forceEnqueue && !delta_x && !delta_y) {
 			return;
 		}
 		
 		// Enforce bounds
-		if ( delta_x > 254 ) { delta_x = 254; }
-		if ( delta_x < -254 ) { delta_x = -254; }
-		if ( delta_y > 254 ) { delta_y = 254; }
-		if ( delta_y < -254 ) { delta_y = -254; }
+		if (delta_x > 254) { delta_x = 254; }
+		if (delta_x < -254) { delta_x = -254; }
+		if (delta_y > 254) { delta_y = 254; }
+		if (delta_y < -254) { delta_y = -254; }
 		
 		byt1 = (button_state & 0x0F) | 0x08; // Bit3 always set
 		
-		if ( (delta_x >= 0) && (delta_x <= 255) ) {
+		if ((delta_x >= 0) && (delta_x <= 255)) {
 			byt2 = delta_x;
 			this.state.delayed_dx -= delta_x;
-		} else if ( delta_x > 255 ) {
+		} else if (delta_x > 255) {
 			byt2 = 0xFF;
 			this.state.delayed_dx -= 255;
-		} else if ( delta_x >= -256 ) {
+		} else if (delta_x >= -256) {
 			byt2 = delta_x;
 			byt1 |= 0x10;
 			this.state.delayed_dx -= delta_x;
@@ -1053,13 +1053,13 @@ define([
 			this.state.delayed_dx += 256;
 		}
 		
-		if ( (delta_y >= 0) && (delta_y <= 255) ) {
+		if ((delta_y >= 0) && (delta_y <= 255)) {
 			byt3 = delta_y;
 			this.state.delayed_dy -= delta_y;
-		} else if ( delta_y > 255 ) {
+		} else if (delta_y > 255) {
 			byt3 = 0xFF;
 			this.state.delayed_dy -= 255;
-		} else if ( delta_y >= -256 ) {
+		} else if (delta_y >= -256) {
 			byt3 = delta_y;
 			byt1 |= 0x20;
 			this.state.delayed_dy -= delta_y;
@@ -1076,12 +1076,12 @@ define([
 	// Called by external code to register a move of the mouse
 	//	& send it to the guest OS, etc.
 	// Based on [bx_keyb_c::mouse_motion]
-	Mouse.prototype.motion = function ( delta_x, delta_y, delta_z, button_state ) {
+	Mouse.prototype.motion = function (delta_x, delta_y, delta_z, button_state) {
 		// ...
 	};
 	
 	// KeyboardCntrlr controller's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		// "device" will be KeyboardCntrlr
 		var machine = device.machine, state = device.keyboard.state
 			, keyboard = device.keyboard, mouse = device.mouse
@@ -1093,25 +1093,25 @@ define([
 		
 		/** NB: This is an 8042 Keyboard controller **/
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x60: // Output buffer
 			// Mouse byte available
-			if ( state.auxb ) {
+			if (state.auxb) {
 				result8 = state.aux_output_buffer;
 				state.aux_output_buffer = 0x00;
 				state.outb = 0;
 				state.auxb = 0;
 				state.irq12_requested = false;
 				
-				if ( state.sizeQueue ) {
+				if (state.sizeQueue) {
 					state.aux_output_buffer = state.queue[ 0 ];
 					state.outb = 1;
 					state.auxb = 1;
-					if ( state.allow_irq12 ) {
+					if (state.allow_irq12) {
 						state.irq12_requested = true;
 					}
 					// Move queue elements towards queue head by 1
-					for ( idx = 0 ; idx < state.sizeQueue - 1 ; ++idx ) {
+					for (idx = 0 ; idx < state.sizeQueue - 1 ; ++idx) {
 						state.queue[ idx ] = state.queue[ idx + 1 ];
 					}
 					--state.sizeQueue;
@@ -1124,7 +1124,7 @@ define([
 					+ " returns " + util.format("hex", result8));
 				return result8;
 			// Keyboard byte available
-			} else if ( state.outb ) {
+			} else if (state.outb) {
 				result8 = state.kbd_output_buffer;
 				/** NB: Why is kbd_output_buffer not cleared??? **/
 				state.outb = 0;
@@ -1132,15 +1132,15 @@ define([
 				state.irq1_requested = false;
 				state.bat_in_progress = 0;
 				
-				if ( state.sizeQueue ) {
+				if (state.sizeQueue) {
 					state.aux_output_buffer = state.queue[ 0 ];
 					state.outb = 1;
 					state.auxb = 1;
-					if ( state.allow_irq1 ) {
+					if (state.allow_irq1) {
 						state.irq1_requested = true;
 					}
 					// Move queue elements towards queue head by 1
-					for ( idx = 0 ; idx < state.sizeQueue - 1 ; ++idx ) {
+					for (idx = 0 ; idx < state.sizeQueue - 1 ; ++idx) {
 						state.queue[ idx ] = state.queue[ idx + 1 ];
 					}
 					util.debug("KeyboardCntrlr readHandler() ::"
@@ -1186,7 +1186,7 @@ define([
 		}
 	}
 	// Keyboard controller's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len ) {
+	function writeHandler(device, addr, val, io_len) {
 		// "device" will be KeyboardCntrlr
 		var machine = device.machine, state = device.keyboard.state
 			, keyboard = device.keyboard, mouse = device.mouse
@@ -1198,18 +1198,18 @@ define([
 		
 		/** NB: This is a 8042 Keyboard controller **/
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x60: // Input buffer
 			// Expecting data byte from command last sent to port 64h
-			if ( state.expecting_port60h ) {
+			if (state.expecting_port60h) {
 				state.expecting_port60h = false;
 				state.commandOrData = 0; // Data byte written last to 0x60
-				if ( state.inpb ) {
+				if (state.inpb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " Write to port 60h - not ready for write");
 				}
 				
-				switch ( state.last_comm ) {
+				switch (state.last_comm) {
 				case 0x60: // Write command byte
 					scan_convert = (val >> 6) & 0x01;
 					disable_aux = (val >> 5) & 0x01;
@@ -1219,15 +1219,15 @@ define([
 					state.allow_irq12 = (val >> 1) & 0x01;
 					keyboard.setClockEnabled(!disable_keyboard);
 					mouse.setClockEnabled(!disable_aux);
-					if ( state.allow_irq12 && state.auxb ) {
+					if (state.allow_irq12 && state.auxb) {
 						state.irq12_requested = true;
-					} else if ( state.allow_irq1 && state.outb ) {
+					} else if (state.allow_irq1 && state.outb) {
 						state.irq1_requested = true;
 					}
 					util.debug("KeyboardCntrlr writeHandler() :: allow_irq12 set to "
 						+ state.allow_irq12);
 					
-					if ( !scan_convert ) {
+					if (!scan_convert) {
 						util.info("KeyboardCntrlr writeHandler() ::"
 							+ " Scan-convert turned off");
 					}
@@ -1248,7 +1248,7 @@ define([
 						+ " Write output port: "
 						+ ((val & 0x02) ? "en" : "dis") + "able A20");
 					machine.setEnableA20((val & 0x02) != 0);
-					if ( !(val & 0x01) ) {
+					if (!(val & 0x01)) {
 						util.info("KeyboardCntrlr writeHandler() ::"
 							+ " Write output port: Processor reset requested!");
 						machine.reset(PC.RESET_SOFTWARE);
@@ -1281,7 +1281,7 @@ define([
 				// Pass byte to keyboard
 				// [Bochs] ??? should conditionally pass
 				//	to mouse device here ???
-				if ( !state.kbd_clock_enabled ) {
+				if (!state.kbd_clock_enabled) {
 					keyboard.setClockEnabled(true);
 				}
 				device.sendToKeyboard(val);
@@ -1294,12 +1294,12 @@ define([
 			// Most commands NOT expecting port60 write next
 			state.expecting_port60h = false;
 			
-			switch ( val ) {
+			switch (val) {
 			case 0x20: // Get keyboard command byte
 				util.debug("KeyboardCntrlr writeHandler() ::"
 					+ " Get keyboard command byte");
 				// Controller output buffer must be empty
-				if ( state.outb ) {
+				if (state.outb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " OUTB set and command "
 						+ util.format("hex", val) + " encountered");
@@ -1345,7 +1345,7 @@ define([
 				break;
 			case 0xA9: // Test Mouse Port
 				// Controller output buffer must be empty
-				if ( state.outb ) {
+				if (state.outb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " OUTB set and command " + util.format("hex", val)
 						+ " encountered");
@@ -1357,13 +1357,13 @@ define([
 				util.debug("KeyboardCntrlr writeHandler() ::"
 					+ " Motherboard cntrlr Self Test");
 				//debugger;
-				if ( !device.inited ) {
+				if (!device.inited) {
 					state.sizeQueue = 0;
 					state.outb = 0;
 					device.inited = true;
 				}
 				// Controller output buffer must be empty
-				if ( state.outb ) {
+				if (state.outb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " OUTB set and command " + util.format("hex", val)
 						+ " encountered");
@@ -1375,7 +1375,7 @@ define([
 				break;
 			case 0xAB: // Interface Test
 				// Controller output buffer must be empty
-				if ( state.outb ) {
+				if (state.outb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " OUTB set and command " + util.format("hex", val)
 						+ " encountered");
@@ -1397,7 +1397,7 @@ define([
 				break;
 			case 0xC0: // Read input port
 				// Controller output buffer must be empty
-				if ( state.outb ) {
+				if (state.outb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " OUTB set and command " + util.format("hex", val)
 						+ " encountered");
@@ -1419,7 +1419,7 @@ define([
 				util.debug("KeyboardCntrlr writeHandler() ::"
 					+ " I/O write to port 64h, command d0h (partial)");
 				// Controller output buffer must be empty
-				if ( state.outb ) {
+				if (state.outb) {
 					util.problem("KeyboardCntrlr writeHandler() ::"
 						+ " OUTB set and command " + util.format("hex", val)
 						+ " encountered");
@@ -1481,7 +1481,7 @@ define([
 				break;
 			
 			default:
-				if ( val === 0xFF || (value >= 0xF0 && value <= 0xFD) ) {
+				if (val === 0xFF || (value >= 0xF0 && value <= 0xFD)) {
 					// Useless pulse output bit commands ???
 					util.debug("KeyboardCntrlr writeHandler() ::"
 						+ " I/O write to port 64h, useless command "
@@ -1503,14 +1503,14 @@ define([
 	
 	// Periodic timer handler (see KeyboardCntrlr.init())
 	//	Based on [bx_keyb_c::timer_handler]
-	function handleTimer( ticksNow ) {
+	function handleTimer(ticksNow) {
 		var retval = this.periodic(1);
 		
-		if ( retval & 0x01 ) {
+		if (retval & 0x01) {
 			this.machine.pic.raiseIRQ(1);
 		}
 		/** No "else", both IRQs may be needed **/
-		if ( retval & 0x02 ) {
+		if (retval & 0x02) {
 			this.machine.pic.raiseIRQ(12);
 		}
 	}

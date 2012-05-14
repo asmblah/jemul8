@@ -7,29 +7,29 @@
 
 // Augment jQuery plugin
 jQuery.plugin("OVMS", "jemul8", "0.0.1")
-.module("bitfield", function ( $ ) { "use strict";
+.module("bitfield", function ($) { "use strict";
 	var jemul8 = this.data("jemul8");
 	
-	function Bitfield( sizeBits ) {
+	function Bitfield(sizeBits) {
 		this.sizeBits = sizeBits;
 		this.value = 0;
 	}
-	Bitfield.prototype.set = function ( val ) {
+	Bitfield.prototype.set = function (val) {
 		this.value = val;
 	};
 	Bitfield.prototype.get = function () {
 		return this.value;
 	};
-	Bitfield.prototype.setBit = function ( idx ) {
+	Bitfield.prototype.setBit = function (idx) {
 		this.value |= 1 << idx;
 	};
-	Bitfield.prototype.clearBit = function ( idx ) {
+	Bitfield.prototype.clearBit = function (idx) {
 		this.value &= ~(1 << idx);
 	};
-	Bitfield.prototype.toggleBit = function ( idx ) {
+	Bitfield.prototype.toggleBit = function (idx) {
 		this.value ^= 1 << idx;
 	};
-	Bitfield.prototype.setBits = function ( idx, val, numBitsMax ) {
+	Bitfield.prototype.setBits = function (idx, val, numBitsMax) {
 		/* ==== Malloc ==== */
 		var bitmaskMaxSize = Math.pow(2, numBitsMax);
 		/* ==== /Malloc ==== */

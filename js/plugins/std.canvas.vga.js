@@ -2,9 +2,9 @@
 define([
     "../core/util"
     , "../core/classes/iodev/keyboard/scancode"
-], function ( util, Scancode ) { "use strict";
+], function (util, Scancode) { "use strict";
     var canvasVGAPlugin = {
-        applyTo: function ( emu ) {
+        applyTo: function (emu) {
             var vga = emu.machine.vga;
             vga.textUpdate = textUpdate;
             vga.dimensionUpdate = dimensionUpdate;

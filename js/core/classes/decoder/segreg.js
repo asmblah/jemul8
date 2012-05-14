@@ -8,9 +8,9 @@
 define([
 	"../../util"
 	, "./register"
-], function ( util, Register ) { "use strict";
+], function (util, Register) { "use strict";
 	
-	function SegRegister( name ) {
+	function SegRegister(name) {
 		util.assert(this && (this instanceof SegRegister)
 			, "SegRegister ctor :: error - constructor not called properly"
 		);

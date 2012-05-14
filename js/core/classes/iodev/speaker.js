@@ -7,7 +7,7 @@
 
 define([
 	"../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	// Basic Speaker (ie. motherboard onboard) class constructor
 	function Speaker() {
@@ -17,19 +17,19 @@ define([
 		/* ==== /Guards ==== */
 		
 		this.aud = document.createElement("audio");
-		if ( !this.aud || !this.aud.play ) {
+		if (!this.aud || !this.aud.play) {
 			util.warning("Speaker constructor :: No native <audio> support,"
 				+ " terminal bell disabled");
 		}
 	}
 	// Simple beep sound
-	Speaker.prototype.beep = function ( freqHertz, duration ) {
+	Speaker.prototype.beep = function (freqHertz, duration) {
 		/* ==== Defaults ==== */
-		if ( !freqHertz ) freqHertz = 800;
-		if ( !duration ) duration = 200;
+		if (!freqHertz) freqHertz = 800;
+		if (!duration) duration = 200;
 		/* ==== /Defaults ==== */
 		
-		// TODO: ( see jsSound project )
+		// TODO: (see jsSound project)
 		alert("Beep!");
 	};
 	

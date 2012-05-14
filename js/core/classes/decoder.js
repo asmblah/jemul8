@@ -9,14 +9,14 @@ define([
 	"../util"
 	, "./decoder/register"
 	, "./decoder/segreg"
-], function ( util, Register, SegRegister ) { "use strict";
+], function (util, Register, SegRegister) { "use strict";
 	
 	// Decoder class constructor
-	function Decoder( regs ) {
+	function Decoder(regs) {
 		var d = this; // For shortening lookup tables below
 		
 		// Optionally specify registers to override defaults
-		if ( regs ) {
+		if (regs) {
 			util.extend(this, regs);
 		}
 		
@@ -73,41 +73,41 @@ define([
 	}
 	// Minimal x86 registers to use for decoding by default
 	util.extend(Decoder.prototype, {
-		ES: new SegRegister( "ES" )
-		, CS: new SegRegister( "CS" )
-		, SS: new SegRegister( "SS" )
-		, DS: new SegRegister( "DS" )
-		, FS: new SegRegister( "FS" )
-		, GS: new SegRegister( "GS" )
+		ES: new SegRegister("ES")
+		, CS: new SegRegister("CS")
+		, SS: new SegRegister("SS")
+		, DS: new SegRegister("DS")
+		, FS: new SegRegister("FS")
+		, GS: new SegRegister("GS")
 		
-		, AL: new Register( "AL", 1 ), AH: new Register( "AH", 1 )
-		, CL: new Register( "CL", 1 ), CH: new Register( "CH", 1 )
-		, DL: new Register( "DL", 1 ), DH: new Register( "DH", 1 )
-		, BL: new Register( "BL", 1 ), BH: new Register( "BH", 1 )
+		, AL: new Register("AL", 1), AH: new Register("AH", 1)
+		, CL: new Register("CL", 1), CH: new Register("CH", 1)
+		, DL: new Register("DL", 1), DH: new Register("DH", 1)
+		, BL: new Register("BL", 1), BH: new Register("BH", 1)
 		
-		, AX: new Register( "AX", 2 )
-		, CX: new Register( "CX", 2 )
-		, DX: new Register( "DX", 2 )
-		, BX: new Register( "BX", 2 )
-		, SP: new Register( "SP", 2 )
-		, BP: new Register( "BP", 2 )
-		, SI: new Register( "SI", 2 )
-		, DI: new Register( "DI", 2 )
+		, AX: new Register("AX", 2)
+		, CX: new Register("CX", 2)
+		, DX: new Register("DX", 2)
+		, BX: new Register("BX", 2)
+		, SP: new Register("SP", 2)
+		, BP: new Register("BP", 2)
+		, SI: new Register("SI", 2)
+		, DI: new Register("DI", 2)
 		
-		, EAX: new Register( "EAX", 4 )
-		, ECX: new Register( "ECX", 4 )
-		, EDX: new Register( "EDX", 4 )
-		, EBX: new Register( "EBX", 4 )
-		, ESP: new Register( "ESP", 4 )
-		, EBP: new Register( "EBP", 4 )
-		, ESI: new Register( "ESI", 4 )
-		, EDI: new Register( "EDI", 4 )
+		, EAX: new Register("EAX", 4)
+		, ECX: new Register("ECX", 4)
+		, EDX: new Register("EDX", 4)
+		, EBX: new Register("EBX", 4)
+		, ESP: new Register("ESP", 4)
+		, EBP: new Register("EBP", 4)
+		, ESI: new Register("ESI", 4)
+		, EDI: new Register("EDI", 4)
 		
-		, CR0: new Register( "CR0", 4 )
-		, CR1: new Register( "CR1", 4 )
-		, CR2: new Register( "CR2", 4 )
-		, CR3: new Register( "CR3", 4 )
-		, CR4: new Register( "CR4", 4 )
+		, CR0: new Register("CR0", 4)
+		, CR1: new Register("CR1", 4)
+		, CR2: new Register("CR2", 4)
+		, CR3: new Register("CR3", 4)
+		, CR4: new Register("CR4", 4)
 	});
 	
 	// NB: all pre-shifted left by 8 bits for simple ORing together
@@ -155,7 +155,7 @@ define([
 	/* ========== Opcode tables ========== */
 	// Format: [ <opcode_mnemonic>, <operands> ]
 	//	NB: this could be an array, if all elements were unrem'd;
-	//	an object should use less memory ( Arrays are derived from Object anyway )
+	//	an object should use less memory (Arrays are derived from Object anyway)
 	//	- needs further testing.
 	Decoder.arr_mapOpcodes = {
 		// 0x00
@@ -301,12 +301,12 @@ define([
 		
 		// 0x0F 0xB0 -> 0x0F 0xBF
 		0x1B0: ["CMPXCHG", [E|b,G|b]],	0x1B1: ["CMPXCHG", [E|v,G|v]],		0x1B2: ["LSS", [M|p]],			0x1B3: ["BTR", [E|v,G|v]],
-		0x1B4: ["LFS", [M|p]],			0x1B5: ["LGS", [M|p]],				0x1B6: ["MOVZX", [G|v,E|b]],	0x1B7: ["MOVZX", [G|v,E|w]],
+		0x1B4: ["LFS", [G|v,M|p]],		0x1B5: ["LGS", [G|v,M|p]],			0x1B6: ["MOVZX", [G|v,E|b]],	0x1B7: ["MOVZX", [G|v,E|w]],
 		0x1B8: ["???", [G|v,E|v]],		0x1B9: ["", [G|v,E|v]],				0x1BA: ["", [E|v,I|b]],			0x1BB: ["BTC", [E|v,G|v]],
 		0x1BC: ["BSF", [G|v,E|v]],		0x1BD: ["BSR", [G|v,E|v]],			0x1BE: ["MOVSX", [G|v,E|b]],	0x1BF: ["MOVSX", [G|v,E|w]]
 	};
 	Decoder.arr_mapOpcodeExtensions = hsh = {};
-	/* ====== Ext. group 1 - Immediate Grp 1 ( 1A ) ====== */
+	/* ====== Ext. group 1 - Immediate Grp 1 (1A) ====== */
 	base = 0x80 << 3;
 	hsh[base | 0x00] = ["ADD", [E|b, I|b]]; hsh[base | 0x01] = ["OR", [E|b, I|b]];	hsh[base | 0x02] = ["ADC", [E|b, I|b]];
 	hsh[base | 0x03] = ["SBB", [E|b, I|b]];	hsh[base | 0x04] = ["AND", [E|b, I|b]]; hsh[base | 0x05] = ["SUB", [E|b, I|b]];
@@ -323,8 +323,8 @@ define([
 	hsh[base | 0x00] = ["ADD", [E|v, I|b]]; hsh[base | 0x01] = ["OR", [E|v, I|b]];	hsh[base | 0x02] = ["ADC", [E|v, I|b]];
 	hsh[base | 0x03] = ["SBB", [E|v, I|b]];	hsh[base | 0x04] = ["AND", [E|v, I|b]]; hsh[base | 0x05] = ["SUB", [E|v, I|b]];
 	hsh[base | 0x06] = ["XOR", [E|v, I|b]];	hsh[base | 0x07] = ["CMP", [E|v, I|b]];
-	/* ====== /Ext. group 1 - Immediate Grp 1 ( 1A ) ====== */
-	/* ====== Ext. group 2 - Shift Grp 2 ( 1A ) ====== */
+	/* ====== /Ext. group 1 - Immediate Grp 1 (1A) ====== */
+	/* ====== Ext. group 2 - Shift Grp 2 (1A) ====== */
 	base = 0xC0 << 3;
 	hsh[base | 0x00] = ["ROL", [E|b, I|b]]; hsh[base | 0x01] = ["ROR", [E|b, I|b]];	hsh[base | 0x02] = ["RCL", [E|b, I|b]];
 	hsh[base | 0x03] = ["RCR", [E|b, I|b]];	hsh[base | 0x04] = ["SHL", [E|b, I|b]]; hsh[base | 0x05] = ["SHR", [E|b, I|b]];
@@ -350,9 +350,9 @@ define([
 	hsh[base | 0x00] = ["ROL", [E|v, "CL"]];hsh[base | 0x01] = ["ROR", [E|v, "CL"]];hsh[base | 0x02] = ["RCL", [E|v, "CL"]];
 	hsh[base | 0x03] = ["RCR", [E|v, "CL"]];hsh[base | 0x04] = ["SHL", [E|v, "CL"]];hsh[base | 0x05] = ["SHR", [E|v, "CL"]];
 	hsh[base | 0x06] = ["???", [E|v, "CL"]];hsh[base | 0x07] = ["SAR", [E|v, "CL"]];
-	/* ====== /Ext. group 2 - Shift Grp 2 ( 1A ) ====== */
+	/* ====== /Ext. group 2 - Shift Grp 2 (1A) ====== */
 	
-	/* ====== Ext. group 3 - Unary Grp 3 ( 1A ) ====== */
+	/* ====== Ext. group 3 - Unary Grp 3 (1A) ====== */
 	base = 0xF6 << 3;
 	hsh[base | 0x00] = ["TEST", [E|b, I|b]];hsh[base | 0x01] = ["???", [E|b]];		hsh[base | 0x02] = ["NOT", [E|b]];
 	hsh[base | 0x03] = ["NEG", [E|b]];		hsh[base | 0x04] = ["MUL", ["AL", E|b]];hsh[base | 0x05] = ["IMUL", [E|b]];
@@ -361,21 +361,21 @@ define([
 	hsh[base | 0x00] = ["TEST", [E|v, I|v]];hsh[base | 0x01] = ["???", [E|v]];		hsh[base | 0x02] = ["NOT", [E|v]];
 	hsh[base | 0x03] = ["NEG", [E|v]];		hsh[base | 0x04] = ["MUL", ["eAX", E|v]];hsh[base | 0x05] = ["IMUL", [E|v]];
 	hsh[base | 0x06] = ["DIV", ["eAX", E|v]];hsh[base | 0x07] = ["IDIV", [E|v]];
-	/* ====== /Ext. group 3 - Unary Grp 3 ( 1A ) ====== */
+	/* ====== /Ext. group 3 - Unary Grp 3 (1A) ====== */
 	
-	/* ====== Ext. group 4 - INC/DEC Grp 4 ( 1A ) ====== */
+	/* ====== Ext. group 4 - INC/DEC Grp 4 (1A) ====== */
 	base = 0xFE << 3;
 	hsh[base | 0x00] = ["INC", [E|b]]; 		hsh[base | 0x01] = ["DEC", [E|b]];		hsh[base | 0x02] = ["???", [E|b]];
 	hsh[base | 0x03] = ["???", [E|b]];		hsh[base | 0x04] = ["???", [E|b]]; 		hsh[base | 0x05] = ["???", [E|b]];
 	hsh[base | 0x06] = ["???", [E|b]];		hsh[base | 0x07] = ["???", [E|b]];
-	/* ====== /Ext. group 4 - INC/DEC Grp 4 ( 1A ) ====== */
+	/* ====== /Ext. group 4 - INC/DEC Grp 4 (1A) ====== */
 	
-	/* ====== Ext. group 5 - INC/DEC Grp 5 ( 1A ) ====== */
+	/* ====== Ext. group 5 - INC/DEC Grp 5 (1A) ====== */
 	base = 0xFF << 3;
 	hsh[base | 0x00] = ["INC", [E|v]]; 		hsh[base | 0x01] = ["DEC", [E|v]];		hsh[base | 0x02] = ["CALLN", [E|v]];
 	hsh[base | 0x03] = ["CALLF", [E|p]];	hsh[base | 0x04] = ["JMPN", [E|v]]; 	hsh[base | 0x05] = ["JMPF", [E|p]];
 	hsh[base | 0x06] = ["PUSH", [E|v]];		hsh[base | 0x07] = ["???", [E|b]];
-	/* ====== /Ext. group 5 - INC/DEC Grp 5 ( 1A ) ====== */
+	/* ====== /Ext. group 5 - INC/DEC Grp 5 (1A) ====== */
 	
 	/* ====== Ext. group 6 - Two-byte opcode extensions ====== */
 	base = 0x100 << 3; // 0x0F 0x00
@@ -405,7 +405,7 @@ define([
 	hsh[base | 0x06] = ["???"];				hsh[base | 0x07] = ["???"];
 	/* ====== /Ext. group 8 - Two-byte opcode extensions ====== */
 	
-	/* ====== Ext. group 11 - MOV Grp 11 ( 1A ) ====== */
+	/* ====== Ext. group 11 - MOV Grp 11 (1A) ====== */
 	base = 0xC6 << 3;
 	hsh[base | 0x00] = ["MOV", [E|b, I|b]]; hsh[base | 0x01] = ["???", [E|b, I|b]];	hsh[base | 0x02] = ["???", [E|b, I|b]];
 	hsh[base | 0x03] = ["???", [E|b, I|b]];	hsh[base | 0x04] = ["???", [E|b, I|b]]; hsh[base | 0x05] = ["???", [E|b, I|b]];
@@ -414,7 +414,7 @@ define([
 	hsh[base | 0x00] = ["MOV", [E|v, I|v]]; hsh[base | 0x01] = ["???", [E|v, I|v]];	hsh[base | 0x02] = ["???", [E|v, I|v]];
 	hsh[base | 0x03] = ["???", [E|v, I|v]];	hsh[base | 0x04] = ["???", [E|v, I|v]]; hsh[base | 0x05] = ["???", [E|v, I|v]];
 	hsh[base | 0x06] = ["???", [E|v, I|v]];	hsh[base | 0x07] = ["???", [E|v, I|v]];
-	/* ====== /Ext. group 11 - MOV Grp 11 ( 1A ) ====== */
+	/* ====== /Ext. group 11 - MOV Grp 11 (1A) ====== */
 	/* ========== /Opcode tables ========== */
 	
 	var hsh, base;

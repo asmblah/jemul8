@@ -8,10 +8,10 @@
 
 define([
 	"../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	// CPU Unlazy Flag class constructor
-	function UnlazyFlag( name, regMaster, bitsInLeft ) {
+	function UnlazyFlag(name, regMaster, bitsInLeft) {
 		/* ==== Guards ==== */
 		util.assert(this && (this instanceof UnlazyFlag), "UnlazyFlag ctor ::"
 			+ " error - constructor not called properly");
@@ -39,7 +39,7 @@ define([
 	UnlazyFlag.prototype.clear = function () {
 		this.value = 0;
 	};
-	UnlazyFlag.prototype.setBin = function ( val ) {
+	UnlazyFlag.prototype.setBin = function (val) {
 		// Should be faster than eg. val ? 1 : 0
 		this.value = val & 0x01;
 	};

@@ -2,18 +2,18 @@
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
  *	
- *	MODULE: BitFlag ( 1 bit of a BitField tied to a Register ) class support
+ *	MODULE: BitFlag (1 bit of a BitField tied to a Register) class support
  */
 
 define([
 	"../util"
 	, "./bit"
 	, "./register"
-], function ( util, Bit, Register ) { "use strict";
+], function (util, Bit, Register) { "use strict";
 	
-	// CPU flags register ( eg. EFLAGS ) bit-flag
-	//	( eg IF, AF, DF ) class constructor
-	function BitFlag( name, regMaster, bitsInLeft ) {
+	// CPU flags register (eg. EFLAGS) bit-flag
+	//	(eg IF, AF, DF) class constructor
+	function BitFlag(name, regMaster, bitsInLeft) {
 		/* ==== Guards ==== */
 		util.assert(this != self, "BitFlag constructor ::"
 			+ " not called as constructor.");
@@ -31,9 +31,9 @@ define([
 		this.toggle = BitFlag_CreateToggler(regMaster, bitsInLeft);
 	}
 	util.inherit(BitFlag, Bit); // Inheritance
-	function BitFlag_CreateGetter( regMaster, bitsInLeft ) {
+	function BitFlag_CreateGetter(regMaster, bitsInLeft) {
 		// Faster case; if no bits to shift, remove shift operation from method function
-		if ( bitsInLeft == 0 ) {
+		if (bitsInLeft == 0) {
 			return function () {
 				// Mask, leaving only subvalue
 				return (regMaster.get() & 0x01);
@@ -46,7 +46,7 @@ define([
 			};
 		}
 	}
-	function BitFlag_CreateSetter( regMaster, bitsInLeft ) {
+	function BitFlag_CreateSetter(regMaster, bitsInLeft) {
 		/* ==== Malloc ==== */
 		var bitmaskOccupies = (0x01 << bitsInLeft);
 		// Bitmask for extracting only the bits not occupied by this BitFlag
@@ -54,7 +54,7 @@ define([
 		/* ==== /Malloc ==== */
 		
 		// Faster case; if no bits to shift, remove shift operation from method function
-		if ( bitsInLeft == 0 ) {
+		if (bitsInLeft == 0) {
 			return function () {
 				/* ==== Guards ==== 
 				util.assert(arguments.length === 0, "BitFlag.set :: Does not take any arguments (hint: just .set() to set=1 or .clear() to set=0).");*/
@@ -81,7 +81,7 @@ define([
 			};
 		}
 	}
-	function BitFlag_CreateSetter_Binary( regMaster, bitsInLeft ) {
+	function BitFlag_CreateSetter_Binary(regMaster, bitsInLeft) {
 		/* ==== Malloc ==== */
 		var bitmaskOccupies = (0x01 << bitsInLeft);
 		// Bitmask for extracting only the bits not occupied by this BitFlag
@@ -89,8 +89,8 @@ define([
 		/* ==== /Malloc ==== */
 		
 		// Faster case; if no bits to shift, remove shift operation from method function
-		if ( bitsInLeft == 0 ) {
-			return function ( val ) {
+		if (bitsInLeft == 0) {
+			return function (val) {
 				regMaster.set(
 						// Mask out current BitFlag value
 						(regMaster.get() & bitmaskNotOccupies)
@@ -100,7 +100,7 @@ define([
 			};
 		// General case
 		} else {
-			return function ( val ) {
+			return function (val) {
 				regMaster.set(
 						// Mask out current BitFlag value
 						(regMaster.get() & bitmaskNotOccupies)
@@ -110,7 +110,7 @@ define([
 			};
 		}
 	}
-	function BitFlag_CreateClearer( regMaster, bitsInLeft ) {
+	function BitFlag_CreateClearer(regMaster, bitsInLeft) {
 		/* ==== Malloc ==== */
 		var bitmaskOccupies = (0x01 << bitsInLeft);
 		// Bitmask for extracting only the bits not occupied by this BitFlag
@@ -125,13 +125,13 @@ define([
 				);
 		};
 	}
-	function BitFlag_CreateToggler( regMaster, bitsInLeft ) {
+	function BitFlag_CreateToggler(regMaster, bitsInLeft) {
 		/* ==== Malloc ==== */
 		var bitmaskOccupies;
 		/* ==== /Malloc ==== */
 		
 		// Faster case; if no bits to shift, remove shift operation from method function
-		if ( bitsInLeft == 0 ) {
+		if (bitsInLeft == 0) {
 			return function () {
 				regMaster.set(
 						(regMaster.get() ^ 1)

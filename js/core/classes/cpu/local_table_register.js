@@ -14,7 +14,7 @@ define([
 ) { "use strict";
 	
 	// Local Table Register class constructor
-	function LocalTableRegister( name ) {
+	function LocalTableRegister(name) {
 		util.assert(this && (this instanceof LocalTableRegister)
 			, "LocalTableRegister constructor :: error - not called properly"
 		);
@@ -24,7 +24,7 @@ define([
     util.inherit(LocalTableRegister, SegRegister); // Inheritance
 	util.extend(LocalTableRegister.prototype, {
 		// Sets the register back to its startup state
-		reset: function ( raw ) {
+		reset: function (raw) {
             var selector = this.selector;
             var cache = this.cache;
             

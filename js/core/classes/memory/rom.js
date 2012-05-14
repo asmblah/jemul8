@@ -8,7 +8,7 @@
 define([
 	"../../util"
 	, "./buffer"
-], function ( util, Buffer ) { "use strict";
+], function (util, Buffer) { "use strict";
 	
 	// ROM extension methods for Memory class
 	var ROM = {};
@@ -23,7 +23,7 @@ define([
 	
 	// Load a ROM into mapped memory for booting
 	// Based on [BX_MEM_C::load_ROM]
-	ROM.loadROM = function ( bufROM, addr, type ) {
+	ROM.loadROM = function (bufROM, addr, type) {
 		var len = Buffer.getBufferLength(bufROM)
 			, offset, idx, idxStart, idxEnd;
 		
@@ -37,11 +37,11 @@ define([
 		}
 		
 		// System (CMOS) ROM
-		if ( type === 0 ) {
+		if (type === 0) {
 			// Address given may be positive to specify an absolute physical
 			//	address to load the ROM at, ...
-			if ( addr > 0 ) {
-				if ( (addr + len) !== 0x100000 && (addr + len) ) {
+			if (addr > 0) {
+				if ((addr + len) !== 0x100000 && (addr + len)) {
 					util.panic("Memory.loadROM() :: Error - CMOS ROM"
 						+ " must end at 0xFFFFF");
 				}
@@ -52,17 +52,17 @@ define([
 			
 			offset = addr & BIOS_MASK;
 			// ???
-			//if ( (addr & 0xf0000) < 0xf0000 ) {
+			//if ((addr & 0xf0000) < 0xf0000) {
 			//	this.hsh_isROMPresent[ 64 ] = 1;
 			//}
 		// VGABIOS or expansion ROM
 		} else {
-			if ( (len % 512) !== 0 ) {
+			if ((len % 512) !== 0) {
 				util.panic("Memory.loadROM() :: Error - ROM image size"
 					+ " must be a multiple of 512 (size = " + len + ")");
 				return;
 			}
-			if ( (addr % 2048) !== 0 ) {
+			if ((addr % 2048) !== 0) {
 				util.panic("Memory.loadROM() :: Error - ROM image"
 					+ " must start at a 2K boundary");
 				return;
@@ -88,11 +88,11 @@ define([
 		//	if it includes the 0xAA55 header)
 		if ( ((addr & 0xfffff) !== 0xe0000)
 				|| (this.bufROMs.getUint16(offset, true) === 0xAA55) ) {
-			if ( this.checksumROM(offset, len) !== 0 ) {
-				if ( type === 0 ) {
+			if (this.checksumROM(offset, len) !== 0) {
+				if (type === 0) {
 					util.problem("Memory.loadROM() :: Checksum error"
 						+ " in System (CMOS) BIOS image");
-				} else if ( type === 1 ) {
+				} else if (type === 1) {
 					util.panic("Memory.loadROM() :: Checksum error"
 						+ " in VGABIOS image");
 				}
@@ -103,9 +103,9 @@ define([
 	};
 	// Calculates the checksum for the loaded ROM image
 	//	at the given offset & length
-	ROM.checksumROM = function ( offset, len ) {
+	ROM.checksumROM = function (offset, len) {
 		var checksum = 0, buf = this.bufROMs, idx;
-		for ( idx = 0 ; idx < len ; ++idx ) {
+		for (idx = 0 ; idx < len ; ++idx) {
 			checksum = (checksum + buf.getUint8(offset + idx)) & 0xFF;
 		}
 		return checksum;

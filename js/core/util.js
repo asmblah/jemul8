@@ -5,7 +5,7 @@
  *  MODULE: Miscellaneous utilities
  */
 
-define([ "jquery" ], function ( $ ) { "use strict";
+define([ "jquery" ], function ($) { "use strict";
     var util = {};
     
     // Borrow some of jQuery's methods
@@ -100,30 +100,30 @@ define([ "jquery" ], function ( $ ) { "use strict";
         // For converting a number in two's complement to a float value
         // - byte 0xFF -> -1
         // - word 0xFF -> 0xFF (not negative)
-        , toSigned: function ( num, size ) {
-            if ( size === 4 ) {
+        , toSigned: function (num, size) {
+            if (size === 4) {
                 //num = (num >>> 0);
-                if ( num > 0x7FFFFFFF ) {
+                if (num > 0x7FFFFFFF) {
                     num -= 0xFFFFFFFF + 1;
                 }
-            } else if ( size === 2 ) {
-                if ( num > 0x7FFF ) {
+            } else if (size === 2) {
+                if (num > 0x7FFF) {
                     num -= 0xFFFF + 1;
                 }
             } else {
-                if ( num > 0x7F ) {
+                if (num > 0x7F) {
                     num -= 0xFF + 1;
                 }
             }
             return num;
         
-        }, truncateTowardZero: function ( num ) {
+        }, truncateTowardZero: function (num) {
             return num >> 0;
         }
     });
     
     // From [http://phpjs.org/functions/sprintf:522]
-    util.sprintf = function ( /* ... */ ) {
+    util.sprintf = function (/* ... */) {
         // http://kevin.vanzonneveld.net
         // +   original by: Ash Searle (http://hexmen.com/blog/)
         // + namespaced by: Michael White (http://getsprink.com)
@@ -308,9 +308,9 @@ define([ "jquery" ], function ( $ ) { "use strict";
     };
     
     // Format various data prettily
-    util.format = function ( type, data /* or hour */, minute, sec ) {
+    util.format = function (type, data /* or hour */, minute, sec) {
         var args = arguments;
-        switch ( type ) {
+        switch (type) {
         case "hex":
             return "0x" + data.toString(16).toUpperCase();
         case "time":
@@ -323,16 +323,16 @@ define([ "jquery" ], function ( $ ) { "use strict";
     };
     
     // For properly creating a subclass in JavaScript
-    util.inherit = function ( cls1, cls2, arg ) {
-        if ( !$.isFunction(cls1) ) {
+    util.inherit = function (cls1, cls2, arg) {
+        if (!$.isFunction(cls1)) {
             $.error("$.inherit() :: 'cls1' is not a valid JavaScript class/function");
         }
-        if ( !$.isFunction(cls2) ) {
+        if (!$.isFunction(cls2)) {
             $.error("$.inherit() :: 'cls2' is not a valid JavaScript class/function");
         }
         // Unfortunately no way to perform "new" & call .apply,
         //    see [http://stackoverflow.com/questions/181348/instantiating-a-javascript-object-by-calling-prototype-constructor-apply]
-        cls1.prototype = arg !== undefined ? new cls2( arg ) : new cls2();
+        cls1.prototype = arg !== undefined ? new cls2(arg) : new cls2();
         cls1.prototype.constructor = cls1;
     };
     
@@ -350,32 +350,32 @@ define([ "jquery" ], function ( $ ) { "use strict";
     // Safe versions of left- & right-shift
     //    (the builtin operators will convert a > 32-bit value
     //    to zero, so are not safe for some uses)
-    util.shl = function ( num, bits ) {
+    util.shl = function (num, bits) {
         // (See note in jemul8.generateMask())
         return num * Math.pow(2, bits);
     };
-    util.shr = function ( num, bits ) {
+    util.shr = function (num, bits) {
         // (See note in jemul8.generateMask())
         return num / Math.pow(2, bits);
     };
     // Create a bitmask for the specified value size in bytes
     //    (eg. for masking off higher bits of a value to fit it
     //    into a CPU register)
-    util.generateMask = function ( size /* in bytes */ ) {
+    util.generateMask = function (size /* in bytes */) {
         // 4 bytes creates a number that is too large for ECMAScript
         //    (before the -1) ... in FF, the result would be zero,
         //    so we hard-code this particular scenario.
-        if ( size < 4 ) {
+        if (size < 4) {
             return (1 << size * 8) - 1;
         } else {
             return 0xFFFFFFFF;
         }
     };
     // For reinterpreting a number as signed / "sign-extending" a number
-    util.signExtend = function ( num, length, lengthTo ) {
+    util.signExtend = function (num, length, lengthTo) {
         var numBits = length * 8, numBitsTo = lengthTo * 8;
         // Sign bit set
-        if ( num >> (numBits - 1) ) {
+        if (num >> (numBits - 1)) {
             // TODO: Convert "<<" to Math.pow() or multiply? May overflow
             //    the JavaScript 32-bit limit...
             return num | ((Math.pow(2, numBitsTo - numBits) - 1) << numBits);
@@ -384,10 +384,10 @@ define([ "jquery" ], function ( $ ) { "use strict";
         }
     };
     
-    if ( !Function.prototype.bind ) {
+    if (!Function.prototype.bind) {
         // Partial implementation of Function.bind()
         //    (does not support prepending arguments)
-        Function.prototype.bind = function ( obj ) {
+        Function.prototype.bind = function (obj) {
             var fn = this;
             return function () {
                 return fn.apply(obj, arguments);
@@ -395,7 +395,7 @@ define([ "jquery" ], function ( $ ) { "use strict";
         };
     }
     
-    if ( !Date.now ) {
+    if (!Date.now) {
         Date.now = function () {
             return new Date().getTime();
         };
@@ -406,29 +406,29 @@ define([ "jquery" ], function ( $ ) { "use strict";
     try {
         useBind = self.console && console.assert
         && console.assert.bind && console.assert.bind(console);
-    } catch ( e ) {}
+    } catch (e) {}
     
-    if ( useBind ) {
+    if (useBind) {
         util.extend(util, {
             assert: console.assert.bind(console)
             , info: console.info.bind(console)
             , debug: console.debug.bind(console)
             , warning: console.warn.bind(console)
             , problem: console.error.bind(console)
-            , panic: function ( msg ) {
+            , panic: function (msg) {
                 alert(msg);
-                throw new Error( msg );
+                throw new Error(msg);
             }
         });
     } else {
         // Stub functions as console logging unavailable
         util.extend(util, {
-            assert: function ( cond, msg ) {}
-            , info: function ( msg ) {}
-            , debug: function ( msg ) {}
-            , warning: function ( msg ) {}
-            , problem: function ( msg ) {}
-            , panic: function ( msg ) {}
+            assert: function (cond, msg) {}
+            , info: function (msg) {}
+            , debug: function (msg) {}
+            , warning: function (msg) {}
+            , problem: function (msg) {}
+            , panic: function (msg) {}
         });
     }
     

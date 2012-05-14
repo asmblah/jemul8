@@ -7,9 +7,9 @@
 
 define([
 	"../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
-	function Register( name, size ) {
+	function Register(name, size) {
 		util.assert(this && (this instanceof Register)
 			, "Register ctor :: error - constructor not called properly"
 		);

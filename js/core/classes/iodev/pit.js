@@ -9,7 +9,7 @@ define([
 	"../../util"
 	, "../iodev"
 	, "../iodev/pit/82c54"
-], function ( util, IODevice, PIT_82C54 ) { "use strict";
+], function (util, IODevice, PIT_82C54) { "use strict";
 	
 	// Microseconds (us) === 1000 * 1000 per second,
 	//  but clock signal is 1193181 (because of oscillator/crystal).
@@ -21,15 +21,15 @@ define([
 		;
 	
 	/* === Macros === */
-	var TICKS_TO_USEC = function ( a ) {
+	var TICKS_TO_USEC = function (a) {
 		return Math.floor((a * USEC_PER_SECOND) / TICKS_PER_SECOND);
-	}, USEC_TO_TICKS = function ( a ) {
+	}, USEC_TO_TICKS = function (a) {
 		return Math.floor((a * TICKS_PER_SECOND) / USEC_PER_SECOND);
 	};
 	/* === /Macros === */
 	
 	// Constructor / pre-init
-	function PIT( machine ) {
+	function PIT(machine) {
 		util.assert(this && (this instanceof PIT), "PIT ctor ::"
 			+ " error - constructor not called properly");
 		
@@ -40,7 +40,7 @@ define([
 		this.machine = machine;
 		
 		this.state = {
-			/* PIT_82c54 */timer: new PIT_82C54( this )
+			/* PIT_82c54 */timer: new PIT_82C54(this)
 			, speaker_data_on: 0x00
 			, refresh_clock_div2: false
 			, last_usec: 0x00000000 // Should be 64-bit
@@ -52,7 +52,7 @@ define([
 	}
 	util.inherit(PIT, IODevice, "PIT"); // Inheritance
 	util.extend(PIT.prototype, {
-		init: function ( done, fail ) {
+		init: function (done, fail) {
 			var machine = this.machine, state = this.state;
 			
 			// Make a note that IRQ #0 is used by the PIT
@@ -80,7 +80,7 @@ define([
 			
 			var my_time_usec = machine.getTimeUsecs();
 			
-			if ( state.timer_handle == null ) {
+			if (state.timer_handle == null) {
 				state.timer_handle = machine.registerTimer(
 					this.timer_handler, this, 100, true, true, "PIT"
 				);
@@ -88,7 +88,7 @@ define([
 			util.debug(("PIT.init() :: RESETting timer."));
 			state.timer_handle.deactivate();
 			util.debug(("deactivated timer."));
-			if ( state.timer.get_next_event_time() ) {
+			if (state.timer.get_next_event_time()) {
 				state.timer_handle.activate(
 					state.timer_handle
 					, Math.max(1, TICKS_TO_USEC(state.timer.get_next_event_time()))
@@ -119,10 +119,10 @@ define([
 
 			done();
 		// Based on [bx_pit_c::reset]
-		}, reset: function ( type ) {
+		}, reset: function (type) {
 			this.state.timer.reset(type);
 		// Based on [bx_pit_c::timer_handler]
-		}, timer_handler: function ( ticksNow ) {
+		}, timer_handler: function (ticksNow) {
 			// TODO: Merge this with .handle_timer() ?
 			this.handle_timer();
 		// Based on [bx_pit_c::handle_timer]
@@ -134,7 +134,7 @@ define([
 			
 			util.debug(("entering timer handler"));
 			
-			if ( time_passed32 ) {
+			if (time_passed32) {
 				this.periodic(time_passed32);
 			}
 			state.last_usec = state.last_usec + time_passed;
@@ -144,7 +144,7 @@ define([
 				util.debug(("PIT.handle_timer() :: RESETting timer"));
 				state.timer_handle.deactivate();
 				util.debug(("deactivated timer"));
-				if ( state.timer.get_next_event_time() ) {
+				if (state.timer.get_next_event_time()) {
 					state.timer_handle.activate(
 						state.timer_handle
 						, Math.max(1, TICKS_TO_USEC(state.timer.get_next_event_time()))
@@ -166,7 +166,7 @@ define([
 				"s.last_next_event_time=%d"
 				, state.last_next_event_time
 			));
-		}, periodic: function ( usec_delta ) {//return;
+		}, periodic: function (usec_delta) {//return;
 			var state = this.state
 				, ticks_delta = 0;
 			
@@ -185,13 +185,13 @@ define([
 			}
 			
 			var a = 0;
-			while ( ticks_delta > 0 ) {
+			while (ticks_delta > 0) {
 				// TEMP: FIXME
-				//if ( ++a > 1000 ) { debugger; break; }
+				//if (++a > 1000) { debugger; break; }
 				
 				var maxchange = state.timer.get_next_event_time();
 				var timedelta = maxchange;
-				if ( (maxchange == 0) || (maxchange > ticks_delta) ) {
+				if ((maxchange == 0) || (maxchange > ticks_delta)) {
 					timedelta = ticks_delta;
 				}
 				state.timer.clock_all(timedelta);
@@ -200,22 +200,22 @@ define([
 			
 			return 0;
 		// Based on [bx_pit_c::irq_handler]
-		}, irq_handler: function ( val ) {
+		}, irq_handler: function (val) {
 			var machine = this.machine;
-			if ( val == 1 ) {
+			if (val == 1) {
 				machine.pic.raiseIRQ(0);
 			} else {
 				machine.pic.lowerIRQ(0);
 			}
 		// Based on [bx_pit_c::get_timer]
-		}, get_timer: function ( timer ) {
+		}, get_timer: function (timer) {
 			return this.state.timer.get_inlatch(timer);
 		}
 	});
 	
 	/* ====== Private ====== */
 	// PIT chip's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		var machine = device.machine, state = device.state // "device" will be PIT
 			, result8 // 8-bit result
 			;
@@ -227,7 +227,7 @@ define([
 		
 		/** NB: This is an 8254/82C54 Programmable Interval Timer (PIT) **/
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x40: /* timer 0 - system ticks */
 			result8 = state.timer.read(0);
 			break;
@@ -263,7 +263,7 @@ define([
 		return result8;
 	}
 	// PIT chip's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len ) {
+	function writeHandler(device, addr, val, io_len) {
 		var machine = device.machine, state = device.state // "device" will be PIT
 			, val8;
 		//debugger;
@@ -272,7 +272,7 @@ define([
 		var time_passed = my_time_usec - state.last_usec;
 		var time_passed32 = time_passed & 0xFFFFFFFF;
 		
-		if ( time_passed32 ) {
+		if (time_passed32) {
 			device.periodic(time_passed32);
 		}
 		state.last_usec += time_passed;
@@ -286,7 +286,7 @@ define([
 		
 		/** NB: This is an 8254/82C54 Programmable Interval Timer (PIT) **/
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x40: /* timer 0: write count register */
 			state.timer.write(0, val8);
 			break;
@@ -305,7 +305,7 @@ define([
 		
 		case 0x61:
 			state.speaker_data_on = (val8 >> 1) & 0x01;
-			if ( state.speaker_data_on ) {
+			if (state.speaker_data_on) {
 				//DEV_speaker_beep_on((float)(1193180.0 / BX_PIT_THIS get_timer(2)));
 			} else {
 				//DEV_speaker_beep_off();
@@ -327,7 +327,7 @@ define([
 			util.debug(("RESETting timer"));
 			state.timer_handle.deactivate();
 			util.debug(("deactivated timer"));
-			if ( state.timer.get_next_event_time() ) {
+			if (state.timer.get_next_event_time()) {
 				state.timer_handle.activate(
 					state.timer_handle
 					, Math.max(1, TICKS_TO_USEC(state.timer.get_next_event_time()))

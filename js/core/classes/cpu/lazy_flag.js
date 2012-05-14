@@ -7,13 +7,13 @@
 
 define([
     "../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
     
     // Flag getter lookups
     var hsh_getCF = {}, hsh_getAF = {}, hsh_getOF = {};
     
     // CPU Lazy Flag class constructor
-    function LazyFlag( name, regMaster, bitsInLeft ) {
+    function LazyFlag(name, regMaster, bitsInLeft) {
         util.assert(this && (this instanceof LazyFlag), "LazyFlag ctor ::"
             + " error - constructor not called properly");
         /*util.assert(regMaster && (regMaster instanceof jemul8.LazyFlagRegister)
@@ -38,7 +38,7 @@ define([
         this.name = name;
         this.regMaster = regMaster;
         
-        switch ( name ) {
+        switch (name) {
         case "CF":
             this.hsh_get = hsh_getCF;
             this.get = getWithLookup;
@@ -81,14 +81,14 @@ define([
             & this.bitmaskDirtySet) >>> 0;
         this.value = 0;
     };
-    LazyFlag.prototype.setBin = function ( val ) {
+    LazyFlag.prototype.setBin = function (val) {
         // Flag is definitely not dirty; clear dirty bit in Register
         this.regMaster.bitsDirty = (this.regMaster.bitsDirty
             & this.bitmaskDirtySet) >>> 0;
         // Should be faster than eg. val ? 1 : 0
         //this.value = val & 1;
         this.value = val ? 1 : 0;
-        //if ( val > 1 ) { debugger; }
+        //if (val > 1) { debugger; }
     };
     LazyFlag.prototype.toggle = function () {
         this.set(!this.get());
@@ -101,7 +101,7 @@ define([
     function getPF() {
         // When flagged as dirty, reads must evaluate flag from result
         //    of last operation
-        if ( this.regMaster.bitsDirty & this.bitmaskDirtyGet ) {
+        if (this.regMaster.bitsDirty & this.bitmaskDirtyGet) {
             // Simple lookup for parity of low 8 bits
             this.value = mapParity[ this.cpu.resLast & 0xFF ];
             // Flag is no longer dirty; clear dirty bit in Register
@@ -113,7 +113,7 @@ define([
     function getZF() {
         // When flagged as dirty, reads must evaluate flag from result
         //    of last operation
-        if ( this.regMaster.bitsDirty & this.bitmaskDirtyGet ) {
+        if (this.regMaster.bitsDirty & this.bitmaskDirtyGet) {
             this.value = (this.cpu.resLast === 0) & 1;
             // Flag is no longer dirty; clear dirty bit in Register
             this.regMaster.bitsDirty = (this.regMaster.bitsDirty
@@ -124,10 +124,10 @@ define([
     function getSF() {
         // When flagged as dirty, reads must evaluate flag from result
         //    of last operation
-        if ( this.regMaster.bitsDirty & this.bitmaskDirtyGet ) {
+        if (this.regMaster.bitsDirty & this.bitmaskDirtyGet) {
             // Sign flag set if negative (use two's-complement signed high-bit check)
             //this.value = (this.cpu.resLast >> 31);
-            switch ( this.cpu.insnLast.operand1.size ) {
+            switch (this.cpu.insnLast.operand1.size) {
             case 1:
                 this.value = (this.cpu.resLast >> 7) & 1;
                 break;
@@ -149,8 +149,8 @@ define([
         var cpu = this.cpu;
         // When flagged as dirty, reads must evaluate flag from result
         //    of last operation
-        if ( this.regMaster.bitsDirty & this.bitmaskDirtyGet ) {
-            if ( this.hsh_get[ cpu.insnLast.name ] ) {
+        if (this.regMaster.bitsDirty & this.bitmaskDirtyGet) {
+            if (this.hsh_get[ cpu.insnLast.name ]) {
                 this.value = this.hsh_get[ cpu.insnLast.name ](cpu);
             } else {
                 //debugger;
@@ -166,12 +166,12 @@ define([
     }
     
     // Carry Flag
-    hsh_getCF[ "ADD" ] = function ( cpu ) {
+    hsh_getCF[ "ADD" ] = function (cpu) {
         return (cpu.resLast < cpu.valLast1) & 1;
     };
-    hsh_getCF[ "ADC" ] = function ( cpu ) {
+    hsh_getCF[ "ADC" ] = function (cpu) {
         // Calc flags as for ADD if CF was not set
-        if ( !cpu.insnLast.lastCF ) {
+        if (!cpu.insnLast.lastCF) {
             return hsh_getCF[ "ADD" ](cpu);
         }
         
@@ -179,23 +179,23 @@ define([
     };
     hsh_getCF[ "SUB" ]
     = hsh_getCF[ "CMP" ] = hsh_getCF[ "CMPS" ]
-    = hsh_getCF[ "SCAS" ] = function ( cpu ) {
+    = hsh_getCF[ "SCAS" ] = function (cpu) {
         return (cpu.valLast1 < cpu.valLast2) & 1;
     };
-    hsh_getCF[ "SBB" ] = function ( cpu ) {
+    hsh_getCF[ "SBB" ] = function (cpu) {
         var sizeOperand = cpu.insnLast.operand1.size;
         var op1 = cpu.valLast1;
         var op2 = cpu.valLast2;
         var res = cpu.resLast;
         
         // Calc flags as for SUB if CF was not set
-        if ( !cpu.insnLast.lastCF ) {
+        if (!cpu.insnLast.lastCF) {
             return hsh_getCF[ "SUB" ](cpu);
         }
         
-        if ( sizeOperand === 4 ) {
+        if (sizeOperand === 4) {
             return ((op1 < res) || (op2 === 0xFFFFFFFF)) & 1;
-        } else if ( sizeOperand === 2 ) {
+        } else if (sizeOperand === 2) {
             return ((op1 < res) || (op2 === 0xFFFF)) & 1;
         } else {
             return ((op1 < res) || (op2 === 0xFF)) & 1;
@@ -204,11 +204,11 @@ define([
         //var bitmask = (1 << (cpu.insnLast.operand1.size * 8)) - 1;
         //return ((cpu.valLast1 < cpu.resLast) || (cpu.valLast2 === bitmask)) & 1;
     };
-    hsh_getCF[ "NEG" ] = function ( cpu ) {
+    hsh_getCF[ "NEG" ] = function (cpu) {
         return (cpu.resLast !== 0) & 1;
     };
     hsh_getCF[ "INC" ]
-    = hsh_getCF[ "DEC" ] = function ( cpu ) {
+    = hsh_getCF[ "DEC" ] = function (cpu) {
         util.panic("INC & DEC should preserve state!");
         return 0;
     };
@@ -218,7 +218,7 @@ define([
     = hsh_getCF[ "DIV" ] = hsh_getCF[ "DEC" ]
     = hsh_getCF[ "SHL" ] = hsh_getCF[ "SAL" ]
     = hsh_getCF[ "SHR" ] = hsh_getCF[ "SAR" ]
-    = function ( cpu ) {
+    = function (cpu) {
         return 0;
     };
     
@@ -227,19 +227,19 @@ define([
     = hsh_getAF[ "SUB" ] = hsh_getAF[ "SBB" ]
     = hsh_getAF[ "CMP" ] = hsh_getAF[ "CMPS" ]
     = hsh_getAF[ "SCAS" ]
-    = function ( cpu ) {
+    = function (cpu) {
         return ((
             ((cpu.valLast1 & 0xFF) ^ (cpu.valLast2 & 0xFF))
             ^ (cpu.resLast & 0xFF)
         ) & 0x10) ? 1 : 0;
     };
-    hsh_getAF[ "NEG" ] = function ( cpu ) {
+    hsh_getAF[ "NEG" ] = function (cpu) {
         return ((cpu.resLast & 0x0F) !== 0) & 1;
     };
-    hsh_getAF[ "INC" ] = function ( cpu ) {
+    hsh_getAF[ "INC" ] = function (cpu) {
         return ((cpu.resLast & 0x0F) === 0) & 1;
     };
-    hsh_getAF[ "DEC" ] = function ( cpu ) {
+    hsh_getAF[ "DEC" ] = function (cpu) {
         return ((cpu.resLast & 0x0F) === 0x0F) & 1;
     };
     hsh_getAF[ "AND" ] = hsh_getAF[ "OR" ] = hsh_getAF[ "XOR" ]
@@ -248,13 +248,13 @@ define([
     = hsh_getAF[ "DIV" ]
     = hsh_getAF[ "SHL" ] = hsh_getAF[ "SAL" ]
     = hsh_getAF[ "SHR" ] = hsh_getAF[ "SAR" ]
-    = function ( cpu ) {
+    = function (cpu) {
         return 0;
     };
     
     // Overflow Flag
     hsh_getOF[ "ADD" ] = hsh_getOF[ "ADC" ]
-    = function ( cpu ) {
+    = function (cpu) {
         return (((
             (cpu.valLast1 ^ cpu.resLast) & (cpu.valLast2 ^ cpu.resLast)
         ) & 0x80000000) != 0) & 1;
@@ -262,16 +262,16 @@ define([
     hsh_getOF[ "SUB" ] = hsh_getOF[ "SBB" ]
     = hsh_getOF[ "CMP" ] = hsh_getOF[ "CMPS" ]
     = hsh_getOF[ "SCAS" ]
-    = function ( cpu ) {
+    = function (cpu) {
         return (((
             (cpu.valLast1 ^ cpu.valLast2) & (cpu.valLast1 ^ cpu.resLast)
         ) & 0x80000000) != 0) & 1;
     };
-    hsh_getOF[ "NEG" ] = hsh_getOF[ "INC" ] = function ( cpu ) {
+    hsh_getOF[ "NEG" ] = hsh_getOF[ "INC" ] = function (cpu) {
         // eg. 80, 8000, 80000000
         //var half = Math.pow(2, cpu.insnLast.operand1.size * 8 - 1);
         //return (cpu.resLast === half) & 1;
-        switch ( cpu.insnLast.operand1.size ) {
+        switch (cpu.insnLast.operand1.size) {
         case 1:
             return ((cpu.resLast & 0xFF) === 0x80) & 1;
         case 2:
@@ -282,14 +282,14 @@ define([
             jemul8.panic("Invalid operand size");
         }
     };
-    hsh_getOF[ "DEC" ] = function ( cpu ) {
+    hsh_getOF[ "DEC" ] = function (cpu) {
         //util.assert(cpu.insnLast.operand1.size < 4
         //    , "Needs to call .generateMask() if this ever occurs");
         
         // eg. 7F, 7FFF, 7FFFFFFF
         //var half = ((1 << (cpu.insnLast.operand1.size * 8)) - 1) / 2;
         //return (cpu.resLast === half) & 1;
-        switch ( cpu.insnLast.operand1.size ) {
+        switch (cpu.insnLast.operand1.size) {
         case 1:
             return ((cpu.resLast & 0xFF) === 0x7F) & 1;
         case 2:
@@ -303,17 +303,17 @@ define([
     hsh_getOF[ "AND" ] = hsh_getOF[ "OR" ] = hsh_getOF[ "XOR" ]
     = hsh_getOF[ "NOT" ] = hsh_getOF[ "TEST" ]
     = hsh_getOF[ "MUL" ] = hsh_getOF[ "IMUL" ]
-    = hsh_getOF[ "DIV" ] = function ( cpu ) {
+    = hsh_getOF[ "DIV" ] = function (cpu) {
         return 0;
     };
     /* =========== /Lazy Flags evaluation =========== */
     
     // Determine whether there are an odd or even number
     //    of set bits in number "num"
-    function getParity( num ) {
+    function getParity(num) {
         var res = 0;
         
-        while ( num ) {
+        while (num) {
             ++res;
             // Loop will execute once for each bit set in num
             num &= num - 1;
@@ -324,7 +324,7 @@ define([
     // Cache parity values up to 0xFF in lookup table
     //  (eg. mapParity[val & 0xFF])
     var mapParity = {};
-    for ( var num = 0 ; num <= 0xFF ; ++num ) {
+    for (var num = 0 ; num <= 0xFF ; ++num) {
         mapParity[ num ] = getParity(num);
     }
     

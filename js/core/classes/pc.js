@@ -9,10 +9,10 @@ define([
 	"../util"
 	, "./pin"
 	, "./timer"
-], function ( util, Pin, Timer ) { "use strict";
+], function (util, Pin, Timer) { "use strict";
 	
 	// IBM-compatible PC class constructor
-	function PC( emu ) {
+	function PC(emu) {
 		util.assert(this && (this instanceof PC)
 			, "PC constructor :: error - not called properly"
 		);
@@ -22,13 +22,13 @@ define([
 		this.list_tmr = [];
 		
 		// (H)old (R)e(Q)uest
-		this.HRQ = new Pin( "HRQ" );
+		this.HRQ = new Pin("HRQ");
 		
 		this.enableA20 = false;
 		this.maskA20 = util.MASK_DISABLE_A20;
 	}
-	PC.prototype.install = function ( component ) {
-		switch ( component.constructor ) {
+	PC.prototype.install = function (component) {
+		switch (component.constructor) {
 		default:
 			util.problem("PC.install :: Provided component"
 				+ " cannot be installed inside the PC.");
@@ -38,7 +38,7 @@ define([
 	PC.prototype.MAX_TIMERS = 64; // Same as Bochs
 	PC.prototype.registerTimer = function ( fn, obj_this, intervalUsecs
 											, isContinuous, isActive, name ) {
-		if ( this.list_tmr.length > this.MAX_TIMERS ) {
+		if (this.list_tmr.length > this.MAX_TIMERS) {
 			return util.problem("PC.registerTimer() ::"
 				+ " MAX_TIMERS already registered");
 		}
@@ -50,8 +50,8 @@ define([
 	PC.prototype.getEnableA20 = function () {
 		return this.enableA20;
 	};
-	PC.prototype.setEnableA20 = function ( enable ) {
-		if ( enable ) {
+	PC.prototype.setEnableA20 = function (enable) {
+		if (enable) {
 			this.maskA20 = util.MASK_ENABLE_A20;
 		} else {
 			// Mask off the a20 address line
@@ -65,7 +65,7 @@ define([
 		 *	so they can potentially invalidate certain cache info based on
 		 *	A20-line-applied physical addresses.
 		 */
-		//if ( this.enableA20 !== enable ) MemoryMappingChanged();
+		//if (this.enableA20 !== enable) MemoryMappingChanged();
 		util.info("PC.setEnableA20() :: TODO - invalidate caches etc.");
 		
 		this.enableA20 = enable;
@@ -73,7 +73,7 @@ define([
 	// Perform a reset of the emulated machine: 'type' must be
 	//	either RESET_HARDWARE or RESET_SOFTWARE
 	// Based on [bx_pc_system_c::Reset]
-	PC.prototype.reset = function ( type ) {
+	PC.prototype.reset = function (type) {
 		util.info("PC.reset() :: System reset called - type is '"
 			+ (type === util.RESET_HARDWARE ? "hard" : "soft") + "ware'");
 		
@@ -87,12 +87,12 @@ define([
 		this.cpu.RESET.raise();
 		
 		// Only reset devices for Hardware resets
-		if ( type === util.RESET_HARDWARE ) {
+		if (type === util.RESET_HARDWARE) {
 			this.resetIODevices(type);
 		}
 	};
 	// Perform a reset of all I/O devices
-	PC.prototype.resetIODevices = function ( type ) {
+	PC.prototype.resetIODevices = function (type) {
 		this.cmos.reset(type);
 		this.dma.reset(type);
 		this.fdc.reset(type);
@@ -105,7 +105,7 @@ define([
 		// TODO: Call .reset() method of all I/O devices -
 		//  these must be enumerable somehow?
 	};
-	if ( Date.now ) {
+	if (Date.now) {
 		PC.prototype.getTimeMsecs = function () {
 			return Date.now();
 		};

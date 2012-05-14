@@ -7,10 +7,10 @@
 
 define([
 	"../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	// Global Table Register class constructor
-	function GlobalTableRegister( name ) {
+	function GlobalTableRegister(name) {
 		util.assert(this && (this instanceof GlobalTableRegister)
 			, "GlobalTableRegister constructor :: error - not called properly"
 		);
@@ -21,7 +21,7 @@ define([
 	}
 	util.extend(GlobalTableRegister.prototype, {
 		// Sets the register back to its startup state
-		reset: function ( raw ) {
+		reset: function (raw) {
 			this.base = 0x00000000;
             this.limit =    0xFFFF;
 		}, get: function () {

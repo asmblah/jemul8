@@ -3,11 +3,11 @@ define([
 	"jquery"
 	, "../core/util"
 	, "../core/classes/iodev/keyboard/scancode"
-], function ( $, util, Scancode ) { "use strict";
+], function ($, util, Scancode) { "use strict";
 	var keyboardPlugin = {
-		applyTo: function ( emu ) {
+		applyTo: function (emu) {
 			var cancelKeypress = false;
-			$(document).keydown(function ( evt ) {
+			$(document).keydown(function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 				
 				// Simple translation to KEY_* values (needs a keymap)
@@ -17,12 +17,12 @@ define([
 				cancelKeypress = true;
 				evt.preventDefault();
 				return false;
-			}).keyup(function ( evt ) {
+			}).keyup(function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 				
 				// Simple translation to KEY_* values (needs a keymap)
 				emu.machine.keyboard.keyboard.generateScancode(key, "break");
-			}).keypress(function ( evt ) {
+			}).keypress(function (evt) {
 				if ( cancelKeypress ) {
 					cancelKeypress = false; // Only this keypress
 					evt.preventDefault();
@@ -34,7 +34,11 @@ define([
 	
 	// Convert a DOM keyCode to a key index
 	function toKeyIndex( keyCode ) {
-        $("<div>").text(keyCode).insertBefore($("canvas"));
+        //$("<div>").text(keyCode).insertBefore($("canvas"));
+
+        if (keyCode >= 112 && keyCode <= 112 + 12) {
+        	return Scancode.getKeyIndex("KEY_F" + (keyCode - 112 + 1));
+        }
         
 		switch ( keyCode ) {
 		case 8:
@@ -55,10 +59,6 @@ define([
 			return Scancode.getKeyIndex("KEY_RIGHT");
 		case 40:
 			return Scancode.getKeyIndex("KEY_DOWN");
-		case 114:
-			return Scancode.getKeyIndex("KEY_F3");
-        case 123:
-            return Scancode.getKeyIndex("KEY_F12");
         case 190:
             return Scancode.getKeyIndex("KEY_PERIOD");
 		// Other ANSI key

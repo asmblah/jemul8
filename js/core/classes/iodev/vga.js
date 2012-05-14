@@ -10,7 +10,7 @@ define([
 	, "../iodev"
 	, "../http"
 	, "../memory/buffer"
-], function ( util, IODevice, HTTP, Buffer ) { "use strict";
+], function (util, IODevice, HTTP, Buffer) { "use strict";
 	
 	var trace = false;
 	
@@ -54,7 +54,7 @@ define([
 	var old_iHeight = 0, old_iWidth = 0, old_MSL = 0;
 	
 	// Constructor / pre-init
-	function VGA( machine ) {
+	function VGA(machine) {
 		util.assert(this && (this instanceof VGA), "VGA ctor ::"
 			+ " error - constructor not called properly");
 		
@@ -112,7 +112,7 @@ define([
 				, read_data_register: 0x00
 				, read_data_cycle: 0x00		// 0, 1, 2
 				, dac_state: 0x00
-				, data: new Array( 256 )
+				, data: new Array(256)
 				, mask: 0x00
 			}, graphics_ctrl: {
 				index: 0x00
@@ -156,7 +156,7 @@ define([
 			, line_compare: 0
 			, vertical_display_end: 0
 			, blink_counter: 0
-			, vga_tile_updated: new Array( NUM_X_TILES )
+			, vga_tile_updated: new Array(NUM_X_TILES)
 			//Bit8u *memory;
 			, size_mem: 0x00 // memsize
 			// Bit8u text_snapshot[128 * 1024]; // current text snapshot
@@ -172,12 +172,12 @@ define([
 			/* static bx_bool */, cs_visible: 0
 		};
 		
-		for ( idx = 0 ; idx < 256 ; ++idx ) {
+		for (idx = 0 ; idx < 256 ; ++idx) {
 			this.state.pel.data[ idx ] = new Colour();
 		}
 		// Values for these are set up in .init() for now
-		for ( idx = 0 ; idx < NUM_X_TILES ; ++idx ) {
-			this.state.vga_tile_updated[ idx ] = new Array( NUM_Y_TILES );
+		for (idx = 0 ; idx < NUM_X_TILES ; ++idx) {
+			this.state.vga_tile_updated[ idx ] = new Array(NUM_Y_TILES);
 		}
 		
 		this.timerHandle = null;
@@ -192,7 +192,7 @@ define([
 		this.textSnapshot = null;
 	}
 	util.inherit(VGA, IODevice, "VGA"); // Inheritance
-	VGA.prototype.init = function ( done, fail ) {
+	VGA.prototype.init = function (done, fail) {
 		var machine = this.machine;
 		var state = this.state;
 		var idx;
@@ -206,10 +206,10 @@ define([
 			"docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
 			//"docs/vgabios-0.6c/VGABIOS-lgpl-latest.debug.bin")
 			//"docs/bochs-20100605/bios/VGABIOS-elpin-2.40")
-			, function ( path, buffer ) {
+			, function (path, buffer) {
 				machine.mem.loadROM(buffer, 0xC0000, 1);
 				done();
-			}, function ( path ) {
+			}, function (path) {
 				fail();
 			}
 		);
@@ -217,7 +217,7 @@ define([
 		// VGA output
 		//	TODO: Separate DOM access out into plugins for eg. jQuery
 		this.screenVGA = $("#screenVGA")[ 0 ];
-		if ( this.screenVGA.getContext ) {
+		if (this.screenVGA.getContext) {
 			this.ctx_screenVGA = this.screenVGA.getContext("2d");
 			this.imageData = this.ctx_screenVGA.createImageData(
 				this.screenVGA.width, this.screenVGA.height
@@ -255,7 +255,7 @@ define([
 		state.line_compare			= 1023;
 		state.vertical_display_end	= 399;
 		
-		for ( idx = 0 ; idx <= 0x18 ; ++idx ) {
+		for (idx = 0 ; idx <= 0x18 ; ++idx) {
 			state.CRTC.reg[ idx ] = 0;
 		}
 		state.CRTC.address = 0;
@@ -264,7 +264,7 @@ define([
 		state.attribute_ctrl.flip_flop = 0;
 		state.attribute_ctrl.address = 0;
 		state.attribute_ctrl.video_enabled = true;
-		for ( idx = 0 ; idx < 16 ; ++idx ) {
+		for (idx = 0 ; idx < 16 ; ++idx) {
 			state.attribute_ctrl.palette_reg[ idx ] = 0;
 		}
 		state.attribute_ctrl.overscan_color = 0;
@@ -272,7 +272,7 @@ define([
 		state.attribute_ctrl.horiz_pel_panning = 0;
 		state.attribute_ctrl.color_select = 0;
 		
-		for ( idx = 0 ; idx < 256 ; ++idx ) {
+		for (idx = 0 ; idx < 256 ; ++idx) {
 			state.pel.data[ idx ].red = 0;
 			state.pel.data[ idx ].green = 0;
 			state.pel.data[ idx ].blue = 0;
@@ -300,7 +300,7 @@ define([
 		state.graphics_ctrl.memory_mapping = 2; // Monochrome text mode
 		state.graphics_ctrl.color_dont_care = 0;
 		state.graphics_ctrl.bitmask = 0;
-		for ( idx = 0 ; idx < 4 ; ++idx ) {
+		for (idx = 0 ; idx < 4 ; ++idx) {
 			state.graphics_ctrl.latch[ idx ] = 0;
 		}
 		
@@ -320,8 +320,8 @@ define([
 		state.last_bpp = 8;
 		
 		state.vga_mem_updated = false;
-		for ( y = 0 ; y < (480 / Y_TILESIZE) ; ++y ) {
-			for ( x = 0 ; x < (640 / X_TILESIZE) ; ++x ) {
+		for (y = 0 ; y < (480 / Y_TILESIZE) ; ++y) {
+			for (x = 0 ; x < (640 / X_TILESIZE) ; ++x) {
 				this.setTileUpdated(x, y, 0);
 			}
 		}
@@ -351,7 +351,7 @@ define([
 		//	DEV_cmos_set_reg(0x14, (DEV_cmos_get_reg(0x14) & 0xcf) | 0x00);
 		this.machine.cmos.installEquipment(0x00);
 	};
-	VGA.prototype.reset = function ( type ) {
+	VGA.prototype.reset = function (type) {
 		// Wipe VRAM to reset it to boot state
 		Buffer.zeroBuffer(this.bufVRAM);
 		
@@ -373,29 +373,29 @@ define([
 		var idx, addr
 			, hsh_maskIO = [ 3, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1 ]
 			, name = "VGA video";
-		for ( addr = 0x03B4 ; addr <= 0x03B5; ++addr ) {
+		for (addr = 0x03B4 ; addr <= 0x03B5; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 1);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
 		
-		for ( addr = 0x03BA ; addr <= 0x03BA ; ++addr ) {
+		for (addr = 0x03BA ; addr <= 0x03BA ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 1);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
 		
 		idx = 0;
-		for ( addr = 0x03C0 ; addr <= 0x03CF ; ++addr ) {
+		for (addr = 0x03C0 ; addr <= 0x03CF ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler
 								, hsh_maskIO[ idx++ ]);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
 		
-		for ( addr = 0x03D4 ; addr <= 0x03D5 ; ++addr ) {
+		for (addr = 0x03D4 ; addr <= 0x03D5 ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 3);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
 		
-		for ( addr = 0x03DA ; addr <= 0x03DA ; ++addr ) {
+		for (addr = 0x03DA ; addr <= 0x03DA ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 1);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
@@ -421,8 +421,8 @@ define([
 		);
 	};
 	// Based on [#define GET_TILE_UPDATED in /iodev/vga.cc]
-	VGA.prototype.getTileUpdated = function ( xtile, ytile ) {
-		//if ( parseInt(xtile) !== xtile || parseInt(ytile) !== ytile ) { debugger; }
+	VGA.prototype.getTileUpdated = function (xtile, ytile) {
+		//if (parseInt(xtile) !== xtile || parseInt(ytile) !== ytile) { debugger; }
 		
 		// Only reference the array if the tile numbers are within the bounds
 		// of the array.  If out of bounds, return 0.
@@ -431,12 +431,12 @@ define([
 			: 0);
 	};
 	// Based on [#define SET_TILE_UPDATED in /iodev/vga.cc]
-	VGA.prototype.setTileUpdated = function ( xtile, ytile, val ) {
-		//if ( parseInt(xtile) !== xtile || parseInt(ytile) !== ytile ) { debugger; }
+	VGA.prototype.setTileUpdated = function (xtile, ytile, val) {
+		//if (parseInt(xtile) !== xtile || parseInt(ytile) !== ytile) { debugger; }
 		
 		// Only reference the array if the tile numbers are within the bounds
 		// of the array.  If out of bounds, do nothing.
-		if ( ((xtile) < NUM_X_TILES) && ((ytile) < NUM_Y_TILES) ) {
+		if (((xtile) < NUM_X_TILES) && ((ytile) < NUM_Y_TILES)) {
 			this.state.vga_tile_updated[ (xtile) ][ (ytile) ] = val;
 		}
 	};
@@ -464,7 +464,7 @@ define([
 		this.timerHandle = this.machine.registerTimer(handleTimer, this
 			, interval, true, true, "VGA");
 		
-		if ( interval < 300000 ) {
+		if (interval < 300000) {
 			this.state.blink_counter = Math.floor(300000 / interval);
 		} else {
 			this.state.blink_counter = 1;
@@ -498,7 +498,7 @@ define([
 		//	(using 72 Hz vertical frequency)
 		//	- NB: This is to prevent screen tearing, but we do not have
 		//	  proper microsecond-granularity in JS, so is this working?
-		if ( (machine.getTimeUsecs() % 13888) < 70 ) {
+		if ((machine.getTimeUsecs() % 13888) < 70) {
 			return;
 		}
 		
@@ -518,7 +518,7 @@ define([
 		
 		// [Bochs] if (state.vga_mem_updated==0 || state.attribute_ctrl.video_enabled == 0)
 		
-		if ( state.graphics_ctrl.graphics_alpha ) {
+		if (state.graphics_ctrl.graphics_alpha) {
 			var color = 0x00;
 			var bit_no, r, c, x, y;
 			var byte_offset, start_addr;
@@ -538,7 +538,7 @@ define([
 					|| (state.last_bpp > 8) ) {
 				// TODO: Get rid of this check & replace w/default
 				//       (as for .textUpdate())
-				if ( this.dimensionUpdate ) {
+				if (this.dimensionUpdate) {
 					// NB: Different from text mode's .dimensionUpdate()
 					this.dimensionUpdate(
 						iWidth, iHeight, 0, 0, 8
@@ -550,16 +550,16 @@ define([
 				state.last_bpp = 8;
 			}
 			
-			switch ( state.graphics_ctrl.shift_reg ) {
+			switch (state.graphics_ctrl.shift_reg) {
 			case 0:
-				if ( state.graphics_ctrl.memory_mapping == 3 ) { // CGA 640x200x2
-					for ( yc = 0, yti = 0 ; yc < iHeight ; yc += Y_TILESIZE, yti++ ) {
-						for ( xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++ ) {
-							if ( this.getTileUpdated(xti, yti) ) {
-								for ( r = 0 ; r < Y_TILESIZE ; r++ ) {
+				if (state.graphics_ctrl.memory_mapping == 3) { // CGA 640x200x2
+					for (yc = 0, yti = 0 ; yc < iHeight ; yc += Y_TILESIZE, yti++) {
+						for (xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++) {
+							if (this.getTileUpdated(xti, yti)) {
+								for (r = 0 ; r < Y_TILESIZE ; r++) {
 									y = yc + r;
-									if ( state.y_doublescan ) { y >>= 1; }
-									for ( c = 0 ; c < X_TILESIZE ; c++ ) {
+									if (state.y_doublescan) { y >>= 1; }
+									for (c = 0 ; c < X_TILESIZE ; c++) {
 										
 										x = xc + c;
 										/* 0 or 0x2000 */
@@ -576,7 +576,7 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if ( trace ) { util.warning("graphics_tile_update()"); }
+								if (trace) { util.warning("graphics_tile_update()"); }
 								//bx_gui->graphics_tile_update(state.tile, xc, yc);
 							}
 						}
@@ -591,21 +591,21 @@ define([
 					//plane2 = &state.memory[ 2 << 16 ];
 					//plane3 = &state.memory[ 3 << 16 ];
 					line_compare = state.line_compare;
-					if ( state.y_doublescan ) { line_compare >>= 1; }
+					if (state.y_doublescan) { line_compare >>= 1; }
 					
 					for ( yc = 0, yti = 0 ; yc < iHeight
 							; yc += Y_TILESIZE, yti++ ) {
 						for ( xc = 0, xti = 0 ; xc < iWidth
 								; xc += X_TILESIZE, xti++ ) {
-							if ( this.getTileUpdated(xti, yti) ) {
-								for ( r = 0 ; r < Y_TILESIZE ; r++ ) {
+							if (this.getTileUpdated(xti, yti)) {
+								for (r = 0 ; r < Y_TILESIZE ; r++) {
 									y = yc + r;
-									if ( state.y_doublescan ) { y >>= 1; }
-									for ( c = 0 ; c < X_TILESIZE ; c++ ) {
+									if (state.y_doublescan) { y >>= 1; }
+									for (c = 0 ; c < X_TILESIZE ; c++) {
 										x = xc + c;
-										if ( state.x_dotclockdiv2 ) { x >>= 1; }
+										if (state.x_dotclockdiv2) { x >>= 1; }
 										bit_no = 7 - (x % 8);
-										if ( y > line_compare ) {
+										if (y > line_compare) {
 											byte_offset = x / 8 +
 											((y - line_compare - 1) * state.line_offset);
 										} else {
@@ -623,9 +623,9 @@ define([
 										attribute &= state.attribute_ctrl.color_plane_enable;
 										// [Bochs] undocumented feature ???: colors 0..7 high intensity, colors 8..15 blinking
 										//	using low/high intensity. Blinking is not implemented yet.
-										if ( state.attribute_ctrl.mode_ctrl.blink_intensity ) { attribute ^= 0x08; }
+										if (state.attribute_ctrl.mode_ctrl.blink_intensity) { attribute ^= 0x08; }
 										palette_reg_val = state.attribute_ctrl.palette_reg[ attribute ];
-										if ( state.attribute_ctrl.mode_ctrl.internal_palette_size ) {
+										if (state.attribute_ctrl.mode_ctrl.internal_palette_size) {
 											// use 4 lower bits from palette register
 											// use 4 higher bits from color select register
 											// 16 banks of 16-color registers
@@ -644,7 +644,7 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if ( trace ) { util.warning("graphics_tile_update()"); }
+								if (trace) { util.warning("graphics_tile_update()"); }
 								//bx_gui->graphics_tile_update(state.tile, xc, yc);
 							}
 						}
@@ -656,16 +656,16 @@ define([
 			case 1: 
 				// CGA 320x200x4 start
 				
-				for ( yc = 0, yti = 0; yc < iHeight ; yc += Y_TILESIZE, yti++ ) {
-					for ( xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++ ) {
-						if ( this.getTileUpdated(xti, yti) ) {
-							for ( r = 0 ; r < Y_TILESIZE ; r++ ) {
+				for (yc = 0, yti = 0; yc < iHeight ; yc += Y_TILESIZE, yti++) {
+					for (xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++) {
+						if (this.getTileUpdated(xti, yti)) {
+							for (r = 0 ; r < Y_TILESIZE ; r++) {
 								y = yc + r;
-								if ( state.y_doublescan ) { y >>= 1; }
-								for ( c = 0 ; c < X_TILESIZE ; c++ ) {
+								if (state.y_doublescan) { y >>= 1; }
+								for (c = 0 ; c < X_TILESIZE ; c++) {
 									
 									x = xc + c;
-									if ( state.x_dotclockdiv2 ) { x >>= 1; }
+									if (state.x_dotclockdiv2) { x >>= 1; }
 									// 0 or 0x2000
 									byte_offset = start_addr + ((y & 1) << 13);
 									// To the start of the line
@@ -681,7 +681,7 @@ define([
 								}
 							}
 							this.setTileUpdated(xti, yti, 0);
-							if ( trace ) { util.warning("graphics_tile_update()"); }
+							if (trace) { util.warning("graphics_tile_update()"); }
 							//bx_gui->graphics_tile_update(state.tile, xc, yc);
 						}
 					}
@@ -692,20 +692,20 @@ define([
 			//	(format for VGA mode 13 hex)
 			case 2: 
 			case 3: // [Bochs] FIXME: is this really the same ???
-				if ( state.sequencer.chain_four ) {
+				if (state.sequencer.chain_four) {
 					var pixely, pixelx, plane;
 					
-					if ( state.misc_output.select_high_bank != 1 ) {
+					if (state.misc_output.select_high_bank != 1) {
 						util.panic("VGA.update() :: select_high_bank != 1");
 					}
 					
-					for ( yc = 0, yti = 0 ; yc < iHeight ; yc += Y_TILESIZE, yti++ ) {
-						for ( xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++ ) {
-							if ( this.getTileUpdated(xti, yti) ) {
-								for ( r = 0 ; r < Y_TILESIZE ; r++ ) {
+					for (yc = 0, yti = 0 ; yc < iHeight ; yc += Y_TILESIZE, yti++) {
+						for (xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++) {
+							if (this.getTileUpdated(xti, yti)) {
+								for (r = 0 ; r < Y_TILESIZE ; r++) {
 									pixely = yc + r;
-									if ( state.y_doublescan ) { pixely >>= 1; }
-									for ( c = 0 ; c < X_TILESIZE ; c++ ) {
+									if (state.y_doublescan) { pixely >>= 1; }
+									for (c = 0 ; c < X_TILESIZE ; c++) {
 										pixelx = (xc + c) >> 1;
 										plane  = (pixelx % 4);
 										byte_offset = start_addr + (plane * 65536) +
@@ -715,7 +715,7 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if ( trace ) { util.warning("graphics_tile_update()"); }
+								if (trace) { util.warning("graphics_tile_update()"); }
 								//bx_gui->graphics_tile_update(state.tile, xc, yc);
 							}
 						}
@@ -723,13 +723,13 @@ define([
 				} else { // chain_four == 0, modeX
 					var pixely, pixelx, plane;
 					
-					for ( yc = 0, yti = 0; yc < iHeight ; yc += Y_TILESIZE, yti++ ) {
-						for ( xc = 0, xti = 0; xc < iWidth ; xc += X_TILESIZE, xti++ ) {
-							if ( this.getTileUpdated(xti, yti) ) {
-								for ( r = 0 ; r < Y_TILESIZE ; r++ ) {
+					for (yc = 0, yti = 0; yc < iHeight ; yc += Y_TILESIZE, yti++) {
+						for (xc = 0, xti = 0; xc < iWidth ; xc += X_TILESIZE, xti++) {
+							if (this.getTileUpdated(xti, yti)) {
+								for (r = 0 ; r < Y_TILESIZE ; r++) {
 									pixely = yc + r;
-									if ( state.y_doublescan ) { pixely >>= 1; }
-									for ( c = 0 ; c < X_TILESIZE ; c++ ) {
+									if (state.y_doublescan) { pixely >>= 1; }
+									for (c = 0 ; c < X_TILESIZE ; c++) {
 										pixelx = (xc + c) >> 1;
 										plane  = (pixelx % 4);
 										byte_offset = (plane * 65536) +
@@ -740,7 +740,7 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if ( trace ) { util.warning("graphics_tile_update"); }
+								if (trace) { util.warning("graphics_tile_update"); }
 								//bx_gui->graphics_tile_update(state.tile, xc, yc);
 							}
 						}
@@ -766,19 +766,19 @@ define([
 			var cs_toggle = false;
 			
 			this.update_static.cs_counter = (this.update_static.cs_counter - 1) & 0xFFFF;
-			if ( !state.vga_mem_updated && (this.update_static.cs_counter > 0) ) {
+			if (!state.vga_mem_updated && (this.update_static.cs_counter > 0)) {
 				return;
 			}
 			
 			tm_info.start_address = 2*((state.CRTC.reg[ 12 ] << 8) +
 				state.CRTC.reg[ 13 ]);
 			tm_info.cs_start = state.CRTC.reg[ 0x0a ] & 0x3f;
-			if ( this.update_static.cs_counter == 0 ) {
+			if (this.update_static.cs_counter == 0) {
 				cs_toggle = 1;
 				this.update_static.cs_visible = !this.update_static.cs_visible;
 				this.update_static.cs_counter = state.blink_counter;
 			}
-			if ( !this.update_static.cs_visible ) {
+			if (!this.update_static.cs_visible) {
 				tm_info.cs_start |= 0x20;
 			}
 			tm_info.cs_end = state.CRTC.reg[ 0x0b ] & 0x1f;
@@ -789,17 +789,17 @@ define([
 			tm_info.line_graphics = state.attribute_ctrl.mode_ctrl.enable_line_graphics;
 			tm_info.split_hpanning = state.attribute_ctrl.mode_ctrl.pixel_panning_compat;
 			tm_info.blink_flags = 0;
-			if ( state.attribute_ctrl.mode_ctrl.blink_intensity ) {
+			if (state.attribute_ctrl.mode_ctrl.blink_intensity) {
 				tm_info.blink_flags |= TEXT_BLINK_MODE;
-				if ( cs_toggle ) {
+				if (cs_toggle) {
 					tm_info.blink_flags |= TEXT_BLINK_TOGGLE;
 				}
-				if ( this.update_static.cs_visible ) {
+				if (this.update_static.cs_visible) {
 					tm_info.blink_flags |= TEXT_BLINK_STATE;
 				}
 			}
-			if ( (state.sequencer.reg1 & 0x01) == 0 ) {
-				if ( tm_info.h_panning >= 8 ) {
+			if ((state.sequencer.reg1 & 0x01) == 0) {
+				if (tm_info.h_panning >= 8) {
 					tm_info.h_panning = 0;
 				} else {
 					tm_info.h_panning++;
@@ -814,16 +814,16 @@ define([
 			MSL = state.CRTC.reg[ 0x09 ] & 0x1f;
 			cols = state.CRTC.reg[1] + 1;
 			// [Bochs] Workaround for update() calls before VGABIOS init
-			if ( cols == 1 ) {
+			if (cols == 1) {
 				cols = 80;
 				MSL = 15;
 			}
-			if ( (MSL == 1) && (VDE == 399) ) {
+			if ((MSL == 1) && (VDE == 399)) {
 				// Emulated CGA graphics mode 160x100x16 colors
 				MSL = 3;
 			}
 			rows = (VDE+1)/(MSL+1);
-			if ( (rows * tm_info.line_offset) > (1 << 17) ) {
+			if ((rows * tm_info.line_offset) > (1 << 17)) {
 				util.problem("VGA.update() :: Text mode: out of memory");
 				return;
 			}
@@ -838,10 +838,10 @@ define([
                 || (state.last_bpp > 8)
             ) {
 				//bx_gui->dimension_update(iWidth, iHeight, MSL+1, cWidth);
-				//if ( trace ) { util.warning("dimension_update()"); }
+				//if (trace) { util.warning("dimension_update()"); }
 				// TODO: Get rid of this check & replace w/default
 				//       (as for .textUpdate())
-				if ( this.dimensionUpdate ) {
+				if (this.dimensionUpdate) {
 					// NB: Different from gfx mode's .dimensionUpdate()
 					this.dimensionUpdate(
 						iWidth, iHeight, MSL + 1, cWidth, 8
@@ -857,7 +857,7 @@ define([
 			start_address = tm_info.start_address;
 			cursor_address = 2*((state.CRTC.reg[ 0x0e ] << 8) +
 				state.CRTC.reg[ 0x0f ]);
-			if ( cursor_address < start_address ) {
+			if (cursor_address < start_address) {
 				cursor_x = 0xffff;
 				cursor_y = 0xffff;
 			} else {
@@ -867,7 +867,7 @@ define([
 			
             // TODO: Optimise by removing this check & defining a default
             //       .textUpdate() handler (will probably do nothing)
-            if ( this.textUpdate ) {
+            if (this.textUpdate) {
                 this.textUpdate(
                     this.textSnapshot
                     , bufVRAM
@@ -879,7 +879,7 @@ define([
             }
             
             // Screen updated
-			if ( state.vga_mem_updated ) {
+			if (state.vga_mem_updated) {
 				// Screen updated, copy new VGA memory contents
 				//  into text snapshot so only dirty areas may be updated
 				Buffer.copy(
@@ -895,38 +895,38 @@ define([
 	};
 	// Based on [bx_vga_c::determine_screen_dimensions]
 	VGA.prototype.determineScreenDimensions = function () {
-		var ai = new Array( 0x20 )
+		var ai = new Array(0x20)
 			, i, h, v
 			, dimens = { width: 0, height: 0 };
 		
-		for ( i = 0 ; i < 0x20 ; i++ ) {
+		for (i = 0 ; i < 0x20 ; i++) {
 			ai[i] = state.CRTC.reg[i];
 		}
 		
 		h = (ai[1] + 1) * 8;
 		v = (ai[18] | ((ai[7] & 0x02) << 7) | ((ai[7] & 0x40) << 3)) + 1;
 		
-		if ( state.graphics_ctrl.shift_reg == 0 ) {
+		if (state.graphics_ctrl.shift_reg == 0) {
 			dimens.width = 640;
 			dimens.height = 480;
 			
-			if ( state.CRTC.reg[6] == 0xBF ) {
+			if (state.CRTC.reg[6] == 0xBF) {
 				if ( state.CRTC.reg[23] == 0xA3 &&
 						state.CRTC.reg[20] == 0x40 &&
 						state.CRTC.reg[9] == 0x41 ) {
 					dimens.width = 320;
 					dimens.height = 240;
 				} else {
-					if ( state.x_dotclockdiv2 ) { h <<= 1; }
+					if (state.x_dotclockdiv2) { h <<= 1; }
 					dimens.width = h;
 					dimens.height = v;
 				}
-			} else if ( (h >= 640) && (v >= 480) ) {
+			} else if ((h >= 640) && (v >= 480)) {
 				dimens.width = h;
 				dimens.height = v;
 			}
-		} else if ( state.graphics_ctrl.shift_reg == 2 ) {
-			if ( state.sequencer.chain_four ) {
+		} else if (state.graphics_ctrl.shift_reg == 2) {
+			if (state.sequencer.chain_four) {
 				dimens.width = h;
 				dimens.height = v;
 			} else {
@@ -934,7 +934,7 @@ define([
 				dimens.height = v;
 			}
 		} else {
-			if ( state.x_dotclockdiv2 ) { h <<= 1; }
+			if (state.x_dotclockdiv2) { h <<= 1; }
 			dimens.width = h;
 			dimens.height = v;
 		}
@@ -943,23 +943,23 @@ define([
 	};
 	// Marks an area of the screen to be updated
 	// Based on [bx_vga_c::redraw_area]
-	VGA.prototype.redrawArea = function ( x0, y0, width, height ) {
+	VGA.prototype.redrawArea = function (x0, y0, width, height) {
 		var state = this.state
 			, xti, yti, xt0, xt1, yt0, yt1, xmax, ymax;
 		
-		if ( (width === 0) || (height === 0) ) {
+		if ((width === 0) || (height === 0)) {
 			return;
 		}
 		
 		state.vga_mem_updated = true;
 		
-		if ( state.graphics_ctrl.graphics_alpha ) {
+		if (state.graphics_ctrl.graphics_alpha) {
 			util.panic("VGA.redrawArea() :: Gfx mode not implemented yet");
 		}
 		
 	};
 	// Based on [bx_vga_c::get_actl_palette_idx]
-	VGA.prototype.getAttrCtrlPaletteIndex = function ( index ) {
+	VGA.prototype.getAttrCtrlPaletteIndex = function (index) {
 		return this.state.attribute_ctrl.palette_reg[ index ];
 	};
 	
@@ -984,7 +984,7 @@ define([
 	
 	
 	// VGA device's I/O read operations' handler routine
-	function readHandler( device, addr, io_len ) {
+	function readHandler(device, addr, io_len) {
 		var machine = device.machine // "device" will be VGA
 			, state = device.state
 			, horiz_retrace = false, vert_retrace = false
@@ -992,15 +992,15 @@ define([
 			, ret16 = 0, vertres = 0
 			, retval = 0;
 		
-		if ( trace ) {
+		if (trace) {
 			util.info("VGA readHandler() :: Read from address: "
 				+ util.format("hex", addr));
 		}
 		
 		// Debugging output dumper
-		function debug( ret ) {
-			if ( trace ) {
-				if ( io_len === 1 ) {
+		function debug(ret) {
+			if (trace) {
+				if (io_len === 1) {
 					util.debug("VGA readHandler() :: 8-bit read from "
 						+ util.format("hex", addr) + " = "
 						+ util.format("hex", ret));
@@ -1014,7 +1014,7 @@ define([
 		}
 		
 		// Handle 2-byte reads as 2 separate 1-byte reads
-		if ( io_len === 2 ) {
+		if (io_len === 2) {
 			ret16 = readHandler(device, addr, 1);
 			ret16 |= (readHandler(device, addr + 1, 1)) << 8;
 			
@@ -1022,7 +1022,7 @@ define([
 		}
 		
 		// For OS/2
-		//if ( bx_options.videomode === BX_VIDEO_DIRECT ) {
+		//if (bx_options.videomode === BX_VIDEO_DIRECT) {
 		//	util.panic("VGA readHandler() :: BX_VIDEO_DIRECT - unsupported");
 		//	return machine.io.read(addr, 1);
 		//}
@@ -1036,7 +1036,7 @@ define([
 			return debug(0xFF);
 		}
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x03BA: // Input Status 1 (monochrome emulation modes)
 		case 0x03CA: // [Bochs] Feature Control ???
 		case 0x03DA: // Input Status 1 (color emulation modes)
@@ -1057,18 +1057,18 @@ define([
 			case 2: vertres = 350; break;
 			default: vertres = 480; break;
 			}
-			if ( (usec % 13888) < 70 ) {
+			if ((usec % 13888) < 70) {
 				vert_retrace = 1;
 			}
-			if ( ((usec % (13888 / vertres)) >>> 0) === 0 ) {
+			if (((usec % (13888 / vertres)) >>> 0) === 0) {
 				horiz_retrace = 1;
 			}
 			
 			retval = 0;
-			if ( horiz_retrace || vert_retrace ) {
+			if (horiz_retrace || vert_retrace) {
 				retval = 0x01;
 			}
-			if ( vert_retrace ) {
+			if (vert_retrace) {
 				retval |= 0x08;
 			}
 			// Reading this port resets the flip-flop to address mode
@@ -1076,7 +1076,7 @@ define([
 			return debug(retval);
 		
 		case 0x03C0: // ???
-			if ( state.attribute_ctrl.flip_flop == 0 ) {
+			if (state.attribute_ctrl.flip_flop == 0) {
 				//BX_INFO(("io read: 0x3c0: flip_flop = 0"));
 				retval = (state.attribute_ctrl.video_enabled << 5)
 					| state.attribute_ctrl.address;
@@ -1088,7 +1088,7 @@ define([
 			break;
 		
 		case 0x03C1: // ???
-			switch ( state.attribute_ctrl.address ) {
+			switch (state.attribute_ctrl.address) {
 			case 0x00: case 0x01: case 0x02: case 0x03:
 			case 0x04: case 0x05: case 0x06: case 0x07:
 			case 0x08: case 0x09: case 0x0a: case 0x0b:
@@ -1115,7 +1115,7 @@ define([
 			case 0x14: // Color select register
 				return debug(state.attribute_ctrl.color_select);
 			default:
-				if ( trace ) {
+				if (trace) {
 					util.info("VGA readHandler() :: I/O read: 0x3C1: unknown register "
 						+ util.format("hex", state.attribute_ctrl.address));
 				}
@@ -1124,7 +1124,7 @@ define([
 			break;
 		
 		case 0x03c2: // Input Status 0
-			if ( trace ) {
+			if (trace) {
 				util.debug("VGA readHandler() :: I/O read 0x3C2:"
 					+ " input status #0: ignoring");
 			}
@@ -1137,9 +1137,9 @@ define([
 			return debug(state.sequencer.index);
 		
 		case 0x03C5: // Sequencer Registers 00 -> 04
-			switch ( state.sequencer.index ) {
+			switch (state.sequencer.index) {
 			case 0: // Sequencer: reset
-				if ( trace ) {
+				if (trace) {
 					util.debug("VGA readHandler() :: I/O read 0x3C5:"
 						+ " sequencer reset");
 				}
@@ -1147,7 +1147,7 @@ define([
 					| (state.sequencer.reset2 << 1));
 				break;
 			case 1: // Sequencer: clocking mode
-				if ( trace ) {
+				if (trace) {
 					util.debug("VGA readHandler() I/O read 0x3C5:"
 						+ " sequencer clocking mode");
 				}
@@ -1167,7 +1167,7 @@ define([
 				return debug(retval);
 				break;
 			default:
-				if ( trace ) {
+				if (trace) {
 					util.debug("VGA readHandler() I/O read 0x3C5: index "
 						+ state.sequencer.index + " unhandled");
 				}
@@ -1185,8 +1185,8 @@ define([
 			return debug(state.pel.write_data_register);
 		
 		case 0x03C9: // PEL Data Register, colors 00 -> FF
-			if ( state.pel.dac_state == 0x03 ) {
-				switch ( state.pel.read_data_cycle ) {
+			if (state.pel.dac_state == 0x03) {
+				switch (state.pel.read_data_cycle) {
 				case 0:
 					retval = state.pel.data[
 						state.pel.read_data_register ].red;
@@ -1226,7 +1226,7 @@ define([
 			return debug(state.graphics_ctrl.index);
 		
 		case 0x03CD: // ???
-			if ( trace ) {
+			if (trace) {
 				util.debug("VGA readHandler() I/O read from 03cd");
 			}
 			return debug(0x00);
@@ -1260,7 +1260,7 @@ define([
 				
 				if ( state.graphics_ctrl.odd_even
 						|| state.graphics_ctrl.shift_reg ) {
-					if ( trace ) {
+					if (trace) {
 						util.debug("VGA readHandler() :: I/O read 0x3CF: reg 05 = "
 							+ util.format("hex", retval));
 					}
@@ -1279,7 +1279,7 @@ define([
 				return debug(state.graphics_ctrl.bitmask);
 			default:
 				// ???
-				if ( trace ) {
+				if (trace) {
 					util.debug("VGA readHandler() I/O read: 0x3CF: index "
 						+ state.graphics_ctrl.index + " unhandled");
 				}
@@ -1292,8 +1292,8 @@ define([
 		
 		case 0x03B5: // CRTC Registers (monochrome emulation modes)
 		case 0x03D5: // CRTC Registers (color emulation modes)
-			if ( state.CRTC.address > 0x18 ) {
-				if ( trace ) {
+			if (state.CRTC.address > 0x18) {
+				if (trace) {
 					util.debug("VGA readHandler() :: I/O read: invalid CRTC register "
 						+ util.format("hex", state.CRTC.address));
 				}
@@ -1305,7 +1305,7 @@ define([
 		case 0x03CB: // [Bochs] ??? Not sure but OpenBSD reads it a lot
 		default:
 			// (NB: Not a panic, as for other devices)
-			if ( trace ) {
+			if (trace) {
 				util.info("VGA readHandler() :: Unsupported read, address="
 					+ util.format("hex", addr) + "!");
 			}
@@ -1313,7 +1313,7 @@ define([
 		}
 	}
 	// VGA device's I/O write operations' handler routine
-	function writeHandler( device, addr, val, io_len, /* private */ noLog ) {
+	function writeHandler(device, addr, val, io_len, /* private */ noLog) {
 		var state = device.state // "device" will be VGA
 			, idx, text
 			, charmap1 = 0x00, charmap2 = 0x00, prev_memory_mapping = 0x00
@@ -1321,17 +1321,17 @@ define([
 			, prev_graphics_alpha = false, prev_chain_odd_even = false
 			, needs_update = false, charmap_update = false;
 		
-		if ( trace ) {
+		if (trace) {
 			util.info("VGA writeHandler() :: Write to address: "
 				+ util.format("hex", addr) + " = " + util.format("hex", val));
 		}
 		
 		// Debugging output dumper
-		if ( trace && !noLog ) {
-			if ( io_len === 1 ) {
+		if (trace && !noLog) {
+			if (io_len === 1) {
 				util.debug(" :: 8-bit write to "
 					+ util.format("hex", addr) + " = " + util.format("hex", val));
-			} else if ( io_len === 2 ) {
+			} else if (io_len === 2) {
 				util.debug(" :: 16-bit write to "
 					+ util.format("hex", addr) + " = " + util.format("hex", val));
 			} else {
@@ -1341,14 +1341,14 @@ define([
 		}
 		
 		// Handle 2-byte writes as 2 separate 1-byte writes
-		if ( io_len === 2 ) {
+		if (io_len === 2) {
 			writeHandler(device, addr, val & 0xFF, 1, true);
 			writeHandler(device, addr + 1, (val >> 8) & 0xFF, 1, true);
 			return;
 		}
 		
 		// For OS/2
-		//if ( bx_options.videomode === BX_VIDEO_DIRECT ) {
+		//if (bx_options.videomode === BX_VIDEO_DIRECT) {
 		//	util.panic(" :: BX_VIDEO_DIRECT - unsupported");
 		//	return machine.io.write(addr, val, 1);
 		//}
@@ -1363,47 +1363,47 @@ define([
 			return;
 		}
 		
-		switch ( addr ) {
+		switch (addr) {
 		case 0x03BA: // Feature Control (monochrome emulation modes)
-			if ( trace ) {
+			if (trace) {
 				util.debug(" :: I/O write 3BA: feature control: ignoring");
 			}
 			break;
 		
 		case 0x03C0: // Attribute Controller
-			if ( state.attribute_ctrl.flip_flop == 0 ) { // Address mode
+			if (state.attribute_ctrl.flip_flop == 0) { // Address mode
 				prev_video_enabled = state.attribute_ctrl.video_enabled;
 				state.attribute_ctrl.video_enabled = (val >> 5) & 0x01;
 				
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write 3C0: video_enabled = "
 						+ state.attribute_ctrl.video_enabled);
 				}
 				
-				if ( !state.attribute_ctrl.video_enabled ) {
+				if (!state.attribute_ctrl.video_enabled) {
 					//bx_gui->clear_screen();
-					if ( trace ) { util.warning("clear_screen()"); }
-				} else if ( !prev_video_enabled ) {
-					if ( trace ) { util.debug(" :: Found enable-transition"); }
+					if (trace) { util.warning("clear_screen()"); }
+				} else if (!prev_video_enabled) {
+					if (trace) { util.debug(" :: Found enable-transition"); }
 					
 					needs_update = true;
 				}
 				val &= 0x1F; // Address = bits 0 -> 4
 				state.attribute_ctrl.address = val;
-				switch ( val ) {
+				switch (val) {
 				case 0x00: case 0x01: case 0x02: case 0x03:
 				case 0x04: case 0x05: case 0x06: case 0x07:
 				case 0x08: case 0x09: case 0x0a: case 0x0b:
 				case 0x0c: case 0x0d: case 0x0e: case 0x0f:
 					break;
 				default:
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3C0: address mode reg="
 							+ util.format("hex", val));
 					}
 				}
 			} else { // Data-write mode
-				switch ( state.attribute_ctrl.address ) {
+				switch (state.attribute_ctrl.address) {
 				case 0x00: case 0x01: case 0x02: case 0x03:
 				case 0x04: case 0x05: case 0x06: case 0x07:
 				case 0x08: case 0x09: case 0x0A: case 0x0B:
@@ -1432,21 +1432,21 @@ define([
 						= (val >> 6) & 0x01;
 					state.attribute_ctrl.mode_ctrl.internal_palette_size
 						= (val >> 7) & 0x01;
-					if ( ((val >> 2) & 0x01) != prev_line_graphics ) {
+					if (((val >> 2) & 0x01) != prev_line_graphics) {
 						charmap_update = true;
 					}
-					if ( ((val >> 7) & 0x01) != prev_int_pal_size ) {
+					if (((val >> 7) & 0x01) != prev_int_pal_size) {
 						needs_update = true;
 					}
 					
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3C0:"
 							+ " mode control: " + util.format("hex", val));
 					}
 					break;
 				case 0x11: // Overscan Color Register
 					state.attribute_ctrl.overscan_color = (val & 0x3F);
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3C0: overscan color = "
 							+ util.format("hex", val));
 					}
@@ -1455,7 +1455,7 @@ define([
 					state.attribute_ctrl.color_plane_enable = (val & 0x0F);
 					needs_update = true;
 					
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3c0: color plane enable = "
 							+ util.format("hex", val));
 					}
@@ -1464,7 +1464,7 @@ define([
 					state.attribute_ctrl.horiz_pel_panning = (val & 0x0F);
 					needs_update = true;
 					
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3C0: horiz pel panning = "
 							+ util.format("hex", val));
 					}
@@ -1473,13 +1473,13 @@ define([
 					state.attribute_ctrl.color_select = (val & 0x0F);
 					needs_update = true;
 					
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3C0: color select = "
 							+ util.format("hex", state.attribute_ctrl.color_select));
 					}
 					break;
 				default:
-					if ( trace ) {
+					if (trace) {
 						util.debug(" :: I/O write 0x3C0: data-write mode "
 							+ util.format("hex", state.attribute_ctrl.address));
 					}
@@ -1496,7 +1496,7 @@ define([
 			state.misc_output.horiz_sync_pol   = (val >> 6) & 0x01;
 			state.misc_output.vert_sync_pol    = (val >> 7) & 0x01;
 			
-			if ( trace ) {
+			if (trace) {
 				util.debug(" :: I/O write 3C2:");
 				util.debug(" -> color_emulation (attempted) = "
 					+ ((val >> 0) & 0x01));
@@ -1517,28 +1517,28 @@ define([
 			// Bit0: enables VGA display if set
 			state.vga_enabled = val & 0x01;
 			
-			if ( trace ) {
+			if (trace) {
 				util.debug(" :: I/O write 0x03C3: VGA enable ="
 					+ state.vga_enabled);
 			}
 			break;
 		
 		case 0x03C4: // Sequencer Index Register
-			if ( val > 4 ) {
-				if ( trace ) { util.debug(" :: I/O write 3C4: value > 4"); }
+			if (val > 4) {
+				if (trace) { util.debug(" :: I/O write 3C4: value > 4"); }
 			}
 			state.sequencer.index = val;
 			break;
 		
 		case 0x03C5: // Sequencer Registers 00 -> 04
-			switch ( state.sequencer.index ) {
+			switch (state.sequencer.index) {
 			case 0: // Sequencer: reset
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write 0x3C5:"
 						+ " sequencer reset: value=" + util.format("hex", val));
 				}
 				
-				if ( state.sequencer.reset1 && ((val & 0x01) == 0) ) {
+				if (state.sequencer.reset1 && ((val & 0x01) == 0)) {
 					state.sequencer.char_map_select = 0;
 					state.charmap_address = 0;
 					charmap_update = true;
@@ -1547,14 +1547,14 @@ define([
 				state.sequencer.reset2 = (val >> 1) & 0x01;
 				break;
 			case 1: // Sequencer: clocking mode
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write 0x3c5="
 						+ util.format("hex", val) + ": clocking mode reg: ignoring");
 				}
-				if ( (val & 0x20) > 0 ) {
+				if ((val & 0x20) > 0) {
 					//bx_gui->clear_screen();
-					if ( trace ) { util.warning("clear_screen()"); }
-				} else if ( (state.sequencer.reg1 & 0x20) > 0 ) {
+					if (trace) { util.warning("clear_screen()"); }
+				} else if ((state.sequencer.reg1 & 0x20) > 0) {
 					needs_update = true;
 				}
 				state.sequencer.reg1 = val & 0x3D;
@@ -1566,15 +1566,15 @@ define([
 			case 3: // Sequencer: character map select register
 				state.sequencer.char_map_select = val & 0x3F;
 				charmap1 = val & 0x13;
-				if ( charmap1 > 3 ) { charmap1 = (charmap1 & 3) + 4; }
+				if (charmap1 > 3) { charmap1 = (charmap1 & 3) + 4; }
 				charmap2 = (val & 0x2C) >> 2;
-				if ( charmap2 > 3 ) { charmap2 = (charmap2 & 3) + 4; }
-				if ( state.CRTC.reg[ 0x09 ] > 0 ) {
+				if (charmap2 > 3) { charmap2 = (charmap2 & 3) + 4; }
+				if (state.CRTC.reg[ 0x09 ] > 0) {
 					state.charmap_address = charmap_offset[ charmap1 ];
 					charmap_update = 1;
 				}
-				if ( charmap2 != charmap1 ) {
-					if ( trace ) {
+				if (charmap2 != charmap1) {
+					if (trace) {
 						util.info(" :: Char map select: map #2"
 							+ " in block #" + charmap2 + " unused");
 					}
@@ -1585,7 +1585,7 @@ define([
 				state.sequencer.odd_even       = (val >> 2) & 0x01;
 				state.sequencer.chain_four     = (val >> 3) & 0x01;
 				
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write 0x3C5: memory mode:");
 					util.debug(" -> extended_mem = " + state.sequencer.extended_mem);
 					util.debug(" -> odd_even = " + state.sequencer.odd_even);
@@ -1593,7 +1593,7 @@ define([
 				}
 				break;
 			default:
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write 0x3C5: index "
 						+ util.format("hex", state.sequencer.index) + " unhandled");
 				}
@@ -1602,8 +1602,8 @@ define([
 		
 		case 0x03C6: // PEL mask
 			state.pel.mask = val;
-			if ( state.pel.mask != 0xFF ) {
-				if ( trace ) {
+			if (state.pel.mask != 0xFF) {
+				if (trace) {
 					util.debug(" :: I/O write 0x3C6: PEL mask="
 						+ util.format("hex", val) + " != 0xFF");
 				}
@@ -1625,7 +1625,7 @@ define([
 			break;
 		
 		case 0x03C9: // PEL Data Register, colors 00 -> FF
-			switch ( state.pel.write_data_cycle ) {
+			switch (state.pel.write_data_cycle) {
 			case 0:
 				state.pel.data[ state.pel.write_data_register ].red = val;
 				break;
@@ -1639,7 +1639,7 @@ define([
 				
 				// TODO: Get rid of this check & replace w/default
 				//       (as for .textUpdate())
-				if ( device.paletteChange ) {
+				if (device.paletteChange) {
 					needs_update |= device.paletteChange(
 						state.pel.write_data_register
 						, state.pel.data[ state.pel.write_data_register ].red << 2
@@ -1651,7 +1651,7 @@ define([
 			}
 			
 			state.pel.write_data_cycle++;
-			if ( state.pel.write_data_cycle >= 3 ) {
+			if (state.pel.write_data_cycle >= 3) {
 				//BX_INFO(("state.pel.data[%u] {r=%u, g=%u, b=%u}",
 				//  (unsigned) state.pel.write_data_register,
 				//  (unsigned) state.pel.data[state.pel.write_data_register].red,
@@ -1671,21 +1671,21 @@ define([
 			break;
 		
 		case 0x03CD: // [Bochs] ???
-			if ( trace ) {
+			if (trace) {
 				util.debug(" :: I/O write to 0x3CD = "
 					+ util.format("hex", val));
 			}
 			break;
 		
 		case 0x03CE: // Graphics Controller Index Register
-			if ( val > 0x08 ) { // [Bochs] ???
-				if ( trace ) { util.debug(" :: I/O write: 0x3CE: value > 8"); }
+			if (val > 0x08) { // [Bochs] ???
+				if (trace) { util.debug(" :: I/O write: 0x3CE: value > 8"); }
 			}
 			state.graphics_ctrl.index = val;
 			break;
 		
 		case 0x03CF: // Graphics Controller Registers 00 -> 08
-			switch ( state.graphics_ctrl.index ) {
+			switch (state.graphics_ctrl.index) {
 			case 0: // Set/Reset
 				state.graphics_ctrl.set_reset = val & 0x0f;
 				break;
@@ -1702,7 +1702,7 @@ define([
 			case 4: // Read Map Select
 				state.graphics_ctrl.read_map_select = val & 0x03;
 				
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write to 0x3CF = "
 						+ util.format("hex", val) + " (RMS)");
 				}
@@ -1713,15 +1713,15 @@ define([
 				state.graphics_ctrl.odd_even	= (val >> 4) & 0x01;
 				state.graphics_ctrl.shift_reg	= (val >> 5) & 0x03;
 				
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write: 0x3CF: mode reg:"
 						+ " value = " + util.format("hex", val));
 				}
-				if ( state.graphics_ctrl.odd_even ) {
-					if ( trace ) { util.debug(" -> graphics_ctrl.odd_even = 1"); }
+				if (state.graphics_ctrl.odd_even) {
+					if (trace) { util.debug(" -> graphics_ctrl.odd_even = 1"); }
 				}
-				if ( state.graphics_ctrl.shift_reg ) {
-					if ( trace ) { util.debug(" -> graphics_ctrl.shift_reg = 1"); }
+				if (state.graphics_ctrl.shift_reg) {
+					if (trace) { util.debug(" -> graphics_ctrl.shift_reg = 1"); }
 				}
 				break;
 			case 6: // Miscellaneous
@@ -1733,7 +1733,7 @@ define([
 				state.graphics_ctrl.chain_odd_even = (val >> 1) & 0x01;
 				state.graphics_ctrl.memory_mapping = (val >> 2) & 0x03;
 				
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: Miscellaneous:");
 					util.debug(" -> memory_mapping set to ",
 						+ state.graphics_ctrl.memory_mapping);
@@ -1763,7 +1763,7 @@ define([
 				break;
 			default:
 				// [Bochs] ???
-				if ( trace ) {
+				if (trace) {
 					util.debug(" :: I/O write: 0x3CF: index "
 						+ state.graphics_ctrl.index + " unhandled");
 				}
@@ -1773,8 +1773,8 @@ define([
 		case 0x03B4: // CRTC Index Register (monochrome emulation modes)
 		case 0x03D4: // CRTC Index Register (color emulation modes)
 			state.CRTC.address = val & 0x7F;
-			if ( state.CRTC.address > 0x18 ) {
-				if ( trace ) {
+			if (state.CRTC.address > 0x18) {
+				if (trace) {
 					util.debug(" :: I/O write: invalid CRTC register "
 						+ util.format("hex", state.CRTC.address) + " selected");
 				}
@@ -1783,19 +1783,19 @@ define([
 		
 		case 0x03B5: // CRTC Registers (monochrome emulation modes)
 		case 0x03D5: // CRTC Registers (color emulation modes)
-			if ( state.CRTC.address > 0x18 ) {
-				if ( trace ) {
+			if (state.CRTC.address > 0x18) {
+				if (trace) {
 					util.debug(" :: I/O write: invalid CRTC register "
 						+ util.format("hex", state.CRTC.address) + " ignored");
 				}
 				return;
 			}
-			if ( state.CRTC.write_protect && (state.CRTC.address < 0x08) ) {
-				if ( state.CRTC.address == 0x07 ) {
+			if (state.CRTC.write_protect && (state.CRTC.address < 0x08)) {
+				if (state.CRTC.address == 0x07) {
 					state.CRTC.reg[ state.CRTC.address ] &= ~0x10;
 					state.CRTC.reg[ state.CRTC.address ] |= (val & 0x10);
 					state.line_compare &= 0x2ff;
-					if ( state.CRTC.reg[ 0x07 ] & 0x10 ) {
+					if (state.CRTC.reg[ 0x07 ] & 0x10) {
 						state.line_compare |= 0x100;
 					}
 					needs_update = true;
@@ -1804,19 +1804,19 @@ define([
 					return;
 				}
 			}
-			if ( val != state.CRTC.reg[ state.CRTC.address ] ) {
+			if (val != state.CRTC.reg[ state.CRTC.address ]) {
 				state.CRTC.reg[ state.CRTC.address ] = val;
-				switch ( state.CRTC.address ) {
+				switch (state.CRTC.address) {
 				case 0x07:
 					state.vertical_display_end &= 0xFF;
-					if ( state.CRTC.reg[ 0x07 ] & 0x02 ) {
+					if (state.CRTC.reg[ 0x07 ] & 0x02) {
 						state.vertical_display_end |= 0x100;
 					}
-					if ( state.CRTC.reg[ 0x07 ] & 0x40 ) {
+					if (state.CRTC.reg[ 0x07 ] & 0x40) {
 						state.vertical_display_end |= 0x200;
 					}
 					state.line_compare &= 0x2FF;
-					if ( state.CRTC.reg[ 0x07 ] & 0x10 ) {
+					if (state.CRTC.reg[ 0x07 ] & 0x10) {
 						state.line_compare |= 0x100;
 					}
 					needs_update = true;
@@ -1828,7 +1828,7 @@ define([
 				case 0x09:
 					state.y_doublescan = ((val & 0x9F) > 0);
 					state.line_compare &= 0x1FF;
-					if ( state.CRTC.reg[ 0x09 ] & 0x40 ) {
+					if (state.CRTC.reg[ 0x09 ] & 0x40) {
 						state.line_compare |= 0x200;
 					}
 					charmap_update = 1;
@@ -1844,7 +1844,7 @@ define([
 				case 0x0C:
 				case 0x0D:
 					// Start address change
-					if ( state.graphics_ctrl.graphics_alpha ) {
+					if (state.graphics_ctrl.graphics_alpha) {
 						needs_update = true;
 					} else {
 						state.vga_mem_updated = true;
@@ -1864,9 +1864,9 @@ define([
 					
 					// Line offset change
 					state.line_offset = state.CRTC.reg[ 0x13 ] << 1;
-					if ( state.CRTC.reg[ 0x14 ] & 0x40 ) {
+					if (state.CRTC.reg[ 0x14 ] & 0x40) {
 						state.line_offset <<= 2;
-					} else if ( (state.CRTC.reg[ 0x17 ] & 0x40) == 0 ) {
+					} else if ((state.CRTC.reg[ 0x17 ] & 0x40) == 0) {
 						state.line_offset <<= 1;
 					}
 					needs_update = true;
@@ -1881,7 +1881,7 @@ define([
 			break;
 		
 		case 0x03DA: // Feature Control (color emulation modes)
-			if ( trace ) {
+			if (trace) {
 				util.debug(" :: I/O write: 0x3DA: ignoring:"
 					+ " feature ctrl & vert sync");
 			}
@@ -1894,30 +1894,30 @@ define([
 			return 0;
 		}
 		
-		if ( charmap_update ) {
-			if ( trace ) { util.warning("set_text_charmap()"); }
+		if (charmap_update) {
+			if (trace) { util.warning("set_text_charmap()"); }
 			//bx_gui->set_text_charmap(
 			//	& state.memory[0x20000 + state.charmap_address]);
 			state.vga_mem_updated = true;
 		}
-		if ( needs_update ) {
+		if (needs_update) {
 			// Mark all video as updated so the changes will go through
 			device.redrawArea(0, 0, old_iWidth, old_iHeight);
 		}
 	}
 	
 	// VGA device's I/O memory read operations' handler routine
-	function memoryReadHandler( addrA20, len, arg ) {
+	function memoryReadHandler(addrA20, len, arg) {
 		var idx, val = memoryRead(arg, addrA20);
 		// Start from 1 because of 1st read above
-		for ( idx = 1 ; idx < len ; ++idx ) {
+		for (idx = 1 ; idx < len ; ++idx) {
 			val |= memoryRead(arg, addrA20 + idx) << (8 * idx);
 		}
 		return val;
 	}
 	// Handles 8-bit reads: see memoryReadHandler() for how multi-byte
 	//	values are dispatched to this function
-	function memoryRead( device, addrA20 ) {
+	function memoryRead(device, addrA20) {
 		var machine = device.machine
 			, state = device.state
 			, bufVRAM = device.bufVRAM
@@ -1930,7 +1930,7 @@ define([
 		
 		/** TODO: VBE **/
 		
-		if ( trace ) {
+		if (trace) {
 			util.info("VGA memoryRead() :: 8-bit read from "
 				+ util.format("hex", addrA20));
 		}
@@ -1954,24 +1954,24 @@ define([
 		
 		// Check address is in bounds according to current memory mapping
 		//	(mapping changes depending on the video mode)
-		switch ( state.graphics_ctrl.memory_mapping ) {
+		switch (state.graphics_ctrl.memory_mapping) {
 		case 1: // 0xA0000 -> 0xAFFFF
-			if ( addrA20 > 0xAFFFF ) { return 0xff; }
+			if (addrA20 > 0xAFFFF) { return 0xff; }
 			offset = addrA20 & 0xFFFF;
 			break;
 		case 2: // 0xB0000 -> 0xB7FFF
-			if ( (addrA20 < 0xB0000) || (addrA20 > 0xB7FFF) ) { return 0xff; }
+			if ((addrA20 < 0xB0000) || (addrA20 > 0xB7FFF)) { return 0xff; }
 			offset = addrA20 & 0x7FFF;
 			break;
 		case 3: // 0xB8000 -> 0xBFFFF
-			if ( addrA20 < 0xB8000 ) { return 0xff; }
+			if (addrA20 < 0xB8000) { return 0xff; }
 			offset = addrA20 & 0x7FFF;
 			break;
 		default: // 0xA0000 -> 0xBFFFF
 			offset = addrA20 & 0x1FFFF;
 		}
 		
-		if ( state.sequencer.chain_four ) {
+		if (state.sequencer.chain_four) {
 			// Mode 13h: 320 x 200 256 color mode: chained pixel representation
 			return bufVRAM[ (offset & ~0x03) + (offset % 4)*65536 ];
 		}
@@ -1984,7 +1984,7 @@ define([
 		//plane3 = &state.memory[3<<16];
 		
 		// Addr between 0xA0000 and 0xAFFFF
-		switch ( state.graphics_ctrl.read_mode ) {
+		switch (state.graphics_ctrl.read_mode) {
 		case 0: // Read mode 0
 			state.graphics_ctrl.latch[ 0 ] = bufVRAM[ offset ];
 			state.graphics_ctrl.latch[ 1 ] = bufVRAM[ (1<<16) + offset ];
@@ -2018,62 +2018,62 @@ define([
 		}
 	}
 	// VGA device's I/O memory write operations' handler routine
-	function memoryWriteHandler( addrA20, val, len, arg ) {
+	function memoryWriteHandler(addrA20, val, len, arg) {
 		var idx;
-		for ( idx = 0 ; idx < len ; ++idx ) {
+		for (idx = 0 ; idx < len ; ++idx) {
 			memoryWrite(arg, addrA20 + idx
 				, (val >> (8 * idx)) & 0xFF);
 		}
 	}
 	// Handles 8-bit writes: see memoryWriteHandler() for how multi-byte
 	//	values are dispatched to this function
-	function memoryWrite( device, addrA20, val ) {
+	function memoryWrite(device, addrA20, val) {
 		var machine = device.machine
 			, state = device.state
 			, bufVRAM = device.bufVRAM
 			, offset = 0x00000000
-			, new_val = new Array( 4 )
+			, new_val = new Array(4)
 			, start_addr;
 			//Bit8u *plane0, *plane1, *plane2, *plane3;
 		
 		/** TODO: VBE **/
 		
-		if ( trace ) {
+		if (trace) {
 			util.info("VGA memoryWrite() :: 8-bit write to "
 				+ util.format("hex", addrA20) + " = " + util.format("hex", val));
 		}
 		
-		//if ( val === "?".charCodeAt(0) ) {
+		//if (val === "?".charCodeAt(0)) {
 		//	debugger;
 		//}
 		
-		//if ( val === "/".charCodeAt(0) ) { debugger; }
+		//if (val === "/".charCodeAt(0)) { debugger; }
 		
 		/** TODO: OS/2 **/
 		
 		// Check address is in bounds according to current memory mapping
 		//	(mapping changes depending on the video mode)
-		switch ( state.graphics_ctrl.memory_mapping ) {
+		switch (state.graphics_ctrl.memory_mapping) {
 		case 1: // 0xA0000 -> 0xAFFFF
-			if ( (addrA20 < 0xA0000) || (addrA20 > 0xAFFFF) ) { return; }
+			if ((addrA20 < 0xA0000) || (addrA20 > 0xAFFFF)) { return; }
 			offset = addrA20 - 0xA0000;
 			break;
 		case 2: // 0xB0000 -> 0xB7FFF
-			if ( (addrA20 < 0xB0000) || (addrA20 > 0xB7FFF) ) { return; }
+			if ((addrA20 < 0xB0000) || (addrA20 > 0xB7FFF)) { return; }
 			offset = addrA20 - 0xB0000;
 			break;
 		case 3: // 0xB8000 -> 0xBFFFF
-			if ( (addrA20 < 0xB8000) || (addrA20 > 0xBFFFF) ) { return; }
+			if ((addrA20 < 0xB8000) || (addrA20 > 0xBFFFF)) { return; }
 			offset = addrA20 - 0xB8000;
 			break;
 		default: // 0xA0000 -> 0xBFFFF
-			if ( (addrA20 < 0xA0000) || (addrA20 > 0xBFFFF) ) { return; }
+			if ((addrA20 < 0xA0000) || (addrA20 > 0xBFFFF)) { return; }
 			offset = addrA20 - 0xA0000;
 		}
 		
 		start_addr = (state.CRTC.reg[0x0c] << 8) | state.CRTC.reg[0x0d];
 		
-		if ( state.graphics_ctrl.graphics_alpha ) {
+		if (state.graphics_ctrl.graphics_alpha) {
 			util.panic("VGA memoryWrite() :: Gfx mode not implemented yet");
 		}
 		
@@ -2087,7 +2087,7 @@ define([
 		//plane3 = &state.memory[3<<16];
 		
 		var i;
-		switch ( state.graphics_ctrl.write_mode ) {
+		switch (state.graphics_ctrl.write_mode) {
 		case 0: /* write mode 0 */
 			{
 			/*const Bit8u*/var bitmask = state.graphics_ctrl.bitmask;
@@ -2198,7 +2198,7 @@ define([
 			}
 			break;
 		case 1: // Write mode 1
-			for ( i = 0 ; i < 4 ; i++ ) {
+			for (i = 0 ; i < 4 ; i++) {
 				new_val[ i ] = state.graphics_ctrl.latch[ i ];
 			}
 			break;
@@ -2335,11 +2335,11 @@ define([
 			if (state.sequencer.map_mask & 0x04) {
 				if ((offset & 0xe000) == state.charmap_address) {
 					//bx_gui->set_text_charbyte((offset & 0x1fff), new_val[2]);
-					//if ( trace ) { util.warning("set_text_charbyte()"); }
+					//if (trace) { util.warning("set_text_charbyte()"); }
 					
 					// TODO: Get rid of this check & replace w/default
 					//       (as for .textUpdate())
-					if ( device.setTextCharByte ) {
+					if (device.setTextCharByte) {
 						device.setTextCharByte((offset & 0x1fff), new_val[ 2 ]);
 					}
 				}
@@ -2397,7 +2397,7 @@ define([
 	
 	// Periodic timer handler (see VGA.initSystemTimer())
 	//	Based on [bx_vga_c::timer_handler]
-	function handleTimer( ticksNow ) {
+	function handleTimer(ticksNow) {
 		this.update();
 	}
 	/* ====== /Private ====== */

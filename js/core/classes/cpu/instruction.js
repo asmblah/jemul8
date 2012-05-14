@@ -9,7 +9,7 @@ define([
     "../../util"
     , "../decoder"
     , "./operand"
-], function ( util, Decoder, Operand ) { "use strict";
+], function (util, Decoder, Operand) { "use strict";
     
     // x86 Instruction (eg. MOV, CMP) class constructor
     function Instruction( name, offset
@@ -40,7 +40,7 @@ define([
     }
     util.extend(Instruction, {
         // Create an Instruction object by disassembling machine code
-        decode: function ( decoder, read, offset, addressSizeAttr, operandSizeAttr ) {
+        decode: function (decoder, read, offset, addressSizeAttr, operandSizeAttr) {
             //util.assert(decoder && (decoder instanceof Decoder)
             //    , "Instruction.decode() :: 'decoder' must be a Decoder object"
             //);
@@ -60,12 +60,12 @@ define([
             /* ====== Process any prefixes ====== */
             // (NB: see experiment results (at top) for why
             //    this is the optimum loop construct here.)
-            get_prefixes: while ( true ) {
+            get_prefixes: while (true) {
                 // Read next byte of code - may be an opcode or a prefix
                 byt = read(offset++, 1);
                 
                 // Prefixes
-                switch ( byt ) {
+                switch (byt) {
                 // 2-byte opcode escape
                 case 0x0F:
                     byt = 0x100 | read(offset++, 1);
@@ -107,7 +107,7 @@ define([
             /* ====== /Process any prefixes ====== */
             
             // Decode ModR/M byte
-            if ( Decoder.opcodeHasModRM32[ byt ] ) {
+            if (Decoder.opcodeHasModRM32[ byt ]) {
                 bytModRM = read(offset++, 1);
                 //mod = bytModRM & 0xC0;                // Mod field is first 2 bits (but leave unshifted)
                 mod = bytModRM >> 6;          // Mod field is first 2 bits
@@ -119,15 +119,27 @@ define([
             
             // By default, assume Opcode is a 1-byte unextended; if not found in table,
             //    check Extensions table, using ModR/M Reg field as an Opcode Extension field (bits)
-            if ( !(dataOpcode = Decoder.arr_mapOpcodes[ byt ]) ) {
+            if (!(dataOpcode = Decoder.arr_mapOpcodes[ byt ])) {
                 dataOpcode = Decoder.arr_mapOpcodeExtensions[ (byt << 3) | nnn ];
             }
             
-            if ( !dataOpcode || dataOpcode[ 0 ] === "???" ) {
+
+
+            /* ==== DEBUGGING CHECKS ==== */
+            if (!dataOpcode || dataOpcode[ 0 ] === "???") {
                 debugger;
                 util.panic("Invalid opcode");
             }
+            if (repeat && dataOpcode[0] !== "CMPS" && dataOpcode[0] !== "SCAS" && dataOpcode !== "LODS" &&
+                dataOpcode[0] !== "INS" && dataOpcode[0] !== "OUTS" && dataOpcode[0] !== "STOS" && dataOpcode[0] !== "MOVS"
+            ) {
+                debugger;
+                util.panic("Invalid REP prefix");
+            }
+            /* ==== DEBUGGING CHECKS ==== */
+
             
+
             // Create new Instruction object
             insn = new Instruction(
                 dataOpcode[ 0 ] // (For now) Instruction's name/mnemonic
@@ -146,7 +158,7 @@ define([
             //    of dest & src (possibly a third eg. for IMUL),
             //    these may be swapped with direction bit
             //    if present & applicable)
-            if ( dataOpcode.length > 1 ) {
+            if (dataOpcode.length > 1) {
                 // (already determined it must exist)
                 insn.operand1 = Operand.decode(
                     decoder
@@ -162,7 +174,7 @@ define([
                 setSegment(decoder, insn, insn.operand1);
                 
                 // Check whether Instruction uses a second Operand
-                if ( dataOpcode[ 1 ].length > 1 ) {
+                if (dataOpcode[ 1 ].length > 1) {
                     insn.operand2 = Operand.decode(
                         decoder
                         , insn                    // Give Operand a reference to its parent Instruction
@@ -174,12 +186,12 @@ define([
                     // Get offset after finishing decode (move past Operand's bytes)
                     offset = insn.operand2.offset;
 
-                    if ( insn.segreg === decoder.DS ) {
+                    if (insn.segreg === decoder.DS) {
                         setSegment(decoder, insn, insn.operand2);
                     }
                     
                     // Check whether Instruction uses a third Operand
-                    if ( dataOpcode[ 1 ].length > 2 ) {
+                    if (dataOpcode[ 1 ].length > 2) {
                         insn.operand3 = Operand.decode(
                             decoder
                             , insn                    // Give Operand a reference to its parent Instruction
@@ -191,7 +203,7 @@ define([
                         // Get offset after finishing decode (move past Operand's bytes)
                         offset = insn.operand3.offset;
 
-                        if ( insn.segreg === decoder.DS ) {
+                        if (insn.segreg === decoder.DS) {
                             setSegment(decoder, insn, insn.operand3);
                         }
                     }
@@ -199,14 +211,14 @@ define([
             }
             
             // Apply Segment Register override if present
-            if ( segregOverride !== null ) { insn.segreg = segregOverride; }
+            if (segregOverride !== null) { insn.segreg = segregOverride; }
             
             // Calculate length of Instruction in bytes
             insn.lenBytes = offset - offsetStart;
             
             return insn;
         // Create an Instruction object by parsing x86 Assembly
-        }, fromASM: function ( asm ) {
+        }, fromASM: function (asm) {
             util.panic("Instruction.fromASM() :: Not yet implemented");
         }
     });
@@ -223,13 +235,13 @@ define([
         }, toASM: function () {
             var asm = (this.repeat ? this.repeat + " " : "") + this.getName();
             
-            if ( this.operand1 ) {
+            if (this.operand1) {
                 asm += " " + this.operand1.toASM();
             }
-            if ( this.operand2 ) {
+            if (this.operand2) {
                 asm += ", " + this.operand2.toASM();
             }
-            if ( this.operand3 ) {
+            if (this.operand3) {
                 asm += ", " + this.operand3.toASM();
             }
             
@@ -238,8 +250,8 @@ define([
         }, assemble: function () {
             util.panic("Instruction.assemble() :: Not yet implemented");
         // Override the effective Segment Register
-        }, overrideSegReg: function ( segreg ) {
-            if ( segreg && segreg instanceof SegReg ) {
+        }, overrideSegReg: function (segreg) {
+            if (segreg && segreg instanceof SegReg) {
                 this.segreg = segreg;
             } else {
                 util.panic("Instruction.overrideSegReg() :: Invalid segreg");
@@ -248,10 +260,10 @@ define([
         }, getSegReg: function () {
             return this.segreg;
         // Set the default Operand Size, optionally overriding any prefix
-        }, setOperandSize: function ( operandSize, overridePrefix ) {
+        }, setOperandSize: function (operandSize, overridePrefix) {
             util.panic("Instruction.setOperandSize() :: Not yet implemented");
         // Set the default Address Size, optionally overriding any prefix
-        }, setAddressSize: function ( addressSize, overridePrefix ) {
+        }, setAddressSize: function (addressSize, overridePrefix) {
             util.panic("Instruction.setAddressSize() :: Not yet implemented");
         // Get length of instruction (in bytes)
         }, getLength: function () {
@@ -259,7 +271,7 @@ define([
         }
     });
 
-    function setSegment( decoder, insn, operand ) {
+    function setSegment(decoder, insn, operand) {
         // [Intel] The default segment register is SS for the effective
         //  addresses containing a BP or SP index, DS for other effective addresses
         if ( operand.isPointer && (
@@ -268,7 +280,7 @@ define([
             || operand.reg === decoder.SP
             || operand.reg === decoder.ESP
         )) {
-            if ( insn.segreg !== decoder.SS ) {
+            if (insn.segreg !== decoder.SS) {
                 debugger;
                 util.panic("setSegment() :: Shouldn't be needed");
             }

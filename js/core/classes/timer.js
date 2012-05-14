@@ -27,9 +27,9 @@ define(function () { "use strict";
 	Timer.prototype.unregister = function () {
 		this.machine.list_tmr[ this.idx ] = null;
 	};
-	Timer.prototype.activate = function ( intervalUsecs, isContinuous ) {
+	Timer.prototype.activate = function (intervalUsecs, isContinuous) {
 		// Useconds is not 0, so set & use new period/interval
-		if ( intervalUsecs !== 0 ) {
+		if (intervalUsecs !== 0) {
 			this.intervalUsecs = intervalUsecs;
 		}
 		// Calculate & store the next expiry time for this timer

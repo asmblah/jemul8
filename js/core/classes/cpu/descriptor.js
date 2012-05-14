@@ -7,7 +7,7 @@
 
 define([
 	"../../util"
-], function ( util ) { "use strict";
+], function (util) { "use strict";
 	
 	// Segment Descriptor class constructor
 	function Descriptor() {
@@ -65,7 +65,7 @@ define([
 	}
 	util.extend(Descriptor, {
 		// Parse a raw segment descriptor
-		parse: function ( raw ) {
+		parse: function (raw) {
 			var descriptor = new Descriptor();
 			return descriptor.parse(raw);
 		}
@@ -77,7 +77,7 @@ define([
 			//	| (this.table << 2)
 			//	| (this.index << 3);
 		// Parse raw descriptor & load into descriptor
-		}, parse: function ( raw ) {
+		}, parse: function (raw) {
 			var ARByte, limit
 				// High & low dwords of 64-bit raw descriptor
 				, dword1 = raw.dword1, dword2 = raw.dword2;
@@ -91,7 +91,7 @@ define([
 			this.accessType = util.ACCESS_INVALID; // Start out invalid
 			
 			// Data/code segment descriptors
-			if ( this.segment ) {
+			if (this.segment) {
 				limit = (dword1 & 0xFFFF) | (dword2 & 0x000F0000);
 				
 				this.base             = (dword1 >> 16) | ((dword2 & 0xFF) << 16);
@@ -100,7 +100,7 @@ define([
 				this.available        = (dword2 & 0x00100000) > 0;
 				this.base            |= (dword2 & 0xFF000000);
 				
-				if ( this.use4KPages ) {
+				if (this.use4KPages) {
 					this.limitScaled = ((limit << 12) | 0xFFF) >>> 0;
 				} else {
 					this.limitScaled = limit >>> 0;
@@ -109,7 +109,7 @@ define([
 				this.accessType = util.ACCESS_VALID_CACHE;
 			// System & gate segment descriptors
 			} else {
-				switch ( this.type ) {
+				switch (this.type) {
 				case util.DESC_286_CALL_GATE:
 				case util.DESC_286_INTERRUPT_GATE:
 				case util.DESC_286_TRAP_GATE:
@@ -149,7 +149,7 @@ define([
 					this.default32BitSize = (dword2 & 0x00400000) > 0;
 					this.available = (dword2 & 0x00100000) > 0;
 					
-					if ( this.use4KPages ) {
+					if (this.use4KPages) {
 						// Push 12 1-bits on to multiply by size of pages (4K)
 						this.limitScaled = ((limit << 12) | 0xFFF) >>> 0;
 					} else {
@@ -197,7 +197,7 @@ define([
 				| (this.dpl << 5)
 				| (this.present << 7);
 		// Update descriptor's Access Rights fields
-		}, setARByte: function ( val ) {
+		}, setARByte: function (val) {
 			this.present = (val >> 7) & 0x01;
 			this.dpl = (val >> 5) & 0x03;
 			this.segment = (val >> 4) & 0x01;

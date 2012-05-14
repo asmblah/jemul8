@@ -8,9 +8,9 @@
 define([
 	"../util"
 	, "./bit"
-], function ( util, Bit ) { "use strict";
+], function (util, Bit) { "use strict";
 	
-	function Pin( name ) {
+	function Pin(name) {
 		this.name = name;
 		this.val = 0;
 	}
@@ -24,16 +24,16 @@ define([
 	Pin.prototype.get = function () {
 		return this.val;
 	};
-	Pin.prototype.set = function ( val ) {
+	Pin.prototype.set = function (val) {
 		this.val = val;
 	};
 	Pin.prototype.isHigh = function () {
 		return !!this.val;
 	};
 	// To enable actions to be triggered when Pin is raised or lowered
-	Pin.prototype.hook = function ( get, set ) {
-		if ( get ) { this.get = get; }
-		if ( set ) { this.set = set; }
+	Pin.prototype.hook = function (get, set) {
+		if (get) { this.get = get; }
+		if (set) { this.set = set; }
 	};
 	
 	// Exports
