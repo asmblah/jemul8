@@ -156,9 +156,10 @@ define([
                 util.panic("CPU.install :: Provided component cannot be"
                     + " installed into the CPU.");
             }
+        },
         // Install all standard x86 Registers onto the CPU
         //    (i486 pinout: http://pclinks.xtreemhost.com/486pin.htm)
-        }, installStdRegisters: function () {
+        installStdRegisters: function () {
             // Accumulator
             this.install(new Register("EAX", 4));
             this.install(new SubRegister("AX", 2, this.EAX, 0xFFFF, 0));
@@ -398,11 +399,13 @@ define([
             // (N)on-(M)askable (I)nterrupt pin #NMI
             //    (raised when a non-maskable interrupt is pending)
             this.install(new Pin("NMI"));
+        },
         // Determine whether the emulated CPU is in a halted state or not
-        }, halted: function () {
+        halted: function () {
             return this.isHalted;
+        },
         // Force emulated CPU into a halted state
-        }, halt: function () {
+        halt: function () {
             if (!this.isHalted) {
                 if (!this.IF.get()) {
                     util.warning("CPU halted with IF=0!");
@@ -411,18 +414,21 @@ define([
                 
                 util.debug("CPU halted");
             }
+        },
         // Command emulated CPU to run/resume from CS:EIP
-        }, run: function () {
+        run: function () {
             if (this.isHalted) {
                 this.isHalted = false;
                 
                 util.debug("CPU resumed");
             }
+        },
         // Purge the decoded instruction caches
-        }, flushInstructionCaches: function () {
+        flushInstructionCaches: function () {
             this.cache_insn.length = 0;
+        },
         // Hold emulated CPU #RESET pin and release
-        }, reset: function () {
+        reset: function () {
             // Enable maskable interrupts
             this.IF.set();
             
@@ -488,9 +494,10 @@ define([
             
             // Purge the Instruction caches
             this.flushInstructionCaches();
+        },
         // Configure the CPU with its working parameters
         //    (NB: Called when yield manager decides IPS is too low or high)
-        }, configure: function (
+        configure: function (
             // CPU emulation speed (in IPS, not Hertz as there
             //    is no direct correlation in this emulator between CPU cycles
             //    and Instruction exec time)
@@ -548,8 +555,9 @@ define([
             this.msPerSlice = msPerSlice;
             this.max_insnsPerSlice = max_insnsPerSlice;
             this.msPerYield = msPerYield;
+        },
         // For debugging purposes with Firebug/Chrome debugger etc.
-        }, getState: function () {
+        getState: function () {
             var textEFlags;
             
             // Build DEBUG.COM-like Flags state text
@@ -579,8 +587,9 @@ define([
                 , "13 :: EIP": this.EIP.getHexString()
                 , "14 :: EFLAGS": textEFlags
             };
+        },
         // Set up the CPU - start fetch/execute cycle etc.
-        }, init: function () {
+        init: function () {
             //this.decodePage();
             //return;
             
@@ -610,8 +619,9 @@ define([
             
             // Don't start yield manager immediately; finish setup first
             self.setTimeout(yieldManager, 0);
+        },
         // Decode one page of instructions (23)
-        }, decodePage: function (offset) {
+        decodePage: function (offset) {
             var i, insn
                 , CS = this.CS
                 , decoder = this.decoder
@@ -634,8 +644,9 @@ define([
             }
 
             return asm;
+        },
         // Private method; start next set of Fetch-Decode-Execute cycles up until next Yield is scheduled
-        }, fetchDecodeExecute: function () {
+        fetchDecodeExecute: function () {
             var machine = this.machine
                 , idx, list, len
             // Address- & operand-size attributes (true = 32-bit, false = 16-bit)
@@ -1074,9 +1085,9 @@ define([
             
             /** End of CPU loop: yield to host environment/the browser,
                 allowing it to update the screen & fire DOM events etc. **/
-            
+        },
         // See end of .fetchDecodeExecute() / CPU loop
-        }, handleAsynchronousEvents: function () {
+        handleAsynchronousEvents: function () {
             var idx, list, len
                 , vector, quantums, maxQuantums
                 , ticksNow, machine = this.machine, tmr;
@@ -1235,8 +1246,9 @@ define([
                 }
             }
             /* ===== /System timers ===== */
+        },
         // Push data onto the Stack
-       }, pushStack: function (val, len) {//debugger;
+        pushStack: function (val, len) {//debugger;
             // Pointer to top of Stack
             var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP
                 , ptrStack = SP.get();
@@ -1252,8 +1264,9 @@ define([
             
             // Write data to Stack top (SS:SP)
             this.SS.writeSegment(ptrStack, val, len);
+        },
         // Pop data off the Stack
-        }, popStack: function (len) {
+        popStack: function (len) {
             // Pointer to top of Stack
             var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP
                 , ptrStack = SP.get()
@@ -1274,8 +1287,9 @@ define([
             SP.set(ptrStack);
             
             return res;
+        },
         // Generate a CPU/software/hardware interrupt
-        }, interrupt: function (vector, type, pushError, errorCode) {
+        interrupt: function (vector, type, pushError, errorCode) {
             
             //util.debug("CPU.interrupt() :: Tripped INT 0x"
             //    + vector.toString(16).toUpperCase());
@@ -1287,7 +1301,8 @@ define([
             } else {
                 this.realModeInterrupt(vector, pushError, errorCode);
             }
-        }, realModeInterrupt: function (vector, pushError, errorCode) {
+        },
+        realModeInterrupt: function (vector, pushError, errorCode) {
             var IDTR = this.IDTR;
             // Calc offset as 4 bytes for every vector before this one
             var offset = vector * 4;
@@ -1363,8 +1378,9 @@ define([
             this.TF.clear(); // Disable any traps
             this.AC.clear(); // ???
             this.RF.clear();
+        },
         // Return from Interrupt Service Routine (ISR)
-        }, interruptReturn: function (is32) {
+        interruptReturn: function (is32) {
             var eflags;
             if (!is32) {
                 // Set all of EIP to zero-out high word
@@ -1395,8 +1411,9 @@ define([
                 this.EFLAGS.set((eflags & 0x257FD5)
                     | (this.EFLAGS.get() & 0x1A0000));
             }
+        },
         // Current Privilege Level is the RPL of current code segment selector
-        }, getCPL: function () {
+        getCPL: function () {
             return this.CS.selector.rpl;
         }
     });
