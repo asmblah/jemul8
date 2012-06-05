@@ -1,23 +1,23 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *  
+ *
  *  MODULE: IBM-PC compatible Intel CPU support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -53,54 +53,54 @@ define([
     GlobalTableRegister,
     LocalTableRegister
 ) { "use strict";
-    
+
     var DEBUG_LIST_INSN = []
         , ticksLastUpdate = Date.now()
         , ips = 0, yps = 0;
-    
+
     // x86 CPU class constructor
     function CPU(machine, name_class) {
         util.assert(this && (this instanceof CPU)
             , "CPU constructor :: error - not called properly"
         );
-        
+
         this.machine = machine;
-        
+
         // Class / type of CPU (eg. 386, 486, PIII, D)
         this.name_class = name_class;
         // Hash of CPU Registers, mapped by name
         this.hsh_reg = {};
-        
+
         // Lookup hash for byte-size -> accumulator register
         //    (ie. 1 is AL, 2 is AX, 4 is EAX)
         this.accumulator = null;
-        
+
         // Set up by .configure()
         this.insnsPerSecond = 0;
         this.yieldsPerSecond = 0;
         this.msPerSlice = 0;
         this.max_insnsPerSlice = 0;
         this.msPerYield = 0;
-        
+
         // Instruction cache (decoded Instructions are stored indexed
         //    by absolute memory address to avoid needing
         //    to redecode Instructions executed more than once,
         //    eg. in a loop or an OS scheduler)
         //    See SegRegister.set() in /classes/memory.js
         this.cache_insn = [];
-        
+
         this.isHalted = false;
-        
+
         // Operands & result from last flag-affecting operation
         //    (used by the Bochs-derived Lazy Flags optimisation system)
         this.insnLast = null;
         this.valLast1 = 0;
         this.valLast2 = 0;
         this.resLast = 0;
-        
+
         // All x86 CPUs use the same basic registers; see this function
         this.installStdRegisters();
-        
+
         // Create Instruction decoder
         this.decoder = new Decoder( {
             ES: this.ES
@@ -109,12 +109,12 @@ define([
             , DS: this.DS
             , FS: this.FS
             , GS: this.GS
-            
+
             , AL: this.AL, AH: this.AH
             , CL: this.CL, CH: this.CH
             , BL: this.BL, BH: this.BH
             , DL: this.DL, DH: this.DH
-            
+
             , AX: this.AX, EAX: this.EAX
             , CX: this.CX, ECX: this.ECX
             , BX: this.BX, EBX: this.EBX
@@ -123,7 +123,7 @@ define([
             , BP: this.BP, EBP: this.EBP
             , SI: this.SI, ESI: this.ESI
             , DI: this.DI, EDI: this.EDI
-            
+
             , CR0: this.CR0
             , CR1: this.CR1
             , CR2: this.CR2
@@ -193,11 +193,11 @@ define([
             // Stack pointer
             this.install(new Register("ESP", 4));
             this.install(new SubRegister("SP", 2, this.ESP, 0xFFFF, 0));
-            
+
             // Instruction Pointer
             this.install(new Register("EIP", 4));
             this.install(new SubRegister("IP", 2, this.EIP, 0xFFFF, 0));
-            
+
             // Segment registers
             this.install(new SegRegister("CS", 2));    // Code segment
             this.install(new SegRegister("DS", 2));    // Data segment
@@ -205,7 +205,7 @@ define([
             this.install(new SegRegister("ES", 2));    // Extra segment
             this.install(new SegRegister("FS", 2));    // "FS" segment
             this.install(new SegRegister("GS", 2));    // "GS" segment
-            
+
             // EFlags (32-bit) register
             var EFLAGS = new LazyFlagRegister("EFLAGS", 4);
             this.install(EFLAGS);
@@ -271,7 +271,7 @@ define([
                 EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 30));
                 EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 31));
             /* ==== /Gap ==== */
-            
+
             // Global Descriptor Table Register
             this.install(new GlobalTableRegister("GDTR"));
             // Interrupt Descriptor Table Register
@@ -280,7 +280,7 @@ define([
             this.install(new LocalTableRegister("LDTR", 4));
             // Task Register
             this.install(new SegRegister("TR", 4));
-            
+
             // Control Register 0
             var CR0 = new LazyFlagRegister("CR0", 4);
             this.install(CR0);
@@ -342,7 +342,7 @@ define([
             CR0.install(new UnlazyFlag("CD", this.CR0, 30));
             // Paging - (If 1, enable paging & use CR3, else disable paging)
             CR0.install(new UnlazyFlag("PG", this.CR0, 31));
-            
+
             // Control Register 1 (Reserved)
             this.install(new Register("CR1", 4));
             // Control Register 2 (PFLA - Page Fault Linear Address)
@@ -351,7 +351,7 @@ define([
             this.install(new Register("CR3", 4));
             // Control Register 4
             this.install(new Register("CR4", 4));
-            
+
             // Debug Register 0
             this.install(new Register("DR0", 4));
             // Debug Register 1
@@ -368,7 +368,7 @@ define([
             this.install(new Register("DR6", 4));
             // Debug Register 7
             this.install(new Register("DR7", 4));
-            
+
             /* ======= Test Registers ======= */
             // NB: Removed in newer CPUs & only numbered from 4 -> 7
             // Test Register 4
@@ -380,10 +380,10 @@ define([
             // Test Register 7
             this.install(new Register("TR7", 4));
             /* ======= /Test Registers ======= */
-            
+
             // Bus Lock LOCK#
             this.install(new Pin("LOCK"));
-            
+
             // CPU reset #RESET
             this.install(new Pin("RESET"));
             this.RESET.hook(function () {
@@ -392,7 +392,7 @@ define([
                 // Asserting #RESET will perform a soft-reset
                 this.cpu.reset();
             });
-            
+
             // Maskable Interrupt pin #INTR
             //    (raised when a maskable interrupt is pending)
             this.install(new Pin("INTR"));
@@ -411,7 +411,7 @@ define([
                     util.warning("CPU halted with IF=0!");
                 }
                 this.isHalted = true;
-                
+
                 util.debug("CPU halted");
             }
         },
@@ -419,7 +419,7 @@ define([
         run: function () {
             if (this.isHalted) {
                 this.isHalted = false;
-                
+
                 util.debug("CPU resumed");
             }
         },
@@ -431,7 +431,7 @@ define([
         reset: function () {
             // Enable maskable interrupts
             this.IF.set();
-            
+
             // Set all segment registers to startup state (incl. descriptor caches)
             this.CS.reset();
             this.DS.reset();
@@ -439,22 +439,22 @@ define([
             this.ES.reset();
             this.FS.reset();
             this.GS.reset();
-            
+
             // Start at first instruction in CMOS BIOS POST
             this.CS.set(0xF000);
             this.EIP.set(0x0000FFF0);
-            
+
             // Clear all general-purpose registers
             this.EAX.set(0x00000000); this.EBX.set(0x00000000);
             this.ECX.set(0x00000000); this.EDX.set(0x00000000);
             this.EBP.set(0x00000000); this.ESI.set(0x00000000);
             this.EDI.set(0x00000000); this.ESP.set(0x00000000);
-            
+
             // Descriptor Table Registers
             this.GDTR.reset(); // See GlobalTableRegister
             this.IDTR.reset(); // See GlobalTableRegister
             this.LDTR.reset(); // See LocalTableRegister
-            
+
             /*
              *    - Real mode
              *    - FPU disabled
@@ -486,12 +486,12 @@ define([
             // Processor extensions disabled.
             //    No effect in real mode.
             this.CR4.set(0x00000000);
-            
+
             /* ==== Debug ==== */
             // Disable breakpoint recognition.
             this.DR7.set(0x00000400);
             /* ==== /Debug ==== */
-            
+
             // Purge the Instruction caches
             this.flushInstructionCaches();
         },
@@ -509,22 +509,22 @@ define([
             , msPerYield
         ) {
             var msAllSlices, msPerSlice, max_insnsPerSlice;
-            
+
             // Use current settings for any omitted arguments
             //    (allows eg. only changing IPS)
             if (!insnsPerSecond) { insnsPerSecond = this.insnsPerSecond; }
             if (!yieldsPerSecond) { yieldsPerSecond = this.yieldsPerSecond; }
             if (!msPerYield) { msPerYield = this.msPerYield; }
-            
+
             // Amount of time available within a 1 second period for CPU processing
             msAllSlices = 1000 - msPerYield * yieldsPerSecond;
-            
+
             // Ensure that we are not left with a CPU running at < 1 Instructions per slice,
             //    otherwise nothing will happen!
             if (insnsPerSecond < yieldsPerSecond) {
                 insnsPerSecond = yieldsPerSecond;
             }
-            
+
             // Calculate amount of time CPU processing runs for before Yielding to allow
             //    DOM processing etc., taking into account the duration of the Yield processing itself
             msPerSlice = msAllSlices / yieldsPerSecond;
@@ -544,7 +544,7 @@ define([
             if (max_insnsPerSlice == 0) {
                 max_insnsPerSlice = 1;
             }
-            
+
             // Store new settings
             // FIXME: These are not used as FDE loop is self-checking:
             //        it should be self-calibrating though, calculating the
@@ -559,7 +559,7 @@ define([
         // For debugging purposes with Firebug/Chrome debugger etc.
         getState: function () {
             var textEFlags;
-            
+
             // Build DEBUG.COM-like Flags state text
             textEFlags = (this.OF.get() ? "OV/1 " : "NV/0 ")
                         + (this.DF.get() ? "DN/1 " : "UP/0 ")
@@ -569,7 +569,7 @@ define([
                         + (this.AF.get() ? "AC/1 " : "NA/0 ")
                         + (this.PF.get() ? "PE/1 " : "PO/0 ")
                         + (this.CF.get() ? "CY/1" : "NC/0");
-            
+
             // Numbers used to ensure correct order
             return {
                 "1 :: EAX": this.EAX.getHexString()
@@ -592,17 +592,17 @@ define([
         init: function () {
             //this.decodePage();
             //return;
-            
+
             var machine = this.machine;
             var cpu = this;
-            
+
             // Config setting for max no. of DMA quantums (byte or word)
             //  that may be transferred in one bulk batch during Yield
             this.maxDMAQuantumsPerYield = machine.emu.getSetting("dma.maxQuantumsPerYield");
             if (typeof this.maxDMAQuantumsPerYield !== "number") {
                 this.maxDMAQuantumsPerYield = 512;
             }
-            
+
             function yieldManager() {
                 // Start next set of Fetch-Decode-Execute cycles if CPU is not halted
                 //    (will run until next Yield)
@@ -612,11 +612,11 @@ define([
                     // Still process IRQs, DMA etc. when CPU halted
                     cpu.handleAsynchronousEvents();
                 }
-                
+
                 // Run next time-slice as soon as possible
                 self.setTimeout(yieldManager, 0);
             }
-            
+
             // Don't start yield manager immediately; finish setup first
             self.setTimeout(yieldManager, 0);
         },
@@ -626,7 +626,7 @@ define([
                 , CS = this.CS
                 , decoder = this.decoder
                 , asm = "";
-            
+
             if (offset === undefined) {
                 offset = this.EIP.get()
             }
@@ -634,12 +634,12 @@ define([
             function read(offset, len) {
                 return CS.readSegment(offset, len);
             }
-            
+
             for (i = 0 ; i < 23 && offset <= 0xFFFF ; ++i) {
                 insn = Instruction.decode(decoder, read, offset, false, false);
-                
+
                 asm += util.sprintf("%08X: %s\n", offset, insn.toASM());
-                
+
                 offset += insn.getLength();
             }
 
@@ -666,11 +666,11 @@ define([
                 , ticksNow = machine.getTimeMsecs()
                 , ticksEndSlice = Math.floor(ticksNow - (ticksNow % ticksSlice) + ticksSlice)
             ;
-            
+
             // Also use next time-slice if we are already
             //    close to the end of this one
             if (ticksEndSlice - ticksNow < 3) { ticksEndSlice += ticksSlice; }
-            
+
             // Fetcher
             // TODO: Currently performs memory mapping on every single read() call,
             //       which for decoder can be every byte! Need to optimise
@@ -678,20 +678,20 @@ define([
             function read(offset, len) {
                 return CS.readSegment(offset, len);
             }
-            
+
             do {
                 // Resets for cached & uncached instructions (keep to a minimum!!)
                 /** (None) **/
-                
+
                 // Offset is current Instruction Pointer
                 offset = EIP.get();
-                
+
                 /*
                  *    Fast case; Cache hit - Instruction already decoded
                  *    into Instruction cache, just read from Instruction cache & exec
-                 *    
+                 *
                  *    NB: Cache is cleared when CS register is set
-                 *    
+                 *
                  *    TODO: detect (on memory writes) whether that byte in RAM
                  *    has been decoded, if so code is polymorphic, so (for now)
                  *    just delete rest of cache after the changed instruction
@@ -702,7 +702,7 @@ define([
                     offset += insn.lenBytes;
                 // Instruction needs to be decoded into cache
                 } else {
-                    
+
                     //if (offset === 0xE05D) { debugger; }
                     //if (CS.get() === 0x2000) {
                     //    if (offset === 5086) {
@@ -710,7 +710,7 @@ define([
                     //        this.decodePage();
                     //    }
                     //}
-                    
+
                     // Decode & create new Instruction, then store in cache,
                     //  indexed by address for fast lookups later
                     insn = cache_insn[ offset ]
@@ -718,22 +718,22 @@ define([
                         decoder, read, offset
                         , addressSizeAttr, operandSizeAttr
                     );
-                    
+
                     // POLYMORPHIC: Look up & store
                     //  execute function for Instruction
                     insn.execute = functions[ insn.name ];
-                    
+
                     // Move past decoded instruction
                     offset += insn.lenBytes;
                 }
-                
+
                 /** For debugging **/
                 //var asm = insn.toASM();
-                
+
                 // Skip (slow) flush of incoming keys
                 //    in BIOS-bochs-legacy keyboard_init() (line 1685+)
                 //if (CS.get() === 0xF000 && insn.offset === 0x0DAC) { this.AX.set(0x0F); }
-                
+
                 //if (this.IP.get() === 0x0D4E) { debugger; }    // BIOS push 's'
                 //if (this.IP.get() === 0x05F9) { debugger; }
                 //if (this.IP.get() === 0x0660) { debugger; }    // BIOS send()
@@ -758,60 +758,60 @@ define([
                 //if (this.IP.get() === 0xBC27) { debugger; }    // [jbe] in rom_scan()
                 //if (this.IP.get() === 0xBC30) { debugger; }    // End of rom_scan()
                 //if (this.IP.get() === 0x0FC7) { debugger; }    //
-                
+
                 // In VGABIOS
                 //if (CS.get() === 0xC000) {
                     //if (this.IP.get() === 0x0125) { debugger; } // [call display_info()]
-                    
+
                     // vgabios_int10_handler()
                     //if (this.IP.get() === 0x012C) { debugger; } // Entry [pushf]
                     //if (this.IP.get() === 0x01E6) { debugger; } // int10_normal: [push es]
-                    
+
                     // display_string()
                     //if (this.IP.get() === 0x362E) { debugger; } // Entry [mov ax, ds]
-                    //if (this.IP.get() === 0x363B) { debugger; } // 
-                    
+                    //if (this.IP.get() === 0x363B) { debugger; } //
+
                     // _int10_func()
                     //if ( this.IP.get() === 0x3655
                     //    && this.AH.get() === 0x13 ) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x3B47) { debugger; } // switch() lookup [jmp]
-                    //if (offset === 0x3B98) { debugger; } // 
+                    //if (offset === 0x3B98) { debugger; } //
                     //if (this.IP.get() === 0x39E5) { debugger; } // [case 0x13 in switch()]
                     //if (this.IP.get() === 0x3A10) { debugger; } // call to biosfn_write_string()
                     //if (this.IP.get() === 0x3A13) { debugger; } // after call
-                    
-                    
+
+
                     //if (this.IP.get() === 0x3D87) { debugger; } // [cmp]
-                    
+
                     // biosfn_write_teletype()
                     //if (this.IP.get() === 0x5E87) { debugger; }
                     //if (this.IP.get() === 0x5ECF) { debugger; } // [lea] for biosfn_get_cursor_pos()
                     //if (this.IP.get() === 0x5F46) { debugger; } // [case '\t':] in switch(car)
-                    
+
                     // biosfn_write_string()
                     //if (this.IP.get() === 0x6C9E) { debugger; } // Entry
                     //if (this.IP.get() === 0x6CB5) { debugger; } // after biosfn_get_cursor_pos() call
                     //if (this.IP.get() === 0x6CFB) { debugger; } // after 1st biosfn_set_cursor_pos() call
                     //if (this.IP.get() === 0x6D4F) { debugger; } // cond @ e/o while() loop
-                    
+
                     // biosfn_save_video_state()
                     //if (this.IP.get() >= 0x6F4D && this.IP.get() <= 0x7516) { debugger; }
                     //if (this.IP.get() === 0x6F4D) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x7516) { debugger; } // Exit [retn]
                 //}
-                
+
                 // In CMOS BIOS (Bochs)
                 if (CS.get() === 0xF000) {
                     // memsetb()
                     //if (this.IP.get() === 0x0000) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x0023) { debugger; } // Exit [retn]
-                    
+
                     // get_SS()
                     //if (this.IP.get() === 0x064D) { debugger; } // Entry [mov ax, ss]
                     //if (this.IP.get() === 0x064F) { debugger; } // Exit [retn]
-                    
+
                     //if (this.IP.get() === 0x065B) { debugger; } // [int 0x10]
-                    
+
                     // init_boot_vectors()
                     //if (this.IP.get() === 0x12D1) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x12D7) { debugger; } // [xor ax, ax] for count=0
@@ -822,19 +822,19 @@ define([
                     //if (this.IP.get() === 0x13A0) { debugger; } // count++ for First HDD
                     //if (this.IP.get() === 0x13ED) { debugger; } // count++ for ElTorito/CDROM
                     //if (this.IP.get() === 0x1417) { debugger; } // Exit [retn]
-                    
+
                     // get_boot_vector()
                     //if (this.IP.get() === 0x1418) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x1459) { debugger; } // [call memcpyb()]
                     //if (this.IP.get() === 0x1464) { debugger; } // Exit [retn]
-                    
+
                     // print_boot_device()
                     //if (this.IP.get() === 0x165E) { debugger; } // Entry [push bp]
                     // error is because type > 0x4
-                    
+
                     // floppy_prepare_controller
                     //if (this.IP.get() === 0x908B) { debugger; } // while ( (val8 & 0xc0) != 0x80 ) [jne 9078]
-                    
+
                     // int13_diskette_function
                     //if (this.IP.get() === 0x93AD) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x957F) { debugger; } // [call floppy_media_sense()]
@@ -842,7 +842,7 @@ define([
                     //if (this.IP.get() === 0x95D6) { debugger; } // ...  + BX
                     //if (this.IP.get() === 0x95F3) { debugger; } // (num_sectors * 512)
                     //if (this.IP.get() === 0xA495) { debugger; } // [jmp w,cs:[bx][0A49A]]
-                    
+
                     // int19_function()
                     //if (this.IP.get() === 0xA64C) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0xA70F) { debugger; } // [call get_boot_vector()]
@@ -856,66 +856,66 @@ define([
                     //if (this.IP.get() === 0xA880) { insn.execute=function(){}; } // [call BX_INFO Booting from %x:%x]
                     //if (this.IP.get() === 0xA880) { debugger; }
                     //if (this.IP.get() === 0xA8A3) { debugger; } // [iret]
-                    
+
                     //if (offset === 0xAE12) { debugger; }
                     //if (this.IP.get() === 0xAE1A) { debugger; } // [jmp int13_diskette_function]
-                    
+
                     // int19_relocated:
                     //if (this.IP.get() === 0xAE5E) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0xAE75) { debugger; } // [call int19_function()]
-                    
+
                     //if (offset === 0xB222) { debugger; } // [mov]
                     //if (this.IP.get() === 0xB238) { debugger; } // [iret]
-                    
+
                     // normal_post
                     //if (this.IP.get() === 0xE222) { debugger; } // [call _init_boot_vectors()]
                 }
-                
+
                 // In CMOS BIOS (AMI 56i112)
                 //if (CS.get() === 0xF000) {
                     //if (this.IP.get() === 0xE87C) { debugger; } // [mov si, ax]
                     //if (this.IP.get() === 0xE888) { debugger; } // [jmpn si]
                 //}
-                
+
                 // DOS 5.0 MBR/boot sector (Floppy)
                 //if (CS.get() === 0x0000) {
                     //if (this.IP.get() === 0x7C3E) { debugger; } // Start [cli]
                     //if (this.IP.get() === 0x7C70) { debugger; } // [int 0x13]
                     //if (this.IP.get() === 0x7C72) { debugger; } // [jb] after [int 0x13]
-                    //if (this.IP.get() === 0x7CD2) { debugger; } // 
-                    //if (this.IP.get() === 0x7CD5) { debugger; } // 
-                    //if (this.IP.get() === 0x7D3C) { debugger; } // 
-                    //if (this.IP.get() === 0x7D72) { debugger; } // 
+                    //if (this.IP.get() === 0x7CD2) { debugger; } //
+                    //if (this.IP.get() === 0x7CD5) { debugger; } //
+                    //if (this.IP.get() === 0x7D3C) { debugger; } //
+                    //if (this.IP.get() === 0x7D72) { debugger; } //
                 //}
-                
+
                 // MT86 boot sector (Floppy)
                 //if (CS.get() === 0x0000) {
                     //if (this.IP.get() === 0x7C00 + 0x00B1) { debugger; } // [int 0x13]
                     //if (this.IP.get() === 0x7C00 + 0x00B3) { debugger; } // [inc]
                 //}
-                
+
                 // FreeDOS boot sector (Floppy)
                 //if (CS.get() === 0x1FE0) {
                     //if (this.IP.get() === 0x7C66) { debugger; }
                 //}
-                
+
                 // PC-DOS IBMBIO.COM (IO.SYS equiv)
                 if (CS.get() === 0x0060) {
-                    
+
                     // Init serial port
                     //if (insn.offset === 0x0206) { debugger; } // [int 0x14]
-                    
+
                     // Init DOS
                     //if (insn.offset === 0x026B) { debugger; } // [callf 00BF:0000]
                     // (Next cmd after DOS setup)
                     //if (insn.offset === 0x0270) { debugger; } // [sti]
-                    
+
                     // pcdos11.img@0x109E
                     if (insn.offset === 0x029E) { debugger; } // [int 0x21]
                     // pcdos11.img@0x10A0
                     if (insn.offset === 0x02A0) { debugger; } // [or al,al] after 2nd [int 0x21]
                 }
-                
+
                 // PC-DOS INT 21h segment
                 if (CS.get() === 0x00BF) {
                     // pcdos11.img@0x1909
@@ -925,21 +925,21 @@ define([
                     // - function that sets CF before returning, indicating error,
                     //   causing error fn (above) to be called, setting AL = -1 (0xFF)
                     if (insn.offset === 0x030C) { debugger; } // [mov b,cs:[168F], 0]
-                    
+
                     if (insn.offset === 0x034D) { debugger; } // [stosb]
                 }
-                
+
                 // MS-DOS IO.SYS
                 if (CS.get() === 0x0070) {
                     //if (this.IP.get() === 0x0237) { debugger; } // [retf]
-                    
-                    //if (this.IP.get() === 0x0517) { debugger; } // 
-                    
+
+                    //if (this.IP.get() === 0x0517) { debugger; } //
+
                     //if (insn.offset === 0x18BE) { debugger; } // [int 0x15]
-                    
+
                     // Dos3.3.img@0x8289
                     //if (this.IP.get() === 0x3E83 - 8) { debugger; } // [les]
-                    
+
                     // Dos3.3.img@0x7999
                     //if (this.IP.get() === 0x358B) { debugger; } // [mov si, 0x01EE]
                                                                   // after call to fn calling int 0x17
@@ -960,46 +960,46 @@ define([
                     //if (this.IP.get() === 0x0420) { debugger; } // [int 0x13]
                     //if (this.IP.get() === 0x04AB) { debugger; } // [long test insn]
                 //}
-                
+
                 // MT86 Floppy .img
                 //if (CS.get() === 0x1000) {
                     //if (this.IP.get() === 0x3167) { debugger; } // @649Dh [lea]
                     //if (this.IP.get() === 0x316f) { debugger; } // @64A5h [dec si]
                 //}
-                
+
                 if (insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL") { debugger; }
                 //if (insn.name === "AND" && insn.toASM() === "AND b,DS:[BX+SI], AH") { debugger; }
                 //if (insn.name === "MOV" && insn.toASM() === "MOV AH, b,DS:[SI+FFh]") { debugger; }
 
                 //if (insn.name === "MOV" && insn.offset === 29297) { debugger; }
-                
+
                 // Catch a short jump to self (hang)
                 //if (insn.name === "JMPS" && insn.toASM() === "JMPS FEh") { debugger; }
-                
+
                 //if (CS.get() === 0xF000 && insn.offset === 0x0000) { debugger; }
-                
+
                 //if (CS.get() === 0xF000 && insn.offset === 0x0023) { debugger; }
-                
+
                 // Execute immediately
                 EIP.set(offset);// - (CS.get() << 4));
                 // if (!insn.execute) { debugger; }    // DEBUG: Support check
                 insn.execute(this);
-                
+
                 //if (EIP.get() === 0xF000) { debugger; }
-                
+
                 // Bypass put_str() bug (bug in emulator!!!)
                 //if (this.IP.get() === 0x0877) { this.IP.set(0x08AA); }
-                
+
                 // Bypass infinite loop in BIOS-bochs-legacy bios_printf (!!!!)
                 //if (this.IP.get() === 0x09E4) { this.IP.set(0x0D64); }
                 //if (this.IP.get() === 0x09EA) { debugger; }
-                
+
                 if (CS.get() === 0xF000) {
                     // ?
                     //if (this.IP.get() >= 0x5347 && this.IP.get() < 0x5360 + 10) { debugger; }
-                    
+
                     //if (insn.offset === 23) { debugger; }
-                    
+
                     // Skip BIOS-bochs-legacy keyboard_init()
                     //if (this.IP.get() === 0xE134) { this.IP.set(0xE137); }
                     // Skip BIOS-bochs-legacy Parallel & Serial setups
@@ -1011,7 +1011,7 @@ define([
                     // Skip BIOS-bochs-legacy _interactive_bootkey()
                     if (this.IP.get() === 0xE22E) { this.IP.set(0xE231); }
                 }
-                
+
                 // PC-DOS IBMBIO.COM (IO.SYS equiv)
                 //if (CS.get() === 0x0060) {
                     // Skip DOS init [callf 00BF:0000]
@@ -1019,38 +1019,38 @@ define([
                     //   (eg. setting up INT 21h etc.) but never does...
                     //if (this.IP.get() === 0x026B) { this.IP.set(0x0270); }
                 //}
-                
+
                 // V8086 support is lacking...
                 if (this.VM.get()) {
                     debugger;
                 }
-                
+
                 // VGABIOS INT 10h handler
                 //if (CS.get() === 0xC000 && this.IP.get() === 0x3B39) { debugger; }
-                
+
                 DEBUG_LIST_INSN.push(insn);
                 if (DEBUG_LIST_INSN.length > 1000) {
                     DEBUG_LIST_INSN = DEBUG_LIST_INSN.slice(DEBUG_LIST_INSN.length - 512);
                 }
-                
+
                 /* // Resume Flag
                 if (this.RF.get()) {
                     this.RF.clear();
                 } else {
                     // TODO: Handle debugging/breakpoints etc.
                 }
-                
+
                 // Trap Flag
                 if (this.TF.get()) {
                     // TODO: Handle debugging w/trap flag
                 } */
-                
+
                 /*
                  * Internal total instruction counter for this time slice,
                  * for benchmarking and optimisation
                  */
                 ++insns;
-                
+
                 /*
                  * Handle asynchronous events & check for end of slice
                  * after every so many instructions (otherwise we would only
@@ -1063,12 +1063,12 @@ define([
                     if (Date.now() > ticksEndSlice) {
                         break;
                     }
-                    
+
                     this.handleAsynchronousEvents();
                 }
             // Stop CPU loop if CPU is halted
             } while (!this.isHalted);
-            
+
             // Benchmarking
             ++yps;
             ips += insns;
@@ -1078,11 +1078,11 @@ define([
                     + ", yields/sec: " + yps
                     + " :: " + (this.isHalted ? "HALTED" : "RUNNING")
                 );
-                
+
                 ips = yps = 0;
                 ticksLastUpdate = ticksNow;
             }
-            
+
             /** End of CPU loop: yield to host environment/the browser,
                 allowing it to update the screen & fire DOM events etc. **/
         },
@@ -1091,21 +1091,21 @@ define([
             var idx, list, len
                 , vector, quantums, maxQuantums
                 , ticksNow, machine = this.machine, tmr;
-            
+
             /*
              *    Priority 1: Hardware Reset and Machine Checks
              *    - RESET
              *    - Machine Check
              *    (NB: As in Bochs, jemul8 doesn't support these)
              */
-            
+
             /*
              *    Priority 2: Trap on Task Switch
              *    - T flag in TSS is set
              */
             //if (BX_CPU_THIS_PTR debug_trap & BX_DEBUG_TRAP_TASK_SWITCH_BIT)
             //    exception(BX_DB_EXCEPTION, 0); // no error, not interrupt
-            
+
             /*
              *    Priority 3: External Hardware Interventions
              *    - FLUSH
@@ -1128,7 +1128,7 @@ define([
                 // reset will clear pending INIT
             //    BX_CPU_THIS_PTR reset(BX_RESET_SOFTWARE);
             //}
-            
+
             /*
              *    Priority 4: Traps on Previous Instruction
              *    - Breakpoints
@@ -1141,7 +1141,7 @@ define([
                 // and don't execute this code until the next boundary.
             //    exception(BX_DB_EXCEPTION, 0); // no error, not interrupt
             //}
-            
+
             /*
              *    Priority 5: External Interrupts
              *    - NMI Interrupts
@@ -1164,7 +1164,7 @@ define([
             } else if (this.INTR.get() && this.IF.get()) {
                 // Only EVER process one interrupt here: we have to allow
                 //  the ISR to actually run!
-                
+
                 // (NB: This may set INTR with the next interrupt)
                 vector = machine.pic.acknowledgeInterrupt();
                 this.interrupt(
@@ -1183,13 +1183,13 @@ define([
                 maxQuantums = this.maxDMAQuantumsPerYield;
                 for (quantums = 0 ; quantums < maxQuantums ; ++quantums) {
                     machine.dma.raiseHLDA();
-                    
+
                     // Stop if transfer is complete
                     if (!machine.HRQ.get()) { break; }
                 }
             }
             /* ====== /Hardware Interrupts / IRQs ====== */
-            
+
             /*
              *    Priority 6: Faults from fetching next instruction
              *    - Code breakpoint fault
@@ -1197,7 +1197,7 @@ define([
              *    - Code page fault (priority 7 on 486/Pentium)
              */
             // (handled in main decode loop)
-            
+
             /*
              *    Priority 7: Faults from decoding next instruction
              *    - Instruction length > 15 bytes
@@ -1205,7 +1205,7 @@ define([
              *    - Coprocessor not available
              */
             // (handled in main decode loop etc)
-            
+
             /*
              *    Priority 8: Faults on executing an instruction
              *    - Floating point execution
@@ -1219,7 +1219,7 @@ define([
              *    - Alignment check
              */
             // (handled by rest of the code)
-            
+
             /* ===== System timers ===== */
             // NB/TODO!: Checking for expired timers after EVERY SINGLE INSTRUCTION
             //    is not a good idea: however, only checking once per yield
@@ -1230,7 +1230,7 @@ define([
             ) {
                 // Ignore if unreg'd or inactive
                 if (!(tmr = list[ idx ]) || !tmr.isActive) { continue; }
-                
+
                 // Timer has expired: fire its handler
                 if (tmr.ticksNextFire <= ticksNow) {
                     tmr.fn.call(tmr.obj_this, ticksNow);
@@ -1252,16 +1252,16 @@ define([
             // Pointer to top of Stack
             var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP
                 , ptrStack = SP.get();
-            
+
             // Value pushed should be 16-bits or 32-bits (no sign extension)
             if (len === 1) { len = 2; }
-            
+
             // Decrement by operand size
             ptrStack = (ptrStack - len) & SP.mask;
-            
+
             // Update Stack pointer
             SP.set(ptrStack);
-            
+
             // Write data to Stack top (SS:SP)
             this.SS.writeSegment(ptrStack, val, len);
         },
@@ -1271,29 +1271,29 @@ define([
             var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP
                 , ptrStack = SP.get()
                 , res;
-            
+
             // Value popped should be 16-bits or 32-bits
             if (len !== 2 && len !== 4) {
                 util.panic("CPU.popStack() :: Invalid no. of bytes to pop");
             }
-            
+
             // Read data from Stack top (SS:SP)
             res = this.SS.readSegment(ptrStack, len);
-            
+
             // Increment by operand size
             ptrStack = (ptrStack + len) & SP.mask;
-            
+
             // Update Stack pointer
             SP.set(ptrStack);
-            
+
             return res;
         },
         // Generate a CPU/software/hardware interrupt
         interrupt: function (vector, type, pushError, errorCode) {
-            
+
             //util.debug("CPU.interrupt() :: Tripped INT 0x"
             //    + vector.toString(16).toUpperCase());
-            
+
             // Protected-mode
             if (this.PE.get()) {
                 throw new Error( "CPU.interrupt() :: Protected mode not supported yet." );
@@ -1308,7 +1308,7 @@ define([
             var offset = vector * 4;
             var newCS;
             var newIP;
-            
+
             // Check whether vector is out of bounds (vector being read
             //    must be inside IDTR - its size is variable)
             if ((offset + 3) > IDTR.limit) {
@@ -1316,7 +1316,7 @@ define([
                     + " interrupt vector is outside IDT limit");
                 this.exception(util.GP_EXCEPTION, 0);
             }
-            
+
             if (vector === 0x00) {
                 //console.log("INT 0x00! Stop.");
                 //debugger;
@@ -1353,12 +1353,12 @@ define([
                 // DOS services
                 //debugger;
             }
-            
+
             // Save current FLAGS and CS:IP (CPU state) on stack
             this.pushStack(this.FLAGS.get(), 2);
             this.pushStack(this.CS.get(), 2);
             this.pushStack(this.IP.get(), 2);
-            
+
             // Get ISR's IP (& check it is within code segment limits)
             newIP = this.machine.mem.readLinear(IDTR.base + offset, 2, 0);
             if (newIP > this.CS.cache.limitScaled) {
@@ -1366,14 +1366,14 @@ define([
                     + " interrupt vector is outside IDT limit");
                 this.exception(util.GP_EXCEPTION, 0);
             }
-            
+
             // Get ISR's CS
             newCS = this.machine.mem.readLinear(IDTR.base + offset + 2, 2, 0);
-            
+
             // Jump to ISR CS:IP
             this.CS.set(newCS);
             this.EIP.set(newIP);
-            
+
             this.IF.clear(); // Disable any maskable interrupts
             this.TF.clear(); // Disable any traps
             this.AC.clear(); // ???
@@ -1386,16 +1386,16 @@ define([
                 // Set all of EIP to zero-out high word
                 this.EIP.set(this.popStack(2));
                 this.CS.set(this.popStack(2)); // 16-bit pop
-                
+
                 // FIXME: Allow change of IOPL & IF here,
                 //        disallow in many other places
                 // Don't clear high EFLAGS word (is this right??)
                 var flags = this.popStack(2);
-                
+
                 //if (flags === 65411) { debugger; }
-                
+
                 this.FLAGS.set(flags);
-                
+
                 //if (this.VM.get()) {
                 //    debugger;
                 //    this.FLAGS.set(flags);
@@ -1405,7 +1405,7 @@ define([
                 // Yes, we must pop 32 bits but discard high word
                 this.CS.set(this.popStack(4));
                 eflags = this.popStack(4);
-                
+
                 // VIF, VIP, VM unchanged
                 // FIXME: What is 0x1A0000 mask for? Can't remember...
                 this.EFLAGS.set((eflags & 0x257FD5)
@@ -1417,7 +1417,7 @@ define([
             return this.CS.selector.rpl;
         }
     });
-    
+
     // Exports
     return CPU;
 });
