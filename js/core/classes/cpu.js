@@ -57,7 +57,8 @@ define([
     GlobalTableRegister,
     LocalTableRegister,
     Buffer
-) { "use strict";
+) {
+    "use strict";
 
     var DEBUG_LIST_INSN = [],
         ticksLastUpdate = Date.now(),

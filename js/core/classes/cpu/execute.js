@@ -1,33 +1,41 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *  
+ *
  *  MODULE: CPU Instruction execute methods
- *  
+ *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
 
 define([
     "../../util",
     "../math/int64",
     "../memory/buffer"
-], function (util, Int64, Buffer) { "use strict";
-    
+], function (
+    util,
+    Int64,
+    Buffer
+) {
+    "use strict";
+
     // Execute static class constructor
     function Execute() {
         util.panic("Execute() is static-only!");
@@ -40,7 +48,7 @@ define([
         "AAA": function (cpu) {
             debugger;
             var AL = cpu.AL.get();
-            
+
             if (((AL & 0x0F) > 9) || (cpu.AF.get())) {
                 cpu.AL.set((AL + 6) & 0x0F);
                 cpu.AH.set(cpu.AH.get() + 1);
@@ -57,10 +65,10 @@ define([
             // Val1 will almost always be 0Ah (10d), meaning to adjust for base-10 / decimal.
             var val1 = this.operand1.read(),
                 res = cpu.AH.get() * val1 + cpu.AL.get();
-            
+
             cpu.AL.set(res & 0xFF);
             cpu.AH.set(0);
-            
+
             setFlags_Op1(this, cpu, val1, res);
         // ASCII adjust after Multiplication
         }, "AAM": function (cpu) {
@@ -69,7 +77,7 @@ define([
             var val1 = this.operand1.read(),
                 AL = cpu.AL.get(),
                 res = cpu.AH.get() * val1 + AL;
-            
+
             cpu.AH.set((AL / 10) >> 0);
             cpu.AL.set(AL % 10);
             setFlags_Op1(this, cpu, val1, res);
@@ -79,7 +87,7 @@ define([
         }, "AAS": function (cpu) {
             debugger;
             var AL = cpu.AL.get();
-            
+
             if (((AL & 0x0F) > 9) || (cpu.AF.get())) {
                 cpu.AL.set((AL - 6) & 0x0F);
                 cpu.AH.set(cpu.AH.get() - 1);
@@ -96,9 +104,9 @@ define([
                 val2 = this.operand2.read();
             // Mask, because add operation can generate too-large numbers
             var res = (val1 + val2 + cpu.CF.get()) & this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             // Flags needs to recognise difference between ADD & ADC
             //  (ie. treat as ADD unless CF set in which case ADC)
             // TODO: Tidy this up a bit? Don't want to slow down other insns
@@ -111,9 +119,9 @@ define([
                 val2 = this.operand2.read(),
                 // Mask, because add operation can generate too-large numbers
                 res = (val1 + val2) & this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             setFlags(this, cpu, val1, val2, res);
         // Logical AND
         }, "AND": function (cpu) {
@@ -121,17 +129,17 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = val1 & val2;
-            
+
             this.operand1.write(res);
-            
+
             setFlags(this, cpu, val1, val2, res);
         // Adjusted Requested Privilege Level of Selector (286+ Protected Mode)
         }, "ARPL": function (cpu) {
             util.panic("Execute (ARPL) :: No Protected Mode support yet.");
             return;
-            
+
             var RPL_Source = this.operand2.getRPL();
-            
+
             if (this.operand1.getRPL() < RPL_Source) {
                 cpu.ZF.set();
                 this.operand1.setRPL(RPL_Source);
@@ -149,7 +157,7 @@ define([
             var idx_bit,
                 sizeBits = this.operand1.size * 8,
                 val = this.operand2.read();
-            
+
             // Find Least Significant Bit set
             for (var idx_bit = 0 ; idx_bit < sizeBits ; ++idx_bit) {
                 // Found a set bit
@@ -168,7 +176,7 @@ define([
             var idx_bit,
                 sizeBits = this.operand1.size * 8,
                 val = this.operand2.read();
-            
+
             // Find Most Significant Bit set
             for (idx_bit = sizeBits - 1 ; idx_bit >= 0 ; --idx_bit) {
                 // Found a set bit
@@ -186,7 +194,7 @@ define([
         // - Reverses the byte order of a 32-bit register.
         }, "BSWAP": function (cpu) {
             var val = this.operand1.read();
-            
+
             // Bits 0 through 7 are swapped with bits 24 through 31,
             //  and bits 8 through 15 are swapped with bits 16 through 23.
             this.operand1.write(
@@ -203,7 +211,7 @@ define([
         }, "BTC": function (cpu) {
             var offsetBit = this.operand2.read(),
                 val = this.operand1.read();
-            
+
             // Read bit at specified offset & store in Carry Flag
             cpu.CF.setBin((val >> offsetBit) & 0x01);
             // Complement / toggle the bit just read
@@ -212,7 +220,7 @@ define([
         }, "BTR": function (cpu) {
             var offsetBit = this.operand2.read(),
                 val = this.operand1.read();
-            
+
             // Read bit at specified offset & store in Carry Flag
             cpu.CF.setBin((val >> offsetBit) & 0x01);
             // Clear / reset the bit just read
@@ -221,7 +229,7 @@ define([
         }, "BTS": function (cpu) {
             var offsetBit = this.operand2.read(),
                 val = this.operand1.read();
-            
+
             // Read bit at specified offset & store in Carry Flag
             cpu.CF.setBin((val >> offsetBit) & 0x01);
             // Set the bit just read
@@ -233,16 +241,16 @@ define([
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
                 operandSize = IP.size,
                 cs_eip = this.operand1.read();
-            
+
             //if (cs_eip !== 0x1000FCFC && cs_eip !== 0x1000FD22) { debugger; }
             //if (cs_eip === 0x1F820200) { debugger; }
-            
+
             // Push CS:IP so return can come back
             cpu.pushStack(cpu.CS.get(), 2);
             cpu.pushStack(IP.get(), operandSize);
 
             //if ((cs_eip >> 16) === 0x0265) { debugger; }
-            
+
             // 32-bit pointer
             if (operandSize === 2) {
                 cpu.CS.set(cs_eip >> 16);
@@ -251,7 +259,7 @@ define([
             //    CS is still 16-bit)
             } else {
                 jemul8.panic("Needs to use new method of reading > 4 byte values");
-                
+
                 cpu.CS.set(cs_eip >> 32);
                 cpu.EIP.set(cs_eip & 0xFFFFFFFF);
             }
@@ -261,10 +269,10 @@ define([
         }, "CALLN": function (cpu) {
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
                 ip = this.operand1.read();
-            
+
             // Push IP so return can come back
             cpu.pushStack(IP.get(), IP.size);
-            
+
             // Relative jump - add to (E)IP
             if (this.operand1.isRelativeJump) {
                 ip = (IP.get() + ip) & IP.mask;
@@ -275,7 +283,7 @@ define([
         //  - uses EAX (not AX:DX as in CWD/CDQ)
         }, "CBW": function (cpu) {
             var ax;
-            
+
             // CBW: Sign-extend AL into AH
             if (!this.operandSizeAttr) {
                 cpu.AH.set((cpu.AL.get() >> 7) ? 0xFF : 0x00);
@@ -300,7 +308,7 @@ define([
             if (cpu.PE.get() && cpu.CPL.get() > 0) {
                 cpu.exception(util.GP_EXCEPTION, 0);
             }
-            
+
             // Task-Switched flag cleared in CR0
             cpu.TS.clear();
         // Complement/toggle/invert Carry flag
@@ -314,7 +322,7 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = (val1 - val2) & this.operand1.mask;
-            
+
             // Do not store result of subtraction; only flags
             setFlags(this, cpu, val1, val2, res);
         // Compare String (Byte, Word or Dword)
@@ -337,28 +345,28 @@ define([
             // When DF set, decrement (scan in reverse direction)
             //  otherwise increment
             var delta = cpu.DF.get() ? -operandSize : operandSize;
-            
+
             // No repeat prefix
             if (this.repeat === "") {
                 val1 = this.operand1.read();
                 val2 = this.operand2.read();
-                
+
                 SI.set(esi + delta);
                 DI.set(edi + delta);
             } else {
                 len = CX.get() + 1;
-                
+
                 // Repeat while equal, max CX times
                 if (this.repeat === "#REP/REPE") {
                     while (--len) {
                         val1 = this.operand1.read();
                         val2 = this.operand2.read();
-                        
+
                         esi += delta;
                         edi += delta;
                         SI.set(esi);
                         DI.set(edi);
-                        
+
                         // Stop if values are not equal
                         if (val2 !== val1) {
                             --len;
@@ -370,12 +378,12 @@ define([
                     while (--len) {
                         val1 = this.operand1.read();
                         val2 = this.operand2.read();
-                        
+
                         esi += delta;
                         edi += delta;
                         SI.set(esi);
                         DI.set(edi);
-                        
+
                         // Stop if values are equal
                         if (val2 === val1) {
                             --len;
@@ -394,13 +402,13 @@ define([
         }, "CMPXCHG": function (cpu) {
             debugger;
             util.panic("CMPXCHG :: This needs to be more efficient");
-            
+
             var reg_acc = cpu.accumulator[ this.operand1.size ]
                 , val_acc = reg_acc.get()
                 , val1 = this.operand1.read()
                 , val2 // Only needed for 1 of the conditions
                 , res = (val_acc - val1) & this.operand1.mask;
-            
+
             // NB: the Intel specs say just copy src -> dest or dest -> src;
             //    however, an XCHG would do an actual swap, so this may be incorrect
             if (res === 0) {
@@ -416,10 +424,10 @@ define([
             var val1 = this.operand1.read(),
                 val2 = (cpu.EDX.get() << 32) | cpu.EAX.get(),
                 res = (val1 - val2) & this.operand1.mask;
-            
+
             debugger;
             jemul8.panic("CMPXCHG8 - Needs testing");
-            
+
             // NB: the Intel specs say just copy src -> dest or dest -> src;
             //    however, an XCHG would do an actual swap, so this may be incorrect
             if (res === 0) {
@@ -456,9 +464,9 @@ define([
             //    for both unsigned and signed interpretations of numbers
             var val = (this.operand1.read() - 1) & this.operand1.mask,
                 cf;
-            
+
             this.operand1.write(val);
-            
+
             // Preserve state of Carry flag
             cf = cpu.CF.get();
             setFlags_Result(this, cpu, val);
@@ -472,12 +480,12 @@ define([
                 quotient,
                 quotient16,
                 remainder;
-            
+
             // Divide by Zero (Divide Error)
             if (divisor === 0) {
                 cpu.exception(util.DE_EXCEPTION, 0);
             }
-            
+
             // Dividend is AX
             if (sizeOperand == 1) {
                 dividend = cpu.AX.get();
@@ -520,12 +528,12 @@ define([
                 level = this.operand2.read() & 0x1F, // Between 0 and 31
                 frame_ptr,
                 bp = stackBP.get();
-            
+
             cpu.pushStack(operandBP.get(), operandSize);
 
             // Make sure this is done AFTER the push above
             frame_ptr = operandSP.get();
-            
+
             if (level > 0) {
                 // Do level-1 times
                 while (--level) {
@@ -533,19 +541,19 @@ define([
                     var temp = cpu.SS.readSegment(bp, operandSize);
                     cpu.pushStack(temp, operandSize);
                 }
-                
+
                 // Push frame pointer
                 cpu.pushStack(frame_ptr, operandSize);
             }
-            
+
             stackSP.set(stackSP.get() - imm16);
-            
+
             // ENTER finishes with memory write check on the final stack pointer
             // the memory is touched but no write actually occurs
             // emulate it by doing RMW read access from SS:(E)SP
             //read_RMW_virtual_word_32(BX_SEG_REG_SS, (E)SP);
             cpu.SS.readSegment(stackSP.get(), operandSize);
-            
+
             operandBP.set(frame_ptr);
         // Escape
         }, "ESC": function (cpu) {
@@ -577,9 +585,9 @@ define([
             /* ========= /Hypervisor escape ========= */
 
             /**** If we reached this point, it was just a normal HLT command ****/
-            
+
             util.debug("CPU HLT command encountered");
-            
+
             cpu.halt();
         // Signed Integer Division
         }, "IDIV": function (cpu) {
@@ -587,13 +595,13 @@ define([
                 dividend,
                 divisor = util.toSigned(this.operand1.read(), operandSize),
                 quotient;
-            
+
             // Divide by Zero (Divide Error)
             if (divisor === 0) {
                 cpu.exception(util.DE_EXCEPTION);
                 return;
             }
-            
+
             // Dividend is AX
             if (operandSize == 1) {
                 dividend = util.toSigned(cpu.AX.get(), 2);
@@ -628,7 +636,7 @@ define([
                 lowBits,
                 res,
                 isSignExtended;
-            
+
             // IMUL r16, r/m16, imm16
             // IMUL r16, r/m16, imm8
             // IMUL r32, r/m32, imm32
@@ -666,7 +674,7 @@ define([
             } else if (this.operand1) {
                 // Multiplicand is implicitly accumulator: see below
                 multiplier = util.toSigned(this.operand1.read(), operandSize);
-                
+
                 if (operandSize === 1) {
                     multiplicand = util.toSigned(cpu.AL.get(), operandSize);
                     res = multiplicand * multiplier;
@@ -690,7 +698,7 @@ define([
             } else {
                 util.panic("IMUL :: Must have at least 1 operand");
             }
-            
+
             // CF and OF set when significant bits are carried
             //  into upper half of result. Cleared when result
             //  fits exactly in the lower half
@@ -702,10 +710,10 @@ define([
                 isSignExtended = highBits && (lowBits & 0x80000000);
                 util.warning("IMUL :: setFlags needs to support Int64s");
             }
-            
+
             // Lazy flags
             setFlags(this, cpu, multiplicand, multiplier, res);
-            
+
             // Explicit flags
             if (isSignExtended) {
                 cpu.OF.set();
@@ -723,9 +731,9 @@ define([
             //    for both unsigned and signed interpretations of numbers
             var val = (this.operand1.read() + 1) & this.operand1.mask,
                 cf;
-            
+
             this.operand1.write(val);
-            
+
             // Preserve state of Carry flag
             cf = cpu.CF.get();
             setFlags_Result(this, cpu, val);
@@ -741,29 +749,29 @@ define([
             // When DF set, decrement (scan in reverse direction)
             //  otherwise increment
             var delta = cpu.DF.get() ? -operandSize : operandSize;
-            
+
             // Common case; no repeat prefix
             if (!this.repeat) {
                 this.operand1.write(cpu.machine.io.read(
                     this.operand2.read()    // Port/address
                     , this.operand1.size    // IO length
                 ));
-                
+
                 DI.set(edi + delta);
             // Repeat CX times
             } else if (this.repeat === "#REP/REPE") {
                 len = CX.get() + 1;
-                
+
                 while (--len) {
                     this.operand1.write(cpu.machine.io.read(
                         this.operand2.read()    // Port/address
                         , this.operand1.size    // IO length
                     ));
-                    
+
                     edi += delta;
                     DI.set(edi);
                 }
-                
+
                 // TODO: Almost always "len === 0", however if hits eg. segment limit
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
@@ -779,7 +787,7 @@ define([
                 jemul8.warning("32-bit interrupt handling not tested yet");
                 debugger;
             }
-            
+
             cpu.interrupt(
                 this.operand1.read()      // Vector
                 , util.SOFTWARE_INTERRUPT // Type
@@ -803,7 +811,7 @@ define([
         // Invalidate Cache (486+)
         }, "INVD": function (cpu) {
             util.warning("INVD :: Not fully implemented");
-            
+
             cpu.flushInstructionCaches();
         // Invalidate Translation Look-Aside Buffer (TLB) Entry (486+)
         }, "INVLPG": function (cpu) {
@@ -908,19 +916,19 @@ define([
         //  (NB: this conditional jump has no inverse)
         }, "JCXZ": function (cpu) {
             var CX = (this.operandSizeAttr ? cpu.ECX : cpu.CX);
-            
+
             // Quickly skip if condition not met
             if (CX.get() === 0) {
                 branchRelative(this, cpu);
             }
         /* ======= /Conditional Jump Instructions ======= */
-        
+
         // Unconditional Far (32/48-bit) absolute Jump
         }, "JMPF": function (cpu) {
             // NB: Do not interpret as signed; cannot have
             //     an absolute EIP that is negative
             var low32 = this.operand1.read();
-            
+
             // 32-bit pointer
             if (!this.operandSizeAttr) {
                 cpu.CS.set(low32 >> 16);
@@ -936,7 +944,7 @@ define([
         }, "JMPN": function (cpu) {
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
                 ip = this.operand1.read();
-            
+
             // Relative jump - add to (E)IP
             if (this.operand1.isRelativeJump) {
                 ip = (IP.get() + ip) & IP.mask;
@@ -946,7 +954,7 @@ define([
         }, "JMPS": function (cpu) {
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
                 ip = this.operand1.signExtend(this.operandSizeAttr ? 4 : 2);
-            
+
             // Relative jump - add to (E)IP
             ip = (IP.get() + ip) & IP.mask;
             cpu.EIP.set(ip);
@@ -964,19 +972,19 @@ define([
             this.operand1.write(this.operand2.getPointerAddress());
         // High Level Procedure Exit
         }, "LEAVE": function (cpu) {
-            // NB: Reverses the actions of the ENTER instruction. 
+            // NB: Reverses the actions of the ENTER instruction.
             //     By copying the frame pointer to the stack pointer,
             //      LEAVE releases the stack space used by a procedure for its local variables.
-            
+
             var operandSize = this.operandSizeAttr ? 4 : 2,
                 stackSizeAttr = cpu.SS.cache.default32BitSize,
                 stackBP = (stackSizeAttr ? cpu.EBP : cpu.BP),
                 stackSP = (stackSizeAttr ? cpu.ESP : cpu.SP),
                 operandBP = (this.operandSizeAttr ? cpu.EBP : cpu.BP),
                 value = cpu.SS.readSegment(stackBP.get(), operandSize);
-            
+
             stackSP.set(stackBP.get() + operandSize);
-            
+
             operandBP.set(value);
         // Load Global Descriptor Table Register
         }, "LGDT": function (cpu) {
@@ -984,12 +992,12 @@ define([
             util.warning("LGDT :: Protected mode support incomplete");
             //debugger;
             //cpu.GDTR.set(this.operand1.read());
-            
+
             var base;
             // GDTR m16 & 32 - always 48-bit (6 bytes)
             cpu.GDTR.limit = this.operand1.read(0, 2); // Limit always 16-bit
             base = this.operand1.read(2, 4);           // Base 32- or 24-bit
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 base &= 0x00FFFFFF; // Only use 24-bits
@@ -1002,12 +1010,12 @@ define([
             util.warning("LIDT :: Protected mode support incomplete");
             //debugger;
             //cpu.IDTR.set(this.operand1.read());
-            
+
             var base;
             // IDTR m16 & 32 - always 48-bit (6 bytes)
             cpu.IDTR.limit = this.operand1.read(0, 2); // Limit always 16-bit
             base = this.operand1.read(2, 4);           // Base 32- or 24-bit
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 base &= 0x00FFFFFF; // Only use 24-bits
@@ -1017,7 +1025,7 @@ define([
         // Load Full Pointer with DS
         }, "LDS": function (cpu) {
             var farPointer = this.operand2.read();
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 /*
@@ -1031,7 +1039,7 @@ define([
                 this.operand1.write(farPointer & 0xFFFF);
                 // TODO: Remove this mask? (should be covered in .set())
                 cpu.DS.set((farPointer >> 16) & 0xFFFF);
-                
+
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
             } else {debugger;
@@ -1042,7 +1050,7 @@ define([
         // Load Full Pointer with ES
         }, "LES": function (cpu) {
             var farPointer = this.operand2.read();
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 /*
@@ -1056,7 +1064,7 @@ define([
                 this.operand1.write(farPointer & 0xFFFF);
                 // TODO: Remove this mask? (should be covered in .set())
                 cpu.ES.set((farPointer >> 16) & 0xFFFF);
-                
+
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
             } else {debugger;
@@ -1067,7 +1075,7 @@ define([
         // Load Full Pointer with FS
         }, "LFS": function (cpu) {
             var farPointer = this.operand2.read();
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 /*
@@ -1081,7 +1089,7 @@ define([
                 this.operand1.write(farPointer & 0xFFFF);
                 // TODO: Remove this mask? (should be covered in .set())
                 cpu.FS.set((farPointer >> 16) & 0xFFFF);
-                
+
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
             } else {debugger;
@@ -1092,7 +1100,7 @@ define([
         // Load Full Pointer with GS
         }, "LGS": function (cpu) {
             var farPointer = this.operand2.read();
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 /*
@@ -1106,7 +1114,7 @@ define([
                 this.operand1.write(farPointer & 0xFFFF);
                 // TODO: Remove this mask? (should be covered in .set())
                 cpu.GS.set((farPointer >> 16) & 0xFFFF);
-                
+
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
             } else {debugger;
@@ -1117,7 +1125,7 @@ define([
         // Load Full Pointer with SS
         }, "LSS": function (cpu) {
             var farPointer = this.operand2.read();
-            
+
             // 16-bit
             if (!this.operandSizeAttr) {
                 /*
@@ -1131,7 +1139,7 @@ define([
                 this.operand1.write(farPointer & 0xFFFF);
                 // TODO: Remove this mask? (should be covered in .set())
                 cpu.SS.set((farPointer >> 16) & 0xFFFF);
-                
+
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
             } else {debugger;
@@ -1167,28 +1175,28 @@ define([
             // When DF set, decrement (scan in reverse direction)
             //  otherwise increment
             var delta = cpu.DF.get() ? -operandSize : operandSize;
-            
+
             // No repeat prefix
             if (this.repeat === "") {
                 // Load String Character - Operand 1 is part of Accumulator, Operand 2
                 //  will be a memory pointer using (E)SI
                 this.operand1.write(this.operand2.read());
-                
+
                 SI.set(esi + delta);
             // Repeat CX times
             } else if (this.repeat === "#REP/REPE") {
                 util.warning("REP LODS - Pointless instruction?");
                 debugger;
-                
+
                 len = CX.get() + 1;
-                
+
                 while (--len) {
                     this.operand1.write(this.operand2.read());
-                    
+
                     esi += delta;
                     SI.set(esi);
                 }
-                
+
                 // TODO: Almost always "len === 0", however if hits eg. segment limit
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
@@ -1201,11 +1209,11 @@ define([
         }, "LOOP": function (cpu) {
             var regCount = this.addressSizeAttr ? cpu.ECX : cpu.CX,
                 count;
-            
+
             // Decrement counter
             count = regCount.get() - 1;
             regCount.set(count);
-            
+
             // Loop round by jumping to the address in operand1,
             //  if counter has not yet reached zero
             if (count !== 0) {
@@ -1215,11 +1223,11 @@ define([
         }, "LOOPE": function (cpu) {
             var regCount = this.addressSizeAttr ? cpu.ECX : cpu.CX,
                 count;
-            
+
             // Decrement counter
             count = regCount.get() - 1;
             regCount.set(count);
-            
+
             // Loop round by jumping to the address in operand1,
             //  if counter has not yet reached zero
             if (count !== 0 && cpu.ZF.get()) {
@@ -1229,11 +1237,11 @@ define([
         }, "LOOPNE": function (cpu) {
             var CX = this.addressSizeAttr ? cpu.ECX : cpu.CX,
                 count;
-            
+
             // Decrement counter
             count = CX.get() - 1;
             CX.set(count);
-            
+
             // Loop round by jumping to the address in operand1,
             //  if counter has not yet reached zero
             if (count !== 0 && !cpu.ZF.get()) {
@@ -1266,7 +1274,7 @@ define([
                 // When DF set, decrement (scan in reverse direction)
                 //  otherwise increment
                 delta = cpu.DF.get() ? -operandSize : operandSize;
-            
+
             // Common case; no repeat prefix
             if (!this.repeat) {
                 // Load String Character (Operand 1 is part of Accumulator, Operand 2
@@ -1280,7 +1288,7 @@ define([
                 len = CX.get() * operandSize;
                 esi = SI.get();
                 edi = DI.get();
-                
+
                 // Accelerated case: copy from buffer->buffer
                 // FIXME: Handle overlapping copies? Need to compare eg. REP MOVS
                 //        with ArrayBuffer.set(...) behaviour
@@ -1297,7 +1305,7 @@ define([
                 accessor2 = cpu.machine.mem.mapPhysical(
                     physical, operandSize
                 );
-                
+
                 // Only valid for copies from buffer->buffer (unfortunately
                 //  means eg. DRAM->VRAM copies cannot be accelerated,
                 //  as VRAM is I/O-mapped so handler functions are used)
@@ -1331,18 +1339,18 @@ define([
                     CX.set(0);
                     return;
                 }
-                
+
                 len = CX.get() + 1;
-                
+
                 while (--len) {
                     this.operand2.write(this.operand1.read());
-                    
+
                     esi += delta;
                     edi += delta;
                     SI.set(esi);
                     DI.set(edi);
                 }
-                
+
                 // TODO: Almost always "len === 0", however if hits eg. segment limit
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
@@ -1366,7 +1374,7 @@ define([
                 // Integer result - no truncation
                 //  as integer inputs guarantee integer result
                 res = (multiplicand * multiplier);
-            
+
             if (operandSize == 1) {
                 cpu.AX.set(res);
                 highBits = res >> 8;
@@ -1383,10 +1391,10 @@ define([
                 cpu.EDX.set(highBits);
                 util.warning("MUL insn :: setFlags needs to support Int64s");
             }
-            
+
             // Lazy flags
             setFlags(this, cpu, multiplicand, multiplier, res);
-            
+
             // Explicit flags
             // - CF and OF cleared if high-order bits of product 0
             //   (this is the default behaviour - see lazy_flag.js);
@@ -1399,7 +1407,7 @@ define([
         }, "NEG": function (cpu) {
             var val = this.operand1.read(),
                 res;
-            
+
             // NB: Use modulo arithmetic for two's complement,
             //     not negation operator ("-")
             switch (this.operand1.size) {
@@ -1413,11 +1421,11 @@ define([
                 res = ((~val) & 0xFFFFFFFF) + 1;
                 break;
             }
-            
+
             res &= this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             setFlags_Op1(this, cpu, val, res);
         // Do nothing. Occupies both time & space
         }, "NOP": function (cpu) {
@@ -1427,10 +1435,10 @@ define([
             // TEMP: There is a NOT in the extensions table
             //    that has no operands... ???? :S ???? AX??
             if (!this.operand1) { debugger; }
-            
+
             // Note use of bitwise inversion operator tilde "~"
             this.operand1.write(~this.operand1.read());
-            
+
             /** NB: No flags affected by NOT **/
         // Logical OR
         }, "OR": function (cpu) {
@@ -1438,9 +1446,9 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = val1 | val2;
-            
+
             this.operand1.write(res);
-            
+
             setFlags(this, cpu, val1, val2, res);
         // Output to Port
         }, "OUT": function (cpu) {
@@ -1452,7 +1460,7 @@ define([
         // Output String to Port
         }, "OUTS": function (cpu) {
             debugger;
-            
+
             util.panic("Execute (OUTS) :: Not implemented yet");
         // Pop a value from the Stack (SS:SP)
         }, "POP": function (cpu) {
@@ -1494,12 +1502,12 @@ define([
         // Push data onto stack top (SS:SP)
         }, "PUSH": function (cpu) {
             if (this.operand1.addressSizeAttr) { debugger; }
-            
+
             cpu.pushStack(this.operand1.read(), this.operand1.size);
         // Push all General Registers
         }, "PUSHA": function (cpu) {
             var ptrStack;
-            
+
             // PUSHA
             if (!this.operandSizeAttr) {
                 // Remember to save Stack Pointer, push()es will modify it
@@ -1528,7 +1536,7 @@ define([
         // Push Flags Register onto Stack
         }, "PUSHF": function (cpu) {
             //debugger;
-            
+
             // PUSHF
             if (!this.operandSizeAttr) {
                 cpu.pushStack(cpu.FLAGS.get(), 2);
@@ -1548,16 +1556,16 @@ define([
                 bitsShiftedOut = bits >> numBitsRemaining,
                 res,
                 cf;
-            
+
             res = bitsRemaining | bitsShiftedOut;
             this.operand1.write(res);
             // Carry Flag is set to LSB of bits shifted out (if this had been a loop,
             //    the last bit shifted off the left and onto the right would be this one)
             cf = bitsShiftedOut & 0x01;
             cpu.CF.setBin(cf);
-            
-            
-            
+
+
+
             // Perform same op as a string to verify
             var str = bits.toString(2),
                 out,
@@ -1565,7 +1573,7 @@ define([
             while (str.length < numBitsIn) { str = "0" + str; }
             out = str.substr(0, numBitsShift);
             res2 = str.substr(numBitsShift) + out;
-            
+
             if (res2.length !== numBitsIn || res !== parseInt(res2, 2)) {
                 debugger;
                 util.panic("ROR :: Result mismatch");
@@ -1573,7 +1581,7 @@ define([
         // Rotate Bits Right
         }, "ROR": function (cpu) {
             //debugger;
-            
+
             // Fast right-rotation using masks instead of a loop
             var bits = this.operand1.read(),
                 numBitsIn = this.operand1.size * 8;
@@ -1584,16 +1592,16 @@ define([
                 numBitsRemaining = numBitsIn - numBitsShift,
                 bitsRemaining = bits >> numBitsShift,
                 bitsShiftedOut = (bits & ((1 << numBitsShift) - 1)) << numBitsRemaining;
-            
+
             var res = bitsRemaining | bitsShiftedOut;
             this.operand1.write(res);
             // Carry Flag is set to MSB of bits shifted out ( if this had been a loop,
             //    the last bit shifted off the right and onto the left would be this one )
             var cf = bitsShiftedOut & (1 << numBitsShift);
             cpu.CF.setBin(cf);
-            
-            
-            
+
+
+
             // Perform same op as a string to verify
             var str = bits.toString(2),
                 out,
@@ -1601,7 +1609,7 @@ define([
             while (str.length < numBitsIn) { str = "0" + str; }
             out = str.substr(str.length - numBitsShift, numBitsShift);
             res2 = out + str.substr(0, str.length - numBitsShift);
-            
+
             if (res2.length !== numBitsIn || res !== parseInt(res2, 2)) {
                 debugger;
                 util.panic("ROR :: Result mismatch");
@@ -1614,9 +1622,9 @@ define([
                 res,
                 cf,
                 of;
-            
+
             //debugger;
-            
+
             if (operandSize === 4) {
                 count &= 0x1f;
             } else if (operandSize === 2) {
@@ -1624,9 +1632,9 @@ define([
             } else {
                 count = (count & 0x1f) % 9;
             }
-            
+
             if (count === 0) { return; }
-            
+
             if (count === 1) {
                 res = (val << 1) | cpu.CF.get();
             } else {
@@ -1648,9 +1656,9 @@ define([
                         | (val >> (9 - count));
                 }
             }
-            
+
             this.operand1.write(res);
-            
+
             if (operandSize === 4) {
                 cf = (val >> (32 - count)) & 0x1;
                 of = cf ^ (res >> 31); // of = cf ^ result31
@@ -1661,7 +1669,7 @@ define([
                 cf = (val >> (8 - count)) & 0x01;
                 of = cf ^ (res >> 7);  // of = cf ^ result7
             }
-            
+
             cpu.CF.setBin(cf);
             cpu.OF.setBin(of);
         // Rotate Bits Right with Carry Flag
@@ -1672,7 +1680,7 @@ define([
                 res,
                 cf,
                 of;
-            
+
             if (operandSize === 4) {
                 count &= 0x1f;
             } else if (operandSize === 2) {
@@ -1680,9 +1688,9 @@ define([
             } else {
                 count = (count & 0x1f) % 9;
             }
-            
+
             if (count === 0) { return; }
-            
+
             if (operandSize === 2) {
                 res = (val >> count)
                     | (cpu.CF.get() << (16 - count))
@@ -1696,9 +1704,9 @@ define([
                         | (val << (33 - count));
                 }
             }
-            
+
             this.operand1.write(res);
-            
+
             if (operandSize === 2) {
                 cf = (val >> (count - 1)) & 0x1;
                 of = ((((res << 1) ^ res) & 0xFFFF) >> 15) & 0x1; // of = result15 ^ result14
@@ -1706,7 +1714,7 @@ define([
                 cf = (val >> (count - 1)) & 0x1;
                 of = ((res << 1) ^ res) >> 31; // of = result30 ^ result31
             }
-            
+
             cpu.CF.setBin(cf);
             cpu.OF.setBin(of);
         // Return (Near) from Procedure
@@ -1717,17 +1725,17 @@ define([
             } else {debugger;
                 cpu.EIP.set(cpu.popStack(4));
             }
-            
+
             //if (cpu.IP.get() === 0xFFF6) { debugger; }
         // Return (Far) from Procedure
         }, "RETF": function (cpu) {
             // Needs testing!!!!!!!!!
             //debugger;
-            
+
             //var sizeOperand = this.sizeOperand;
             //var PE = cpu.PE.get();
             //var VM = cpu.VM.get();
-            
+
             // Real or Virtual-8086 mode
             //if (!PE || (PE && VM)) {
                 // 16-bit
@@ -1749,7 +1757,7 @@ define([
         }, "RETN_P": function (cpu) {
             var stackSizeAttr = cpu.SS.cache.default32BitSize,
                 SP = (stackSizeAttr ? cpu.ESP : cpu.SP);
-            
+
             if (!this.operandSizeAttr) {
                 // Will clear high word of EIP
                 cpu.EIP.set(cpu.popStack(2));
@@ -1763,12 +1771,12 @@ define([
         }, "RETF_P": function (cpu) {
             // Needs testing!!!!!!!!!
             //debugger;
-            
+
             var stackSizeAttr = cpu.SS.cache.default32BitSize,
                 SP = (stackSizeAttr ? cpu.ESP : cpu.SP),
                 PE = cpu.PE.get(),
                 VM = cpu.VM.get();
-            
+
             // Real or Virtual-8086 mode
             //if (!PE || (PE && VM)) {
                 // 16-bit
@@ -1804,11 +1812,11 @@ define([
                 res,
                 of = 0,
                 cf = 0;
-            
+
             count &= 0x1F; // Use only 5 LSBs
-            
+
             if (count === 0) { return; }
-            
+
             // 32-bit
             if (operandSize === 4) {
                 // Count < 32, since only lower 5 bits used
@@ -1834,14 +1842,14 @@ define([
                     res = 0;
                 }
             }
-            
+
             res &= this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             // Lazy flags
             setFlags(this, cpu, op1, count, res);
-            
+
             // Explicit flags
             cpu.OF.setBin(of);
             cpu.CF.setBin(cf);
@@ -1853,14 +1861,14 @@ define([
                 res,
                 of,
                 cf;
-            
+
             count &= 0x1F; // Use only 5 LSBs
-            
+
             if (count === 0) { return; }
-            
+
             res = (op1 >> count) & this.operand1.mask;
             this.operand1.write(res);
-            
+
             cf = (op1 >> (count - 1)) & 0x1;
             // 32-bit
             if (operandSize === 4) {
@@ -1877,10 +1885,10 @@ define([
                 //            of == 0       if count >= 2
                 of = (((res << 1) ^ res) >> 7) & 0x1;
             }
-            
+
             // Lazy flags
             setFlags(this, cpu, op1, count, res);
-            
+
             // Explicit flags
             cpu.OF.setBin(of);
             cpu.CF.setBin(cf);
@@ -1891,23 +1899,23 @@ define([
                 count = this.operand2.read(),
                 res,
                 cf;
-            
+
             count &= 0x1F; // Use only 5 LSBs
-            
+
             if (count === 0) { return; }
-            
+
             res = op1 >> count;
             this.operand1.write(res);
-            
+
             cf = (op1 >> (count - 1)) & 0x1;
-            
+
             res &= this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             // Lazy flags
             setFlags(this, cpu, op1, count, res);
-            
+
             // Explicit flags
             cpu.OF.setBin(0); // Signed overflow cannot happen in SAR
             cpu.CF.setBin(cf);
@@ -1918,9 +1926,9 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = (val1 - (val2 + cpu.CF.get())) & this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             // Flags needs to recognise difference between SUB & SBB
             //  (ie. treat as SUB unless CF set in which case SBB)
             // TODO: Tidy this up a bit? Don't want to slow down other insns
@@ -1934,9 +1942,9 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = (val1 - val2) & this.operand1.mask;
-            
+
             this.operand1.write(res);
-            
+
             setFlags(this, cpu, val1, val2, res);
         // Scan/Compare String Data (Byte, Word or Dword)
         //  TODO: could be polymorphic, one func for each string-repeat type
@@ -1964,19 +1972,19 @@ define([
             // No repeat prefix
             if (this.repeat === "") {
                 val2 = this.operand2.read();
-                
+
                 DI.set(edi + delta);
             } else {
                 len = CX.get() + 1;
-                
+
                 // Repeat while equal, max CX times
                 if (this.repeat === "#REP/REPE") {
                     while (--len) {
                         val2 = this.operand2.read();
-                        
+
                         edi += delta;
                         DI.set(edi);
-                        
+
                         // Stop if values are not equal
                         if (val2 !== val1) {
                             --len;
@@ -1987,10 +1995,10 @@ define([
                 } else if (this.repeat === "#REPNE") {
                     while (--len) {
                         val2 = this.operand2.read();
-                        
+
                         edi += delta;
                         DI.set(edi);
-                        
+
                         // Stop if values are equal
                         if (val2 === val1) {
                             --len;
@@ -2188,23 +2196,23 @@ define([
                 // When DF set, decrement (scan in reverse direction)
                 //  otherwise increment
                 delta = cpu.DF.get() ? -operandSize : operandSize;
-            
+
             // Common case; no repeat prefix
             if (!this.repeat) {
                 this.operand1.write(this.operand2.read());
-                
+
                 DI.set(edi + delta);
             // Repeat CX times
             } else if (this.repeat === "#REP/REPE") {
                 len = CX.get() + 1;
-                
+
                 while (--len) {
                     this.operand1.write(this.operand2.read());
-                    
+
                     edi += delta;
                     DI.set(edi);
                 }
-                
+
                 // TODO: Almost always "len === 0", however if hits eg. segment limit
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
@@ -2221,7 +2229,7 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = val1 & val2;
-            
+
             // Do not store result of subtraction; only flags
             setFlags(this, cpu, val1, val2, res);
         // Verify a Segment for Reading
@@ -2234,20 +2242,20 @@ define([
         }, "WAIT": function (cpu) {
             // Suspend execution of 80386 Instructions until BUSY# is inactive;
             //  driven by numeric processor extension 80287
-            
+
             // We do not use a math coprocessor, so this can safely be ignored for now.
             util.warning("WAIT :: Unsupported - no x87 support yet");
         // Write Back & Invalidate Cache (486+)
         }, "WBINVD": function (cpu) {
             util.warning("WBINVD :: Not fully implemented");
-            
+
             cpu.flushInstructionCaches();
         // Exchange Register/Memory with Register
         }, "XCHG": function (cpu) {
             // If a memory operand is involved, BUS LOCK is asserted during exchange,
             //  regardless of LOCK# prefix or IOPL value (so always atomic)
             var temp = this.operand1.read();
-            
+
             this.operand1.write(this.operand2.read());
             this.operand2.write(temp);
         // Table Look-up Translation
@@ -2255,7 +2263,7 @@ define([
         }, "XLAT": function (cpu) {
             var RBX = this.addressSizeAttr ? cpu.EBX : cpu.BX,
                 addrVirtual = (RBX.get() + cpu.AL.get()) & RBX.mask;
-            
+
             // Always 1 byte read
             cpu.AL.set(this.segreg.readSegment(addrVirtual, 1));
         // Logical Exclusive OR
@@ -2264,24 +2272,24 @@ define([
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
                 res = val1 ^ val2;
-            
+
             this.operand1.write(res);
-            
+
             setFlags(this, cpu, val1, val2, res);
         }
     };
-    
+
     // For the LOOP(E|NE) & conditional (Jxx) instructions,
     //  jumps relative (ie. adds to (E)IP)
     //  either short (8-bit) or near (16-bit)
     function branchRelative(insn, cpu) {
         var IP = insn.operandSizeAttr ? cpu.EIP : cpu.IP,
             ip = insn.operand1.signExtend(IP.size);
-        
+
         // Relative jump - add to (E)IP, always set EIP though
         cpu.EIP.set((IP.get() + ip) & IP.mask);
     }
-    
+
     /* ============ State storage for Lazy Flags eval later ============ */
     /*     To be called after executing any Instruction which modifies
      *    one or more flags. The different versions of the function
@@ -2289,7 +2297,7 @@ define([
      *    it is not needed; clearing the unused values is not needed either,
      *    as the lazy evaluator will just ignore them.
      */
-    
+
     // Operand 1, 2 and result
     function setFlags(insn, cpu, val1, val2, res) {
         cpu.valLast1 = val1;
@@ -2317,7 +2325,7 @@ define([
         //cpu.name_insnLast = this.name;
         cpu.EFLAGS.bitsDirty = 0xFFFFFFFF;
     };
-    
+
     // Bitwise OR the EFLAGS dirty mask with one of these to indicate
     //    that flag may have been modified
     var bit_ormask_CF = 1;
@@ -2327,7 +2335,7 @@ define([
     var bit_ormask_SF = 16;
     var bit_ormask_OF = 32;
     /* ============ /State storage for Lazy Flags eval later ============ */
-    
+
     // Exports
     return Execute;
 });

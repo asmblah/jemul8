@@ -1,55 +1,63 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *  
+ *
  *  MODULE: x86 Instruction class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-    "../../util"
-    , "../decoder"
-    , "./operand"
-], function (util, Decoder, Operand) { "use strict";
-    
+    "../../util",
+    "../decoder",
+    "./operand"
+], function (
+    util,
+    Decoder,
+    Operand
+) {
+    "use strict";
+
     // x86 Instruction (eg. MOV, CMP) class constructor
     function Instruction( name, offset
                         , addressSizeAttr, operandSizeAttr ) {
         //util.assert(this && (this instanceof Instruction)
         //    , "Instruction ctor() :: error - not called properly"
         //);
-        
+
         // Mnemonic / name of Instruction
         this.name = name;
-        // Absolute offset address of Instruction 
+        // Absolute offset address of Instruction
         this.offset = offset;
         this.operand1 = null;
         this.operand2 = null;
         this.operand3 = null;
         // Length of Instruction in bytes
         this.lenBytes = 0;
-        
+
         // Repeat prefix for String Instructions (eg. MOVS, LODS, CMPS, SCAS)
         this.repeat = "";
-        
+
         this.segreg = null;
-        
+
         // Address-size attribute
         this.addressSizeAttr = addressSizeAttr;
         // Operand-size attribute
@@ -61,7 +69,7 @@ define([
             //util.assert(decoder && (decoder instanceof Decoder)
             //    , "Instruction.decode() :: 'decoder' must be a Decoder object"
             //);
-            
+
             var segregOverride = null;
             var repeat = ""; // REPNE etc.
             // Store start byte offset of instruction: will be needed later
@@ -73,21 +81,21 @@ define([
             var rm;
             var dataOpcode;
             var insn;
-            
+
             /* ====== Process any prefixes ====== */
             // (NB: see experiment results (at top) for why
             //    this is the optimum loop construct here.)
             get_prefixes: while (true) {
                 // Read next byte of code - may be an opcode or a prefix
                 byt = read(offset++, 1);
-                
+
                 // Prefixes
                 switch (byt) {
                 // 2-byte opcode escape
                 case 0x0F:
                     byt = 0x100 | read(offset++, 1);
                     break get_prefixes;
-                
+
                 // Segment overrides
                 case 0x26: segregOverride = decoder.ES; break;
                 case 0x2E: segregOverride = decoder.CS; break;
@@ -95,7 +103,7 @@ define([
                 case 0x3E: segregOverride = decoder.DS; break;
                 case 0x64: segregOverride = decoder.FS; break;
                 case 0x65: segregOverride = decoder.GS; break;
-                
+
                 // Operand-Size Attribute
                 // FIXME: In 32-bit mode, these would do the reverse...
                 //        (but we should have a diff. FDE routine for that)
@@ -122,7 +130,7 @@ define([
                 }
             }
             /* ====== /Process any prefixes ====== */
-            
+
             // Decode ModR/M byte
             if (Decoder.opcodeHasModRM32[ byt ]) {
                 bytModRM = read(offset++, 1);
@@ -133,13 +141,13 @@ define([
             } else {
                 mod = nnn = rm = 0;
             }
-            
+
             // By default, assume Opcode is a 1-byte unextended; if not found in table,
             //    check Extensions table, using ModR/M Reg field as an Opcode Extension field (bits)
             if (!(dataOpcode = Decoder.arr_mapOpcodes[ byt ])) {
                 dataOpcode = Decoder.arr_mapOpcodeExtensions[ (byt << 3) | nnn ];
             }
-            
+
 
 
             /* ==== DEBUGGING CHECKS ==== */
@@ -155,7 +163,7 @@ define([
             }
             /* ==== DEBUGGING CHECKS ==== */
 
-            
+
 
             // Create new Instruction object
             insn = new Instruction(
@@ -163,14 +171,14 @@ define([
                 , offsetStart
                 , addressSizeAttr, operandSizeAttr
             );
-            
+
             // Usually DS:[...] segment is used
             insn.segreg = decoder.DS;
-            
+
             // If repeat prefix was used for a string operation,
             //    store it against the Instruction
             insn.repeat = repeat;
-            
+
             // Instruction has operand(s) - (one or none
             //    of dest & src (possibly a third eg. for IMUL),
             //    these may be swapped with direction bit
@@ -189,7 +197,7 @@ define([
                 offset = insn.operand1.offset;
 
                 setSegment(decoder, insn, insn.operand1);
-                
+
                 // Check whether Instruction uses a second Operand
                 if (dataOpcode[ 1 ].length > 1) {
                     insn.operand2 = Operand.decode(
@@ -206,7 +214,7 @@ define([
                     if (insn.segreg === decoder.DS) {
                         setSegment(decoder, insn, insn.operand2);
                     }
-                    
+
                     // Check whether Instruction uses a third Operand
                     if (dataOpcode[ 1 ].length > 2) {
                         insn.operand3 = Operand.decode(
@@ -226,23 +234,23 @@ define([
                     }
                 }
             }
-            
+
             // Apply Segment Register override if present
             if (segregOverride !== null) { insn.segreg = segregOverride; }
-            
+
             // Calculate length of Instruction in bytes
             insn.lenBytes = offset - offsetStart;
-            
+
             return insn;
         // Create an Instruction object by parsing x86 Assembly
         }, fromASM: function (asm) {
             util.panic("Instruction.fromASM() :: Not yet implemented");
         }
     });
-    
+
     // Alias
     Instruction.disassemble = Instruction.decode;
-    
+
     // Generate a human-readable assembly instruction
     //    (useful for debugging etc.)
     util.extend(Instruction.prototype, {
@@ -251,7 +259,7 @@ define([
         // Generate x86 Assembly
         }, toASM: function () {
             var asm = (this.repeat ? this.repeat + " " : "") + this.getName();
-            
+
             if (this.operand1) {
                 asm += " " + this.operand1.toASM();
             }
@@ -261,7 +269,7 @@ define([
             if (this.operand3) {
                 asm += ", " + this.operand3.toASM();
             }
-            
+
             return asm;
         // Generate x86 Machine Code
         }, assemble: function () {
@@ -304,7 +312,7 @@ define([
             // insn.segreg = decoder.SS;
         }
     }
-    
+
     // Exports
     return Instruction;
 });

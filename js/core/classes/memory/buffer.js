@@ -1,30 +1,37 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Data buffer support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
 	"../../util"
-], function (util) { "use strict";
+], function (
+	util
+) {
+    "use strict";
+
 	var DataViewClass = typeof DataView !== "undefined" ? DataView : null
 	// NB: These are NOT the same as DataViewClass.prototype below
 	, arrayAccessors = {
@@ -50,12 +57,12 @@ define([
 			this[ offset + 3 ] = (val >> 24) & 0xFF;
 		}
 	};
-	
+
 	// Buffer static class
 	function Buffer() {
 		util.problem("Buffer is static-only!");
 	}
-	
+
 	// Emulate DataView if no native support available
 	// - Unfortunately, this adds some overhead to access
 	//   as the .byteView lookup must be performed
@@ -91,7 +98,7 @@ define([
 			}
 		});
 	}
-	
+
 	// Allocates a multi-byte capable memory buffer for data storage
 	Buffer.createBuffer = function (len) {
 		var buf;
@@ -103,7 +110,7 @@ define([
 		// Legacy native Arrays support (slower)
 		} else {
 			buf = new Array(len);
-			
+
 			// Zero-out all bytes in memory (otherwise they will be undefined)
 			for (var i = 0 ; i < len ; ++i) {
 				buf[ i ] = 0x00;
@@ -115,7 +122,7 @@ define([
 	Buffer.wrapByteBuffer = function (buf) {
 		// Wrapping only applies where there is ArrayBuffer support
 		if (!util.support.typedArrays) { return buf; }
-		
+
 		return new Uint8Array(buf);
 	};
 	// Wraps an ArrayBuffer with the most optimised view
@@ -126,7 +133,7 @@ define([
 		if (util.support.typedArrays) {
 			return new DataViewClass(buf);
 		}
-		
+
 		// Only Arrays support: just augment DataView accessors on
 		util.extend(buf, arrayAccessors);
 		return buf;
@@ -143,13 +150,13 @@ define([
 	Buffer.setBuffer = function (buf, offset, val, len) {
 		// TODO: Support "val" properly
 		if (val !== 0) { error(); }
-		
+
 		var idx, bufLen = Buffer.getBufferLength(buf), oldLen;
 		// Zero from start of buffer by default
 		if (offset === undefined) { offset = 0; }
 		// Zero to end of buffer by default
 		if (len === undefined) { len = bufLen - offset; }
-		
+
 		if (util.support.typedArrays) {
 			new Uint8Array(buf).set(new Uint8Array(len), offset);
 		} else {
@@ -193,7 +200,7 @@ define([
 		}
 		bufFrom = Buffer.getBuffer(bufFrom);
 		bufTo = Buffer.getBuffer(bufTo);
-		
+
 		// Perform the copy
 		if (util.support.typedArrays) {
 			new Uint8Array(bufTo)
@@ -208,9 +215,9 @@ define([
 				bufTo[ j ] = bufFrom[ i ];
 			}
 		}
-		
+
 		return len; // Return total no. of bytes copied
 	};
-	
+
 	return Buffer;
 });

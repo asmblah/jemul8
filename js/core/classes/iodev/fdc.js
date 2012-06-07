@@ -1,44 +1,54 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *    
+ *
  *  MODULE: 82077A/82078 FDC (Floppy Disk Controller) class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-    "../../util"
-    , "../iodev"
-    , "../iodev/floppy_disk"
-    , "../memory/buffer"
-    , "../pc"
-], function (util, IODevice, FloppyDisk, Buffer, PC) { "use strict";
-    
+    "../../util",
+    "../iodev",
+    "../iodev/floppy_disk",
+    "../memory/buffer",
+    "../pc"
+], function (
+    util,
+    IODevice,
+    FloppyDisk,
+    Buffer,
+    PC
+) {
+    "use strict";
+
     // TODO: Should be a config setting
     var enableDebug = false;
-    
+
     var debug = enableDebug ? function (msg) {
         util.debug(msg);
     } : function () {};
-    
+
     /* ====== Private ====== */
-    
+
     /* ==== Const ==== */
     // From Bochs' /gui/siminterface.h
     var FDD_NONE         = 0 // Floppy not present
@@ -47,7 +57,7 @@ define([
         , FDD_350DD      = 3 // 720K  3.5"
         , FDD_350HD      = 4 // 1.44M 3.5"
         , FDD_350ED      = 5 // 2.88M 3.5"
-        
+
         , FLOPPY_NONE    = 10 // Media not present
         , FLOPPY_1_2     = 11 // 1.2M  5.25"
         , FLOPPY_1_44    = 12 // 1.44M 3.5"
@@ -58,10 +68,10 @@ define([
         , FLOPPY_180K    = 17 // 180K  5.25"
         , FLOPPY_320K    = 18 // 320K  5.25"
         , FLOPPY_LAST    = 18 // Last legal value of floppy type
-        
+
         , FLOPPY_AUTO    = 19 // Autodetect image size
         , FLOPPY_UNKNOWN = 20 // Image size doesn't match one of the types above
-    
+
     // For main status register
         , FD_MS_MRQ       = 0x80
         , FD_MS_DIO       = 0x40
@@ -71,12 +81,12 @@ define([
         , FD_MS_ACTC      = 0x04
         , FD_MS_ACTB      = 0x02
         , FD_MS_ACTA      = 0x01
-        
+
         , FROM_FLOPPY     = 10
         , TO_FLOPPY       = 11
-        
+
         , FLOPPY_DMA_CHAN = 2
-        
+
         , FDRIVE_NONE     = 0x00
         , FDRIVE_525DD    = 0x01
         , FDRIVE_525HD    = 0x02
@@ -84,7 +94,7 @@ define([
         , FDRIVE_350HD    = 0x08
         , FDRIVE_350ED    = 0x10;
     /* ==== /Const ==== */
-    
+
     // Lookups
     var floppy_type = [
         new FloppyType(FLOPPY_160K, 40, 1, 8, 320, 0x03)
@@ -98,52 +108,52 @@ define([
     ], drate_in_k = [
         500, 300, 250, 1000
     ];
-    
+
     // Constructor / pre-init
     function FDC(machine) {
         util.assert(this && (this instanceof FDC), "FDC ctor ::"
             + " error - constructor not called properly");
-        
+
         var idx;
-        
+
         /** 82077A/82078 Floppy Disk Controller **/
-        
+
         util.info("FDC (Intel 82077A/82078) PreInit");
-        
+
         this.machine = machine;
-        
+
         this.state = {
             data_rate: 0x00
-            
+
             // [Bochs] largest command size ???
             , command: Buffer.createByteBuffer(10)
             , command_index: 0x00
             , command_size: 0x00
             , command_complete: false
             , pending_command: 0x00
-            
+
             , multi_track: false
             , pending_irq: false
             , reset_sensei: 0x00
             , format_count: 0x00
             , format_fillbyte: 0x00
-            
+
             , result: Buffer.createByteBuffer(10)
             , result_index: 0x00
             , result_size: 0x00
-            
+
             , DOR: 0x00 // Digital Output Register
             , TDR: 0x00 // Tape Drive Register
-            
+
             // Really only using 2 drives
             //  out of the 4 the real controller supports
             , cylinder: Buffer.createByteBuffer(4)
             , head: Buffer.createByteBuffer(4)
             , sector: Buffer.createByteBuffer(4)
             , eot: Buffer.createByteBuffer(4)
-            
+
             , TC: false // Terminal Count status from DMA controller
-            
+
             /*
              * Main Status Register
              * ====================
@@ -163,12 +173,12 @@ define([
              *       drive D,C,B,A in positioning mode 1=active 0=not active
              */
             , main_status_reg: 0x00
-            
+
             , status_reg0: 0x00
             , status_reg1: 0x00
             , status_reg2: 0x00
             , status_reg3: 0x00
-            
+
             // Drive field allows up to 4 drives,
             //  even though probably only 2 will ever be used.
             , media: [ null, null, null, null ]
@@ -179,7 +189,7 @@ define([
             , floppy_timer_index: null
             , media_present: [ false, false, false, false ]
             , device_type: Buffer.createByteBuffer(4)
-            
+
             // Digital Input Register:
             //  b7: 0=diskette is present and has not been changed
             //      1=diskette missing or changed
@@ -191,7 +201,7 @@ define([
             , config: 0x00    // Configure byte #1
             , pretrk: 0x00    // Precompensation track
             , perp_mode: 0x00 // Perpendicular mode
-            
+
             , statusbar_id: [ 0, 0 ] // IDs of the status LEDs
         };
     }
@@ -204,7 +214,7 @@ define([
         , FDD_350DD:      FDD_350DD
         , FDD_350HD:      FDD_350HD
         , FDD_350ED:      FDD_350ED
-        
+
         , FLOPPY_NONE:    FLOPPY_NONE
         , FLOPPY_1_2:     FLOPPY_1_2
         , FLOPPY_1_44:    FLOPPY_1_44
@@ -215,10 +225,10 @@ define([
         , FLOPPY_180K:    FLOPPY_180K
         , FLOPPY_320K:    FLOPPY_320K
         , FLOPPY_LAST:    FLOPPY_LAST
-        
+
         , FLOPPY_AUTO:    FLOPPY_AUTO
         , FLOPPY_UNKNOWN: FLOPPY_UNKNOWN
-        
+
         , fromConstant: function (name) {
             if (name in this) {
                 return this[ name ];
@@ -237,7 +247,7 @@ define([
         var cmosValue;
         var media = state.media;
         var disk;
-        
+
         function setupFloppy(idx, devtype, type, status, path, done, fail) {
             cmosValue |= (devtype << 4);
             if (devtype !== FDD_NONE) {
@@ -247,7 +257,7 @@ define([
             } else {
                 state.statusbar_id[ idx ] = -1;
             }
-            
+
             if (type !== FLOPPY_NONE && status) {
                 this.evaluate_media(
                     state.device_type[ idx ]
@@ -289,7 +299,7 @@ define([
                     , emu.getSetting(name + ".path")
                     , function () {
                         util.debug("Floppy loaded ok");
-                        
+
                         if (++loaded === len) {
                             done();
                         }
@@ -303,13 +313,13 @@ define([
                 );
             });
         }
-        
+
         machine.dma.registerDMA8Channel(2, this, this.dma_read, this.dma_write
             , "FDC (Floppy Disk Controller)");
-        
+
         // Make a note that IRQ #6 is used by the Floppy drive
         this.registerIRQ(6, "Floppy Disk Controller");
-        
+
         // I/O port addresses used
         // 0x0000 ... 0x000F
         for (addr = 0x03F2 ; addr <= 0x03F7 ; ++addr) {
@@ -318,12 +328,12 @@ define([
             this.registerIO_Write(addr, "Floppy Disk Controller"
                 , writeHandler, 1);
         }
-        
+
         // Start out with: no drive0, no drive1
         cmosValue = 0x00;
-        
+
         state.num_supported_floppies = 0;
-        
+
         for (idx = 0 ; idx < 4 ; ++idx) {
             media[ idx ] = new FloppyDisk(
                 FLOPPY_NONE, 0, 0, 0, 0, -1, 0, FDRIVE_NONE
@@ -342,7 +352,7 @@ define([
         } else {
             machine.cmos.setReg(0x14, (machine.cmos.getReg(0x14) & 0x3e));
         }
-        
+
         if (state.floppy_timer_index === null) {
             state.floppy_timer_index = machine.registerTimer(
                 this.timer_handler, this, 250, false, false, "FDC");
@@ -353,12 +363,12 @@ define([
         state.SRT = 0x00;
         state.HUT = 0x00;
         state.HLT = 0x00;
-        
+
         // TEMP - Taken from Bochs' /iodev/harddrv.cc
         // System boot sequence A:, C:
         //  (will only have effect if ElTorito boot disabled)
         machine.cmos.setReg(0x2d, machine.cmos.getReg(0x2d) | 0x20);
-        
+
         var drive1 = 1, drive2 = 2, drive3 = 3, floppySignatureCheck = false;
         machine.cmos.setReg(0x3D, drive1 | (drive2 << 4));
         machine.cmos.setReg(0x38, (!floppySignatureCheck) | (drive3 << 4));
@@ -367,16 +377,16 @@ define([
     FDC.prototype.reset = function (type) {
         var i, machine = this.machine
             , state = this.state;
-        
+
         state.pending_irq = false;
         state.reset_sensei = 0x00; /* no reset result present */
-        
+
         state.main_status_reg = 0;
         state.status_reg0 = 0;
         state.status_reg1 = 0;
         state.status_reg2 = 0;
         state.status_reg3 = 0;
-        
+
         // Software reset (via DOR port 0x3f2 bit 2) does not change DOR
         if (type === util.RESET_HARDWARE) {
             state.DOR = 0x0c;
@@ -384,7 +394,7 @@ define([
             // DMA/INT enabled
             // normal operation
             // drive select 0
-            
+
             // DIR and CCR affected only by hard reset
             for (i = 0 ; i < 4 ; i++) {
                 state.DIR[ i ] |= 0x80; // disk changed
@@ -399,14 +409,14 @@ define([
             state.pretrk = 0;
         }
         state.perp_mode = 0;
-        
+
         for (i = 0 ; i < 4 ; i++) {
             state.cylinder[ i ] = 0;
             state.head[ i ] = 0;
             state.sector[ i ] = 0;
             state.eot[ i ] = 0;
         }
-        
+
         machine.pic.lowerIRQ(6);
         if (!(state.main_status_reg & FD_MS_NDMA)) {
             machine.dma.setDRQ(FLOPPY_DMA_CHAN, 0);
@@ -419,7 +429,7 @@ define([
     FDC.prototype.afterRestoreState = function () {
         // ?
     };
-    
+
     // FDC chip's I/O read operations' handler routine
     function readHandler(device, addr, io_len) {
         var state = device.state // "device" will be Floppy
@@ -427,18 +437,18 @@ define([
             , drive;
         //debugger;
         //debug("Floppy readHandler() :: Read addr = " + util.format("hex", addr));
-        
+
         /** NB: This is an 82077A/82078 Floppy Disk Controller (FDC) **/
-        
+
         switch (addr) {
         case 0x3F2: // diskette controller digital output register
             result8 = state.DOR;
             break;
-        
+
         case 0x3F4: /* diskette controller main status register */
             result8 = state.main_status_reg;
             break;
-        
+
         case 0x3F5: /* diskette controller data */
             if ( (state.main_status_reg & FD_MS_NDMA)
                 && ((state.pending_command & 0x4f) == 0x46)
@@ -460,7 +470,7 @@ define([
                 }
             }
             break;
-        
+
         case 0x3F3: // Tape Drive Register
             drive = state.DOR & 0x03;
             if (state.media_present[ drive ]) {
@@ -488,13 +498,13 @@ define([
                 result8 = 0x20;
             }
             break;
-        
+
         case 0x3F6: // Reserved for future floppy controllers
             // This address shared with the hard drive controller
             //result8 = DEV_hd_read_handler(bx_devices.pluginHardDrive, address, io_len);
             util.warning("FDC :: TODO - DEV_hd_read_handler");
             break;
-        
+
         case 0x3F7: // diskette controller digital input register
             // This address shared with the hard drive controller:
             //   Bit  7   : floppy
@@ -508,7 +518,7 @@ define([
                 result8 |= (state.DIR[ drive ] & 0x80);
             }
             break;
-        
+
         default:
             util.problem(util.sprintf(
                 "FDC (Floppy) readHandler() :: Unsupported read, address=0x%04X!"
@@ -530,14 +540,14 @@ define([
             , normal_operation, prev_normal_operation
             , drive_select
             , motor_on_drive0, motor_on_drive1;
-        
+
         debug(util.sprintf(
             "Floppy writeHandler() :: Write to address: 0x%04X = 0x%02X"
             , addr, val
         ));
-        
+
         /** NB: This is an 82077A/82078 Floppy Disk Controller (FDC) **/
-        
+
         switch (addr) {
         case 0x3F2: /* diskette controller digital output register */
             motor_on_drive0 = val & 0x10;
@@ -559,10 +569,10 @@ define([
             }
             normal_operation = val & 0x04;
             drive_select = val & 0x03;
-            
+
             prev_normal_operation = state.DOR & 0x04;
             state.DOR = val;
-            
+
             if (prev_normal_operation == 0 && normal_operation) {
                 // transition from RESET to NORMAL
                 //debugger;
@@ -585,7 +595,7 @@ define([
                 debug(("WARNING: non existing drive selected"));
             }
             break;
-        
+
         case 0x3f4: /* diskette controller data rate select register */
             state.data_rate = val & 0x03;
             if (val & 0x80) {
@@ -598,10 +608,10 @@ define([
                 util.problem(("write to data rate select register: unsupported bits set"));
             }
             break;
-        
+
         case 0x3F5: /* diskette controller data */
             //debugger;
-            
+
             debug(util.sprintf(
                 "command = 0x%02x"
                 , val
@@ -657,7 +667,7 @@ define([
                 case 0xe6: /* read normal data */
                     state.command_size = 9;
                     break;
-                
+
                 case 0x0e: // dump registers (Enhanced drives)
                 case 0x10: // Version command, enhanced controller returns 0x90
                 case 0x14: // Unlock command (Enhanced)
@@ -672,7 +682,7 @@ define([
                 case 0x13: // Configure command (Enhanced)
                     state.command_size = 4;
                     break;
-                
+
                 case 0x18: // National Semiconductor version command; return 80h
                     // These commands are not implemented on the standard
                     // controller and return an error.  They are available on
@@ -683,7 +693,7 @@ define([
                     state.status_reg0 = 0x80; // status: invalid command
                     device.enter_result_phase();
                     break;
-                
+
                 default:
                     util.problem(("io_write: 0x3f5: invalid floppy command 0x%02x"
                         , val));
@@ -695,7 +705,7 @@ define([
                 //if (state.command[ 0 ] === 0xE6 && state.command_index === 4) {
                 //    debugger;
                 //}
-                
+
                 state.command[ state.command_index++ ] = val;
             }
             if (state.command_index == state.command_size) {
@@ -705,7 +715,7 @@ define([
             }
             debug(("io_write: diskette controller data"));
             return;
-        
+
         case 0x3F6: /* diskette controller (reserved) */
             debug("FDC (Floppy) writeHandler() ::"
                 + " Reserved register 0x3f6 unsupported");
@@ -713,7 +723,7 @@ define([
             //DEV_hd_write_handler(bx_devices.pluginHardDrive, address, val, io_len);
             util.warning("FDC :: TODO - DEV_hd_write_handler");
             break;
-        
+
         case 0x3F7: /* diskette controller configuration control register */
             if ((value & 0x03) != state.data_rate) {
                 util.info(("io_write: config control register: 0x%02x", value));
@@ -726,7 +736,7 @@ define([
             case 3: debug(("  1 Mbps")); break;
             }
             break;
-        
+
         default:
             util.problem(util.sprintf(
                 "FDC (Floppy) writeHandler() :: Unsupported write, address=0x%04X!"
@@ -734,7 +744,7 @@ define([
             ));
         }
     }
-    
+
     /* void */FDC.prototype.floppy_command = function () {
         var machine = this.machine, state = this.state
             , i
@@ -742,7 +752,7 @@ define([
             , head, drive, cylinder, sector, eot
             , sector_size, data_length
             , logical_sector, sector_time, step_delay;
-        
+
         // Print command
         /*char buf[9+(9*5)+1], *p = buf;
         p += sprintf(p, "COMMAND: ");
@@ -750,15 +760,15 @@ define([
         p += sprintf(p, "[%02x] ", (unsigned) state.command[i]);
         }
         BX_DEBUG(("%s", buf));*/
-        
+
         // Print command (max. 9 bytes)
-        
+
         var str = "";
         for (i = 0 ; i < state.command_size ; ++i) {
             str += util.sprintf("[%02x] ", state.command[ i ]);
         }
         debug("COMMAND: " + str);
-        
+
         state.pending_command = state.command[ 0 ];
         switch (state.pending_command) {
         case 0x03: // specify
@@ -773,7 +783,7 @@ define([
             }
             this.enter_idle_phase();
             return;
-        
+
         case 0x04: // get status
             drive = (state.command[ 1 ] & 0x03);
             state.head[ drive ] = (state.command[ 1 ] >> 2) & 0x01;
@@ -785,7 +795,7 @@ define([
             }
             this.enter_result_phase();
             return;
-        
+
         case 0x07: // recalibrate
             drive = (state.command[ 1 ] & 0x03);
             state.DOR &= 0xfc;
@@ -807,7 +817,7 @@ define([
             state.main_status_reg &= FD_MS_NDMA;
             state.main_status_reg |= (1 << drive);
             return;
-        
+
         case 0x08: /* sense interrupt status */
             /* execution:
             *   get status
@@ -827,7 +837,7 @@ define([
             debug(("sense interrupt status"));
             this.enter_result_phase();
             return;
-        
+
         case 0x0f: /* seek */
             /* command:
             *   byte0 = 0F
@@ -841,7 +851,7 @@ define([
             drive = state.command[ 1 ] & 0x03;
             state.DOR &= 0xfc;
             state.DOR |= drive;
-            
+
             state.head[ drive ] = (state.command[ 1 ] >> 2) & 0x01;
             step_delay = this.calculate_step_delay(drive, state.command[ 2 ]);
             //debugger;
@@ -852,7 +862,7 @@ define([
             state.main_status_reg &= FD_MS_NDMA;
             state.main_status_reg |= (1 << drive);
             return;
-        
+
         case 0x13: // Configure
             debug(util.sprintf(
                 "configure (eis     = 0x%02x)"
@@ -878,13 +888,13 @@ define([
             state.pretrk = state.command[ 3 ];
             this.enter_idle_phase();
             return;
-        
+
         case 0x4a: // read ID
             drive = state.command[ 1 ] & 0x03;
             state.head[ drive ] = (state.command[ 1 ] >> 2) & 0x01;
             state.DOR &= 0xfc;
             state.DOR |= drive;
-            
+
             motor_on = (state.DOR >> (drive + 4)) & 0x01;
             if (motor_on == 0) {
                 util.problem(("floppy_command(): read ID: motor not on"));
@@ -916,12 +926,12 @@ define([
             state.main_status_reg &= FD_MS_NDMA;
             state.main_status_reg |= FD_MS_BUSY;
             return;
-        
+
         case 0x4d: // format track
             drive = state.command[ 1 ] & 0x03;
             state.DOR &= 0xfc;
             state.DOR |= drive;
-            
+
             motor_on = (state.DOR >> (drive + 4)) & 0x01;
             if (motor_on == 0) {
                 util.panic(("floppy_command(): format track: motor not on"));
@@ -936,7 +946,7 @@ define([
                     , drive
                 ));
             }
-            
+
             if (sector_size != 0x02) { // 512 bytes
                 util.panic(util.sprintf(
                     "format track: sector size %d not supported"
@@ -962,10 +972,10 @@ define([
                 this.enter_result_phase();
                 return;
             }
-            
+
             /* 4 header bytes per sector are required */
             state.format_count <<= 2;
-            
+
             if (state.main_status_reg & FD_MS_NDMA) {
                 debug(("non-DMA floppy format unimplemented"));
             } else {
@@ -976,7 +986,7 @@ define([
             state.main_status_reg |= FD_MS_BUSY;
             debug(("format track"));
             return;
-        
+
         case 0x46: // read normal data, MT=0, SK=0
         case 0x66: // read normal data, MT=0, SK=1
         case 0xc6: // read normal data, MT=1, SK=0
@@ -990,7 +1000,7 @@ define([
             drive = state.command[ 1 ] & 0x03;
             state.DOR &= 0xfc;
             state.DOR |= drive;
-            
+
             motor_on = (state.DOR >> (drive + 4)) & 0x01;
             if (motor_on == 0) {
                 util.panic(("floppy_command(): read/write: motor not on"));
@@ -1008,14 +1018,14 @@ define([
             debug(util.sprintf("  cylinder = %u", cylinder));
             debug(util.sprintf("  sector   = %u", sector));
             debug(util.sprintf("  eot      = %u", eot));
-            
+
             if (state.device_type[drive] == FDRIVE_NONE) {
                 debug(util.sprintf(
                     "floppy_command(): read/write: bad drive #%d"
                     , drive
                 ));
             }
-            
+
             // check that head number in command[1] bit two matches the head
             // reported in the head number field.  Real floppy drives are
             // picky about this, as reported in SF bug #439945, (Floppy drive
@@ -1028,7 +1038,7 @@ define([
                 this.enter_result_phase();
                 return;
             }
-            
+
             if (state.media_present[ drive ] == 0) {
                 util.info(util.sprintf(
                     "attempt to read/write sector %u with media not present"
@@ -1036,14 +1046,14 @@ define([
                 ));
                 return; // Hang controller
             }
-            
+
             if (sector_size != 0x02) { // 512 bytes
                 util.panic(util.sprintf(
                     "read/write command: sector size %d not supported"
                     , 128 << sector_size
                 ));
             }
-            
+
             if (cylinder >= state.media[ drive ].tracks) {
                 debugger;
                 util.panic(util.sprintf(
@@ -1052,7 +1062,7 @@ define([
                 ));
                 return;
             }
-            
+
             if (sector > state.media[ drive ].sectors_per_track) {
                 //debugger;
                 util.info(util.sprintf(
@@ -1062,25 +1072,25 @@ define([
                 state.cylinder[ drive ] = cylinder;
                 state.head[ drive ]     = head;
                 state.sector[ drive ]   = sector;
-                
+
                 state.status_reg0 = 0x40 | (state.head[ drive ] << 2) | drive;
                 state.status_reg1 = 0x04;
                 state.status_reg2 = 0x00;
                 this.enter_result_phase();
                 return;
             }
-            
+
             if (cylinder != state.cylinder[ drive ]) {
                 debug(("io: cylinder request != current cylinder"));
                 this.reset_changeline();
             }
-            
+
             logical_sector = (
                 cylinder * state.media[drive].heads
                     * state.media[drive].sectors_per_track
                 ) + (head * state.media[drive].sectors_per_track)
                 + (sector - 1);
-            
+
             if (logical_sector >= state.media[ drive ].sectors) {
                 util.panic(("io: logical sector out of bounds"));
             }
@@ -1092,7 +1102,7 @@ define([
             state.head[ drive ]     = head;
             state.sector[ drive ]   = sector;
             state.eot[ drive ]      = eot;
-            
+
             if ((state.command[ 0 ] & 0x4f) == 0x46) { // read
                 this.floppy_xfer(
                     drive
@@ -1125,7 +1135,7 @@ define([
                 return;
             }
             break;
-        
+
         case 0x12: // Perpendicular mode
             state.perp_mode = state.command[ 1 ];
             util.info(util.sprintf(
@@ -1134,7 +1144,7 @@ define([
             ));
             this.enter_idle_phase();
             break;
-        
+
         default: // invalid or unsupported command; these are captured in write() above
             util.panic(util.sprintf(
                 "You should never get here! cmd = 0x%02x"
@@ -1142,7 +1152,7 @@ define([
             ));
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::floppy_xfer]
     /* void */FDC.prototype.floppy_xfer = function (
         drive
@@ -1153,11 +1163,11 @@ define([
     ) {
         var machine = this.machine, state = this.state
             , ret = 0;
-        
+
         if (state.device_type[ drive ] == FDRIVE_NONE) {
             util.panic(util.sprintf("floppy_xfer: bad drive #%d", drive));
         }
-        
+
         debug(util.sprintf(
             "floppy_xfer: drive=%u, offset=%u, bytes=%u, direction=%s floppy"
             , drive
@@ -1165,7 +1175,7 @@ define([
             , bytes
             , (direction == FROM_FLOPPY) ? "from" : "to"
         ));
-        
+
         if (direction == FROM_FLOPPY) {//debugger;
             //ret = ::read(state.media[drive].fd, (bx_ptr_t) buffer, bytes);
             ret = Buffer.copy(
@@ -1175,7 +1185,7 @@ define([
                 , 0
                 , bytes
             );
-            
+
             if (ret < bytes) {
                 /* ??? */
                 if (ret > 0) {
@@ -1194,7 +1204,7 @@ define([
         // TO_FLOPPY
         } else {
             util.assert(!state.media[ drive ].write_protected);
-            
+
             //ret = ::write(state.media[drive].fd, (bx_ptr_t) buffer, bytes);
             ret = Buffer.copy(
                 buffer
@@ -1203,19 +1213,19 @@ define([
                 , offset
                 , bytes
             );
-            
+
             if (ret < bytes) {
                 util.panic(("could not perform write() on floppy image file"));
             }
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::timer_handler]
     /* void */FDC.prototype.timer_handler = function (ticksNow) {
         // TODO: Merge this with .timer() ?
         this.timer();
     };
-    
+
     // Based on [bx_floppy_ctrl_c::timer]
     /* void */FDC.prototype.timer = function () {
         var machine = this.machine, state = this.state
@@ -1232,31 +1242,31 @@ define([
             this.enter_idle_phase();
             this.raise_interrupt();
             break;
-        
+
         case 0x0f: // seek
             state.status_reg0 = 0x20 | (state.head[ drive ] << 2) | drive;
             this.enter_idle_phase();
             this.raise_interrupt();
             break;
-        
+
         case 0x4a: /* read ID */
             this.enter_result_phase();
             break;
-        
+
         case 0x45: /* write normal data */
         case 0xc5:
             if (state.TC) { // Terminal Count line, done
                 state.status_reg0 = (state.head[ drive ] << 2) | drive;
                 state.status_reg1 = 0;
                 state.status_reg2 = 0;
-                
+
                 debug(("<<WRITE DONE>>"));
                 debug(("AFTER"));
                 debug(util.sprintf("  drive    = %u", drive));
                 debug(util.sprintf("  head     = %u", state.head[ drive ]));
                 debug(util.sprintf("  cylinder = %u", state.cylinder[ drive ]));
                 debug(util.sprintf("  sector   = %u", state.sector[ drive ]));
-                
+
                 this.enter_result_phase();
             } else {
                 // transfer next sector
@@ -1265,7 +1275,7 @@ define([
                 }
             }
             break;
-        
+
         case 0x46: /* read normal data */
         case 0x66:
         case 0xc6:
@@ -1279,7 +1289,7 @@ define([
                 machine.dma.setDRQ(FLOPPY_DMA_CHAN, 1);
             }
             break;
-        
+
         case 0x4d: /* format track */
             if ((state.format_count == 0) || state.TC) {
                 state.format_count = 0;
@@ -1292,7 +1302,7 @@ define([
                 }
             }
             break;
-        
+
         case 0xfe: // (contrived) RESET
             this.reset(PC.RESET_SOFTWARE);
             state.pending_command = 0;
@@ -1300,10 +1310,10 @@ define([
             this.raise_interrupt();
             state.reset_sensei = 4;
             break;
-        
+
         case 0x00: // nothing pending?
             break;
-        
+
         default:
             util.panic(util.sprintf(
                 "floppy:timer(): unknown case %02x"
@@ -1311,21 +1321,21 @@ define([
             ));
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::dma_write]
     /* void */FDC.prototype.dma_write = function () {
         var machine = this.machine, state = this.state
             , drive = state.DOR & 0x03, result8;
-        
+
         // A DMA write is from I/O to Memory
         // We need to return the next data byte from the floppy buffer
         // to be transfered via the DMA to memory. (read block from floppy)
-        
+
         result8 = state.floppy_buffer[ state.floppy_buffer_index++ ];
-        
+
         state.TC = this.get_tc();
         if ((state.floppy_buffer_index >= 512) || (state.TC)) {
-            
+
             if (state.floppy_buffer_index >= 512) {
                 this.increment_sector(); // increment to next sector before retrieving next one
                 state.floppy_buffer_index = 0;
@@ -1334,28 +1344,28 @@ define([
                 state.status_reg0 = (state.head[ drive ] << 2) | drive;
                 state.status_reg1 = 0;
                 state.status_reg2 = 0;
-                
+
                 debug(("<<READ DONE>>"));
                 debug(("AFTER"));
                 debug(util.sprintf("  drive    = %u", drive));
                 debug(util.sprintf("  head     = %u", state.head[ drive ]));
                 debug(util.sprintf("  cylinder = %u", state.cylinder[ drive ]));
                 debug(util.sprintf("  sector   = %u", state.sector[ drive ]));
-                
+
                 if (!(state.main_status_reg & FD_MS_NDMA)) {
                     machine.dma.setDRQ(FLOPPY_DMA_CHAN, 0);
                 }
                 this.enter_result_phase();
             } else { // more data to transfer
                 var logical_sector, sector_time;
-                
+
                 // remember that not all floppies have two sides, multiply by s.head[drive]
                 logical_sector = (
                     state.cylinder[ drive ] * state.media[ drive ].heads
                         * state.media[ drive ].sectors_per_track
                     ) + (state.head[ drive ] * state.media[ drive ].sectors_per_track)
                     + (state.sector[ drive ] - 1);
-                
+
                 this.floppy_xfer(
                     drive
                     , logical_sector * 512
@@ -1374,16 +1384,16 @@ define([
         }
         return result8;
     };
-    
+
     // Based on [bx_floppy_ctrl_c::dma_read]
     /* void */FDC.prototype.dma_read = function (data_byte) {
         var machine = this.machine, state = this.state
             , i, drive, logical_sector, sector_time;
-        
+
         // A DMA read is from Memory to I/O
         // We need to write the data_byte which was already transferred from memory
         // via DMA to I/O (write block to floppy)
-        
+
         drive = state.DOR & 0x03;
         if (state.pending_command == 0x4d) { // format track in progress
             state.format_count--;
@@ -1438,7 +1448,7 @@ define([
             }
         } else { // write normal data
             state.floppy_buffer[ state.floppy_buffer_index++ ] = data_byte;
-            
+
             state.TC = this.get_tc();
             if ((state.floppy_buffer_index >= 512) || (state.TC)) {
                 logical_sector = (
@@ -1484,31 +1494,31 @@ define([
             }
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::raise_interrupt]
     /* void */FDC.prototype.raise_interrupt = function () {
         var machine = this.machine, state = this.state;
-        
+
         machine.pic.raiseIRQ(6);
         state.pending_irq = true;
         state.reset_sensei = 0;
     };
-    
+
     // Based on [bx_floppy_ctrl_c::lower_interrupt]
     /* void */FDC.prototype.lower_interrupt = function () {
         var machine = this.machine, state = this.state;
-        
+
         if (state.pending_irq) {
             machine.pic.lowerIRQ(6);
             state.pending_irq = false;
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::increment_sector]
     /* void */FDC.prototype.increment_sector = function () {
         var state = this.state
             , drive = state.DOR & 0x03;
-        
+
         // values after completion of data xfer
         // ??? calculation depends on base_count being multiple of 512
         state.sector[ drive ]++;
@@ -1535,13 +1545,13 @@ define([
             }
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::set_media_status]
     /* unsigned */FDC.prototype.set_media_status = function (drive, status) {
         var state = this.state
             , emu = this.machine.emu
             , path, type, disk;
-        
+
         if (drive == 0) {
             //type = SIM.get_param_enum(BXPN_FLOPPYA_TYPE).get();
             type = emu.getSetting("floppy0.diskType");
@@ -1549,14 +1559,14 @@ define([
             //type = SIM.get_param_enum(BXPN_FLOPPYB_TYPE).get();
             type = emu.getSetting("floppy1.diskType");
         }
-        
+
         // if setting to the current value, nothing to do
         if ( (status == state.media_present[ drive ])
             && ((status == 0) || (type == state.media[ drive ].type))
         ) {
             return status;
         }
-        
+
         if (status == 0) {
             // eject floppy
             state.media[ drive ].eject();
@@ -1587,26 +1597,26 @@ define([
                 , state.media[ drive ])
             ) {
                 state.media_present[ drive ] = true;
-                
+
                 disk = state.media[ drive ];
                 util.info(util.sprintf("FDC.init > setupFloppy() ::"
                     + " fd%d: '%s' ro=%d, h=%d, t=%d, spt=%d"
                     , drive, path, disk.heads, disk.tracks, disk.sectors_per_track
                 ));
                 emu.setSetting("floppy" + drive + ".status", true);
-                
+
                 return 1;
             } else {
                 state.media_present[ drive ] = false;
-                
+
                 emu.setSetting("floppy" + drive + ".status", false);
                 emu.setSetting("floppy" + drive + ".diskType", FLOPPY_NONE);
-                
+
                 return 0;
             }
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::get_media_status]
     /* unsigned */FDC.prototype.get_media_status = function (drive) {
         return state.media_present[ drive ];
@@ -1622,13 +1632,13 @@ define([
         , fail
     ) {
         var i, ret, type_idx = -1, sizeBytes;
-        
+
         // Check media type
         if (type == FLOPPY_NONE) {
             fail();
             return;
         }
-        
+
         for (i = 0; i < 8; i++) {
             if (type == floppy_type[ i ].id) { type_idx = i; }
         }
@@ -1648,14 +1658,14 @@ define([
             fail();
             return;
         }
-        
+
         media.write_protected = false;
-        
+
         media.loadFile(
             path
             , function () {
                 sizeBytes = media.getDataSize();
-                
+
                 switch (type) {
                 // use CMOS reserved types
                 case FLOPPY_160K: // 160K 5.25"
@@ -1724,24 +1734,24 @@ define([
             }
         );
     };
-    
+
     // Based on [bx_floppy_ctrl_c::enter_result_phase]
     /*void */FDC.prototype.enter_result_phase = function () {
         var state = this.state
             , drive = state.DOR & 0x03, i;
-        
+
         /* these are always the same */
         state.result_index = 0;
         // not necessary to clear any status bits, we're about to set them all
         state.main_status_reg |= FD_MS_MRQ | FD_MS_DIO | FD_MS_BUSY;
-        
+
         /* invalid command */
         if ((state.status_reg0 & 0xc0) == 0x80) {
             state.result_size = 1;
             state.result[ 0 ] = state.status_reg0;
             return;
         }
-        
+
         switch (state.pending_command) {
         case 0x04: // get status
             state.result_size = 1;
@@ -1793,38 +1803,38 @@ define([
             this.raise_interrupt();
             break;
         }
-        
+
         // Print command result (max. 10 bytes)
-        
+
         var str = "";
         for (i = 0 ; i < state.result_size ; ++i) {
             str += util.sprintf("[%02x] ", state.result[ i ]);
         }
         debug("RESULT: " + str);
     };
-    
+
     // Based on [bx_floppy_ctrl_c::enter_idle_phase]
     /*void */FDC.prototype.enter_idle_phase = function () {
         var state = this.state;
-        
+
         state.main_status_reg &= (FD_MS_NDMA | 0x0f);  // leave drive status untouched
         state.main_status_reg |= FD_MS_MRQ; // data register ready
-        
+
         state.command_complete = true; /* waiting for new command */
         state.command_index = 0;
         state.command_size = 0;
         state.pending_command = 0;
-        
+
         state.floppy_buffer_index = 0;
     };
-    
+
     // Based on [bx_floppy_ctrl_c::calculate_step_delay]
     /* Bit32u */FDC.prototype.calculate_step_delay
     = function (drive, new_cylinder) {
         var state = this.state
             , steps = 0x00
             , one_step_delay = 0x00000000;
-        
+
         if (new_cylinder == state.cylinder[ drive ]) {
             steps = 1;
         } else {
@@ -1835,7 +1845,7 @@ define([
         one_step_delay = (one_step_delay >>> 0); // Force to 32-bit int
         return (steps * one_step_delay);
     };
-    
+
     // Based on [bx_floppy_ctrl_c::reset_changeline]
     /* void */FDC.prototype.reset_changeline = function () {
         var machine = this.machine, state = this.state
@@ -1844,7 +1854,7 @@ define([
             state.DIR[ drive ] &= ~0x80;
         }
     };
-    
+
     // Based on [bx_floppy_ctrl_c::get_tc]
     /* bool */FDC.prototype.get_tc = function () {
         var machine = this.machine, state = this.state
@@ -1872,7 +1882,7 @@ define([
         }
         return terminal_count;
     };
-    
+
     function FloppyType(id, tracks, heads, sectorsPerTrack, sectors, mask) {
         this.id = id;
         this.trk = tracks;
@@ -1882,7 +1892,7 @@ define([
         this.drive_mask = mask;
     }
     /* ====== /Private ====== */
-    
+
     // Exports
     return FDC;
 });

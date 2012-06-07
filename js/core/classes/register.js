@@ -31,7 +31,8 @@ define([
 ], function (
 	util,
 	DecoderRegister
-) { "use strict";
+) {
+    "use strict";
 
 	// Register (eg. CPU registers EAX, EBX) class constructor
 	//	(NB: also used by I/O devices eg. CMOS)

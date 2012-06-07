@@ -1,38 +1,47 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Video/graphics card class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-	"../../util"
-	, "../iodev"
-	, "../http"
-	, "../memory/buffer"
-], function (util, IODevice, HTTP, Buffer) { "use strict";
-	
+	"../../util",
+	"../iodev",
+	"../http",
+	"../memory/buffer"
+], function (
+	util,
+	IODevice,
+	HTTP,
+	Buffer
+) {
+    "use strict";
+
 	var trace = false;
-	
+
 	/* ====== Private ====== */
-	
+
 	/* ==== Const ==== */
 	var MAX_XRES = 1280, MAX_YRES = 1024
 		, X_TILESIZE = 16, Y_TILESIZE = 24
@@ -42,7 +51,7 @@ define([
 		, TEXT_BLINK_MODE = 0x01
 		, TEXT_BLINK_TOGGLE = 0x02
 		, TEXT_BLINK_STATE = 0x04
-		
+
 		// Some constant lookup tables from Bochs' /iodev/vga.cc
 		, charmap_offset = [
 			0x0000, 0x4000, 0x8000, 0xc000
@@ -66,33 +75,33 @@ define([
 			[ 0xff, 0xff, 0xff, 0xff ],
 		];
 	/* ==== /Const ==== */
-	
+
 	// TODO: These should be class properties...
 	var old_iHeight = 0, old_iWidth = 0, old_MSL = 0;
-	
+
 	// Constructor / pre-init
 	function VGA(machine) {
 		util.assert(this && (this instanceof VGA), "VGA ctor ::"
 			+ " error - constructor not called properly");
-		
+
 		var mem = machine.mem
 			, idx;
-		
+
 		util.info("VGA PreInit");
-		
+
 		this.machine = machine;
-		
+
 		this.state = {
 			misc_output: {
 				// 1=color emulation,	base address = 3Dx
 				// 0=mono emulation,	base address = 3Bx
-				color_emulation: false 
+				color_emulation: false
 				, enable_ram: false			// enable CPU access to video memory if set
 				, clock_select: 0x00		// 0=25Mhz 1=28Mhz
 				, select_high_bank: false	// when in odd/even modes, select
 				// high 64k bank if set
 				, horiz_sync_pol: false		// Bit6: negative if set
-				
+
 				// Bit7: negative if set
 				//   Bit7, bit6 represent no. of lines on display:
 				//   0 = reserved
@@ -113,7 +122,7 @@ define([
 				, color_plane_enable: 0x00
 				, horiz_pel_panning: 0x00
 				, color_select: 0x00
-				
+
 				, mode_ctrl: {
 					graphics_alpha: false
 					, display_type: false
@@ -188,7 +197,7 @@ define([
 			/* static unsigned */cs_counter: 1
 			/* static bx_bool */, cs_visible: 0
 		};
-		
+
 		for (idx = 0 ; idx < 256 ; ++idx) {
 			this.state.pel.data[ idx ] = new Colour();
 		}
@@ -196,13 +205,13 @@ define([
 		for (idx = 0 ; idx < NUM_X_TILES ; ++idx) {
 			this.state.vga_tile_updated[ idx ] = new Array(NUM_Y_TILES);
 		}
-		
+
 		this.timerHandle = null;
-		
+
 		// HTMLCanvas references for drawing
 		this.screenVGA = null;
 		this.ctx_screenVGA = null;
-		
+
 		// Video memory / VRAM
 		this.bufVRAM = null;
 		// Snapshot of text currently being displayed
@@ -217,7 +226,7 @@ define([
 		var len;
 		var x;
 		var y;
-		
+
 		// Download & store VGABIOS firmware image
 		HTTP.get(
 			"docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
@@ -230,7 +239,7 @@ define([
 				fail();
 			}
 		);
-		
+
 		// VGA output
 		//	TODO: Separate DOM access out into plugins for eg. jQuery
 		this.screenVGA = $("#screenVGA")[ 0 ];
@@ -247,10 +256,10 @@ define([
 				data[ idx ] = 0xFF;
 			}
 		}
-		
+
 		state.x_tilesize = X_TILESIZE;
 		state.y_tilesize = Y_TILESIZE;
-		
+
 		// Init. VGA controllers and other internal stuff
 		state.vga_enabled					= true;
 		state.misc_output.color_emulation	= true;
@@ -259,7 +268,7 @@ define([
 		state.misc_output.select_high_bank	= 0;
 		state.misc_output.horiz_sync_pol	= 1;
 		state.misc_output.vert_sync_pol		= 1;
-		
+
 		state.attribute_ctrl.mode_ctrl.graphics_alpha = 0;
 		state.attribute_ctrl.mode_ctrl.display_type = 0;
 		state.attribute_ctrl.mode_ctrl.enable_line_graphics = 1;
@@ -267,11 +276,11 @@ define([
 		state.attribute_ctrl.mode_ctrl.pixel_panning_compat = 0;
 		state.attribute_ctrl.mode_ctrl.pixel_clock_select = 0;
 		state.attribute_ctrl.mode_ctrl.internal_palette_size = 0;
-		
+
 		state.line_offset			= 80;
 		state.line_compare			= 1023;
 		state.vertical_display_end	= 399;
-		
+
 		for (idx = 0 ; idx <= 0x18 ; ++idx) {
 			state.CRTC.reg[ idx ] = 0;
 		}
@@ -288,7 +297,7 @@ define([
 		state.attribute_ctrl.color_plane_enable = 0x0f;
 		state.attribute_ctrl.horiz_pel_panning = 0;
 		state.attribute_ctrl.color_select = 0;
-		
+
 		for (idx = 0 ; idx < 256 ; ++idx) {
 			state.pel.data[ idx ].red = 0;
 			state.pel.data[ idx ].green = 0;
@@ -300,7 +309,7 @@ define([
 		state.pel.read_data_cycle = 0;
 		state.pel.dac_state = 0x01;
 		state.pel.mask = 0xFF;
-		
+
 		state.graphics_ctrl.index = 0;
 		state.graphics_ctrl.set_reset = 0;
 		state.graphics_ctrl.enable_set_reset = 0;
@@ -320,7 +329,7 @@ define([
 		for (idx = 0 ; idx < 4 ; ++idx) {
 			state.graphics_ctrl.latch[ idx ] = 0;
 		}
-		
+
 		state.sequencer.index = 0;
 		state.sequencer.map_mask = 0;
 		state.sequencer.reset1 = 1;
@@ -330,39 +339,39 @@ define([
 		state.sequencer.extended_mem = 1;	// Display mem greater than 64K
 		state.sequencer.odd_even = 1;		// Use sequential addressing mode
 		state.sequencer.chain_four = 0;		// Use map mask & read map select
-		
+
 		state.charmap_address = 0;
 		state.x_dotclockdiv2 = 0;
 		state.y_doublescan = 0;
 		state.last_bpp = 8;
-		
+
 		state.vga_mem_updated = false;
 		for (y = 0 ; y < (480 / Y_TILESIZE) ; ++y) {
 			for (x = 0 ; x < (640 / X_TILESIZE) ; ++x) {
 				this.setTileUpdated(x, y, 0);
 			}
 		}
-		
+
 		this.extension_init = false;
 		this.extension_checked = false;
-		
+
 		state.size_mem = 0x40000; // 256k
 		// Ask system to allocate a memory buffer
 		this.bufVRAM = Buffer.createByteBuffer(state.size_mem);
-		
+
 		// Snapshot of text currently being displayed
 		this.textSnapshot = Buffer.createByteBuffer(128 * 1024);
-		
+
 		// Set up I/O handlers
 		this.initIO();
-		
+
 		// Screen refresh/update timer
 		this.initSystemTimer();
-		
+
 		// Set up I/O memory hooks/handlers for VGA
 		this.registerMemoryHandlers(0xa0000, 0xbffff
 			, memoryReadHandler, memoryWriteHandler);
-		
+
 		// Install Video Card on system board
 		//	(TODO: This logic from Bochs doesn't make sense):
 		//	DEV_cmos_set_reg(0x14, (DEV_cmos_get_reg(0x14) & 0xcf) | 0x00);
@@ -371,17 +380,17 @@ define([
 	VGA.prototype.reset = function (type) {
 		// Wipe VRAM to reset it to boot state
 		Buffer.zeroBuffer(this.bufVRAM);
-		
+
 		this.update();
 	};
 	VGA.prototype.registerState = function () {
 		var state = this.state;
-		
+
 		// ?
 	};
 	VGA.prototype.afterRestoreState = function () {
 		var state = this.state;
-		
+
 		// ?
 	};
 	// Register all VGA I/O port addresses used
@@ -394,24 +403,24 @@ define([
 			this.registerIO_Read(addr, name, readHandler, 1);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
-		
+
 		for (addr = 0x03BA ; addr <= 0x03BA ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 1);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
-		
+
 		idx = 0;
 		for (addr = 0x03C0 ; addr <= 0x03CF ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler
 								, hsh_maskIO[ idx++ ]);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
-		
+
 		for (addr = 0x03D4 ; addr <= 0x03D5 ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 3);
 			this.registerIO_Write(addr, name, writeHandler, 3);
 		}
-		
+
 		for (addr = 0x03DA ; addr <= 0x03DA ; ++addr) {
 			this.registerIO_Read(addr, name, readHandler, 1);
 			this.registerIO_Write(addr, name, writeHandler, 3);
@@ -440,7 +449,7 @@ define([
 	// Based on [#define GET_TILE_UPDATED in /iodev/vga.cc]
 	VGA.prototype.getTileUpdated = function (xtile, ytile) {
 		//if (parseInt(xtile) !== xtile || parseInt(ytile) !== ytile) { debugger; }
-		
+
 		// Only reference the array if the tile numbers are within the bounds
 		// of the array.  If out of bounds, return 0.
 		return ((((xtile) < NUM_X_TILES) && ((ytile) < NUM_Y_TILES))
@@ -450,7 +459,7 @@ define([
 	// Based on [#define SET_TILE_UPDATED in /iodev/vga.cc]
 	VGA.prototype.setTileUpdated = function (xtile, ytile, val) {
 		//if (parseInt(xtile) !== xtile || parseInt(ytile) !== ytile) { debugger; }
-		
+
 		// Only reference the array if the tile numbers are within the bounds
 		// of the array.  If out of bounds, do nothing.
 		if (((xtile) < NUM_X_TILES) && ((ytile) < NUM_Y_TILES)) {
@@ -477,17 +486,17 @@ define([
 	// Based on [bx_vga_c::init_systemtimer]
 	VGA.prototype.initSystemTimer = function () {
 		var interval = 40000;
-		
+
 		this.timerHandle = this.machine.registerTimer(handleTimer, this
 			, interval, true, true, "VGA");
-		
+
 		if (interval < 300000) {
 			this.state.blink_counter = Math.floor(300000 / interval);
 		} else {
 			this.state.blink_counter = 1;
 		}
 	};
-	
+
 	// Based on [bx_vga_c::update]
 	VGA.prototype.update = function () {
 		var machine = this.machine, state = this.state
@@ -496,13 +505,13 @@ define([
 			, attribute, palette_reg_val, DAC_regno
 			, line_compare;
 			//Bit8u *plane0, *plane1, *plane2, *plane3;
-		
+
 		// No screen update necessary
 		if ( !state.vga_mem_updated
 				&& state.graphics_ctrl.graphics_alpha ) {
 			return;
 		}
-		
+
 		// Skip screen update when vga/video is disabled
 		//	or the sequencer is in reset mode
 		if ( !state.vga_enabled || !state.attribute_ctrl.video_enabled
@@ -510,7 +519,7 @@ define([
 				|| (state.sequencer.reg1 & 0x20) ) {
 			return;
 		}
-		
+
 		// Skip screen update if the vertical retrace is in progress
 		//	(using 72 Hz vertical frequency)
 		//	- NB: This is to prevent screen tearing, but we do not have
@@ -518,9 +527,9 @@ define([
 		if ((machine.getTimeUsecs() % 13888) < 70) {
 			return;
 		}
-		
+
 		/** TODO: VBE **/
-		
+
 		/*
 		 *	Fields that effect the way video memory is serialized into screen output:
 		 *	GRAPHICS CONTROLLER:
@@ -532,25 +541,25 @@ define([
 		 *		2: Output data 8 bits at a time from the 4 bit planes
 		 *			(mode 13 and variants like modeX)
 		 */
-		
+
 		// [Bochs] if (state.vga_mem_updated==0 || state.attribute_ctrl.video_enabled == 0)
-		
+
 		if (state.graphics_ctrl.graphics_alpha) {
 			var color = 0x00;
 			var bit_no, r, c, x, y;
 			var byte_offset, start_addr;
 			var xc, yc, xti, yti;
-			
+
 			start_addr = (state.CRTC.reg[ 0x0c ] << 8) | state.CRTC.reg[ 0x0d ];
-			
+
 			//BX_DEBUG(("update: shiftreg=%u, chain4=%u, mapping=%u",
 			//  (unsigned) state.graphics_ctrl.shift_reg,
 			//  (unsigned) state.sequencer.chain_four,
 			//  (unsigned) state.graphics_ctrl.memory_mapping);
-			
+
 			var dimens = this.determineScreenDimensions();
 			iWidth = dimens.width; iHeight = dimens.height;
-			
+
 			if ( (iWidth != old_iWidth) || (iHeight != old_iHeight)
 					|| (state.last_bpp > 8) ) {
 				// TODO: Get rid of this check & replace w/default
@@ -561,12 +570,12 @@ define([
 						iWidth, iHeight, 0, 0, 8
 					);
 				}
-				
+
 				old_iWidth = iWidth;
 				old_iHeight = iHeight;
 				state.last_bpp = 8;
 			}
-			
+
 			switch (state.graphics_ctrl.shift_reg) {
 			case 0:
 				if (state.graphics_ctrl.memory_mapping == 3) { // CGA 640x200x2
@@ -577,7 +586,7 @@ define([
 									y = yc + r;
 									if (state.y_doublescan) { y >>= 1; }
 									for (c = 0 ; c < X_TILESIZE ; c++) {
-										
+
 										x = xc + c;
 										/* 0 or 0x2000 */
 										byte_offset = start_addr + ((y & 1) << 13);
@@ -585,7 +594,7 @@ define([
 										byte_offset += (320 / 4) * (y / 2);
 										/* to the byte start */
 										byte_offset += (x / 8);
-										
+
 										bit_no = 7 - (x % 8);
 										palette_reg_val = (((bufVRAM[ byte_offset >>> 0 ]) >> bit_no) & 1);
 										DAC_regno = state.attribute_ctrl.palette_reg[ palette_reg_val ];
@@ -602,14 +611,14 @@ define([
 				//	output on its associated serial output. Standard EGA/VGA format
 				} else {
 					/** TODO: VBE **/
-					
+
 					//plane0 = &state.memory[ 0 << 16 ];
 					//plane1 = &state.memory[ 1 << 16 ];
 					//plane2 = &state.memory[ 2 << 16 ];
 					//plane3 = &state.memory[ 3 << 16 ];
 					line_compare = state.line_compare;
 					if (state.y_doublescan) { line_compare >>= 1; }
-					
+
 					for ( yc = 0, yti = 0 ; yc < iHeight
 							; yc += Y_TILESIZE, yti++ ) {
 						for ( xc = 0, xti = 0 ; xc < iWidth
@@ -629,14 +638,14 @@ define([
 											byte_offset = start_addr + x / 8 +
 											(y * state.line_offset);
 										}
-										
+
 										byte_offset >>>= 0;
 										attribute =
 											(((/*plane0*/bufVRAM[ byte_offset ] >> bit_no) & 0x01) << 0)
 											| (((/*plane1*/bufVRAM[ (1 << 16) + byte_offset ] >> bit_no) & 0x01) << 1)
 											| (((/*plane2*/bufVRAM[ (2 << 16) + byte_offset ] >> bit_no) & 0x01) << 2)
 											| (((/*plane3*/bufVRAM[ (3 << 16) + byte_offset ] >> bit_no) & 0x01) << 3);
-										
+
 										attribute &= state.attribute_ctrl.color_plane_enable;
 										// [Bochs] undocumented feature ???: colors 0..7 high intensity, colors 8..15 blinking
 										//	using low/high intensity. Blinking is not implemented yet.
@@ -656,7 +665,7 @@ define([
 											((state.attribute_ctrl.color_select & 0x0c) << 4);
 										}
 										// [Bochs] DAC_regno &= video DAC mask register ???
-										
+
 										state.tile[ r*X_TILESIZE + c ] = DAC_regno;
 									}
 								}
@@ -670,9 +679,9 @@ define([
 				break; // case 0
 			// Output the data in a CGA-compatible 320x200 4 color graphics
 			//	mode.  (modes 4 & 5)
-			case 1: 
+			case 1:
 				// CGA 320x200x4 start
-				
+
 				for (yc = 0, yti = 0; yc < iHeight ; yc += Y_TILESIZE, yti++) {
 					for (xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++) {
 						if (this.getTileUpdated(xti, yti)) {
@@ -680,7 +689,7 @@ define([
 								y = yc + r;
 								if (state.y_doublescan) { y >>= 1; }
 								for (c = 0 ; c < X_TILESIZE ; c++) {
-									
+
 									x = xc + c;
 									if (state.x_dotclockdiv2) { x >>= 1; }
 									// 0 or 0x2000
@@ -689,7 +698,7 @@ define([
 									byte_offset += (320 / 4) * (y / 2);
 									// To the byte start
 									byte_offset += (x / 4);
-									
+
 									attribute = 6 - 2*(x % 4);
 									palette_reg_val = (bufVRAM[ byte_offset >>> 0 ]) >> attribute;
 									palette_reg_val &= 3;
@@ -707,15 +716,15 @@ define([
 				break; // case 1
 			// Output the data eight bits at a time from the 4 bit plane
 			//	(format for VGA mode 13 hex)
-			case 2: 
+			case 2:
 			case 3: // [Bochs] FIXME: is this really the same ???
 				if (state.sequencer.chain_four) {
 					var pixely, pixelx, plane;
-					
+
 					if (state.misc_output.select_high_bank != 1) {
 						util.panic("VGA.update() :: select_high_bank != 1");
 					}
-					
+
 					for (yc = 0, yti = 0 ; yc < iHeight ; yc += Y_TILESIZE, yti++) {
 						for (xc = 0, xti = 0 ; xc < iWidth ; xc += X_TILESIZE, xti++) {
 							if (this.getTileUpdated(xti, yti)) {
@@ -739,7 +748,7 @@ define([
 					}
 				} else { // chain_four == 0, modeX
 					var pixely, pixelx, plane;
-					
+
 					for (yc = 0, yti = 0; yc < iHeight ; yc += Y_TILESIZE, yti++) {
 						for (xc = 0, xti = 0; xc < iWidth ; xc += X_TILESIZE, xti++) {
 							if (this.getTileUpdated(xti, yti)) {
@@ -768,7 +777,7 @@ define([
 				util.panic("VGA.update() :: shift_reg == "
 					+ state.graphics_ctrl.shift_reg);
 			}
-			
+
 			state.vga_mem_updated = false;
 			return;
 		// Text mode
@@ -781,12 +790,12 @@ define([
 			// static unsigned cs_counter = 1;
 			// static bx_bool cs_visible = 0;
 			var cs_toggle = false;
-			
+
 			this.update_static.cs_counter = (this.update_static.cs_counter - 1) & 0xFFFF;
 			if (!state.vga_mem_updated && (this.update_static.cs_counter > 0)) {
 				return;
 			}
-			
+
 			tm_info.start_address = 2*((state.CRTC.reg[ 12 ] << 8) +
 				state.CRTC.reg[ 13 ]);
 			tm_info.cs_start = state.CRTC.reg[ 0x0a ] & 0x3f;
@@ -824,7 +833,7 @@ define([
 			} else {
 				tm_info.h_panning &= 0x07;
 			}
-			
+
 			// (V)ertical (D)isplay (E)nd: find out how many lines are displayed
 			VDE = state.vertical_display_end;
 			// (M)aximum (S)can (L)ine: height of character cell
@@ -847,7 +856,7 @@ define([
 			cWidth = ((state.sequencer.reg1 & 0x01) == 1) ? 8 : 9;
 			iWidth = cWidth * cols;
 			iHeight = VDE + 1;
-			
+
 			// Screen size has changed: notify GUI
 			if ( (iWidth != old_iWidth)
                 || (iHeight != old_iHeight)
@@ -864,7 +873,7 @@ define([
 						iWidth, iHeight, MSL + 1, cWidth, 8
 					);
 				}
-				
+
 				old_iWidth = iWidth;
 				old_iHeight = iHeight;
 				old_MSL = MSL;
@@ -881,7 +890,7 @@ define([
 				cursor_x = ((cursor_address - start_address)/2) % (iWidth/cWidth);
 				cursor_y = (((cursor_address - start_address)/2) / (iWidth/cWidth)) >>> 0;
 			}
-			
+
             // TODO: Optimise by removing this check & defining a default
             //       .textUpdate() handler (will probably do nothing)
             if (this.textUpdate) {
@@ -894,7 +903,7 @@ define([
                     , tm_info
                 );
             }
-            
+
             // Screen updated
 			if (state.vga_mem_updated) {
 				// Screen updated, copy new VGA memory contents
@@ -904,7 +913,7 @@ define([
 					, this.textSnapshot, 0
 					, tm_info.line_offset * rows
 				);
-				
+
 				// Update applied
 				state.vga_mem_updated = false;
 			}
@@ -915,18 +924,18 @@ define([
 		var ai = new Array(0x20)
 			, i, h, v
 			, dimens = { width: 0, height: 0 };
-		
+
 		for (i = 0 ; i < 0x20 ; i++) {
 			ai[i] = state.CRTC.reg[i];
 		}
-		
+
 		h = (ai[1] + 1) * 8;
 		v = (ai[18] | ((ai[7] & 0x02) << 7) | ((ai[7] & 0x40) << 3)) + 1;
-		
+
 		if (state.graphics_ctrl.shift_reg == 0) {
 			dimens.width = 640;
 			dimens.height = 480;
-			
+
 			if (state.CRTC.reg[6] == 0xBF) {
 				if ( state.CRTC.reg[23] == 0xA3 &&
 						state.CRTC.reg[20] == 0x40 &&
@@ -955,7 +964,7 @@ define([
 			dimens.width = h;
 			dimens.height = v;
 		}
-		
+
 		return dimens;
 	};
 	// Marks an area of the screen to be updated
@@ -963,29 +972,29 @@ define([
 	VGA.prototype.redrawArea = function (x0, y0, width, height) {
 		var state = this.state
 			, xti, yti, xt0, xt1, yt0, yt1, xmax, ymax;
-		
+
 		if ((width === 0) || (height === 0)) {
 			return;
 		}
-		
+
 		state.vga_mem_updated = true;
-		
+
 		if (state.graphics_ctrl.graphics_alpha) {
 			util.panic("VGA.redrawArea() :: Gfx mode not implemented yet");
 		}
-		
+
 	};
 	// Based on [bx_vga_c::get_actl_palette_idx]
 	VGA.prototype.getAttrCtrlPaletteIndex = function (index) {
 		return this.state.attribute_ctrl.palette_reg[ index ];
 	};
-	
+
 	function Colour() {
 		this.red = 0;
 		this.green = 0;
 		this.blue = 0;
 	}
-	
+
 	function VGA_TMInfo() {
 		this.start_address = 0x0000;
 		this.cs_start = 0x00;
@@ -998,8 +1007,8 @@ define([
 		this.split_hpanning = false;
 		this.blink_flags = 0x00;
 	}
-	
-	
+
+
 	// VGA device's I/O read operations' handler routine
 	function readHandler(device, addr, io_len) {
 		var machine = device.machine // "device" will be VGA
@@ -1008,12 +1017,12 @@ define([
 			, usec = 0
 			, ret16 = 0, vertres = 0
 			, retval = 0;
-		
+
 		if (trace) {
 			util.info("VGA readHandler() :: Read from address: "
 				+ util.format("hex", addr));
 		}
-		
+
 		// Debugging output dumper
 		function debug(ret) {
 			if (trace) {
@@ -1029,21 +1038,21 @@ define([
 			}
 			return ret;
 		}
-		
+
 		// Handle 2-byte reads as 2 separate 1-byte reads
 		if (io_len === 2) {
 			ret16 = readHandler(device, addr, 1);
 			ret16 |= (readHandler(device, addr + 1, 1)) << 8;
-			
+
 			return debug(ret16);
 		}
-		
+
 		// For OS/2
 		//if (bx_options.videomode === BX_VIDEO_DIRECT) {
 		//	util.panic("VGA readHandler() :: BX_VIDEO_DIRECT - unsupported");
 		//	return machine.io.read(addr, 1);
 		//}
-		
+
 		if ( (addr >= 0x03B0) && (addr <= 0x03BF)
 				&& (state.misc_output.color_emulation) ) {
 			return debug(0xFF);
@@ -1052,7 +1061,7 @@ define([
 				&& (state.misc_output.color_emulation == 0) ) {
 			return debug(0xFF);
 		}
-		
+
 		switch (addr) {
 		case 0x03BA: // Input Status 1 (monochrome emulation modes)
 		case 0x03CA: // [Bochs] Feature Control ???
@@ -1064,7 +1073,7 @@ define([
 			//		0 = display is in the display mode
 			//		1 = display is not in the display mode; either the
 			//			horizontal or vertical retrace period is active
-			
+
 			// Using 72 Hz vertical frequency
 			usec = machine.getTimeUsecs();
 			switch ( (state.misc_output.vert_sync_pol << 1)
@@ -1080,7 +1089,7 @@ define([
 			if (((usec % (13888 / vertres)) >>> 0) === 0) {
 				horiz_retrace = 1;
 			}
-			
+
 			retval = 0;
 			if (horiz_retrace || vert_retrace) {
 				retval = 0x01;
@@ -1091,7 +1100,7 @@ define([
 			// Reading this port resets the flip-flop to address mode
 			state.attribute_ctrl.flip_flop = 0;
 			return debug(retval);
-		
+
 		case 0x03C0: // ???
 			if (state.attribute_ctrl.flip_flop == 0) {
 				//BX_INFO(("io read: 0x3c0: flip_flop = 0"));
@@ -1103,7 +1112,7 @@ define([
 				return 0;
 			}
 			break;
-		
+
 		case 0x03C1: // ???
 			switch (state.attribute_ctrl.address) {
 			case 0x00: case 0x01: case 0x02: case 0x03:
@@ -1139,20 +1148,20 @@ define([
 				return debug(0);
 			}
 			break;
-		
+
 		case 0x03c2: // Input Status 0
 			if (trace) {
 				util.debug("VGA readHandler() :: I/O read 0x3C2:"
 					+ " input status #0: ignoring");
 			}
 			return debug(0);
-		
+
 		case 0x03C3: // VGA Enable Register
 			return debug(state.vga_enabled);
-		
+
 		case 0x03C4: // Sequencer Index Register
 			return debug(state.sequencer.index);
-		
+
 		case 0x03C5: // Sequencer Registers 00 -> 04
 			switch (state.sequencer.index) {
 			case 0: // Sequencer: reset
@@ -1191,16 +1200,16 @@ define([
 				return debug(0);
 			}
 			break;
-		
+
 		case 0x03C6: // [Bochs] PEL mask ???
 			return debug(state.pel.mask);
-		
+
 		case 0x03C7: // DAC state, read = 11b, write = 00b
 			return debug(state.pel.dac_state);
-		
+
 		case 0x03C8: // PEL address write mode
 			return debug(state.pel.write_data_register);
-		
+
 		case 0x03C9: // PEL Data Register, colors 00 -> FF
 			if (state.pel.dac_state == 0x03) {
 				switch (state.pel.read_data_cycle) {
@@ -1228,7 +1237,7 @@ define([
 				retval = 0x3F;
 			}
 			return debug(retval);
-		
+
 		case 0x03CC: // Miscellaneous Output / Graphics 1 Position ???
 			retval =
 				((state.misc_output.color_emulation  & 0x01) << 0)
@@ -1238,16 +1247,16 @@ define([
 				| ((state.misc_output.horiz_sync_pol   & 0x01) << 6)
 				| ((state.misc_output.vert_sync_pol    & 0x01) << 7);
 			return debug(retval);
-		
+
 		case 0x03CE: // Graphics Controller Index Register
 			return debug(state.graphics_ctrl.index);
-		
+
 		case 0x03CD: // ???
 			if (trace) {
 				util.debug("VGA readHandler() I/O read from 03cd");
 			}
 			return debug(0x00);
-		
+
 		case 0x03CF: // Graphics Controller Registers 00 -> 08
 			switch (state.graphics_ctrl.index) {
 			case 0: // Set/Reset
@@ -1274,7 +1283,7 @@ define([
 					| ((state.graphics_ctrl.odd_even & 0x01) << 4)
 					| ((state.graphics_ctrl.read_mode & 0x01) << 3)
 					| ((state.graphics_ctrl.write_mode & 0x03) << 0);
-				
+
 				if ( state.graphics_ctrl.odd_even
 						|| state.graphics_ctrl.shift_reg ) {
 					if (trace) {
@@ -1303,10 +1312,10 @@ define([
 				return debug(0);
 			}
 			break;
-		
+
 		case 0x03D4: // CRTC Index Register (color emulation modes)
 			return debug(state.CRTC.address);
-		
+
 		case 0x03B5: // CRTC Registers (monochrome emulation modes)
 		case 0x03D5: // CRTC Registers (color emulation modes)
 			if (state.CRTC.address > 0x18) {
@@ -1317,7 +1326,7 @@ define([
 				return debug(0);
 			}
 			return debug(state.CRTC.reg[ state.CRTC.address ]);
-		
+
 		case 0x03B4: // CRTC Index Register (monochrome emulation modes)
 		case 0x03CB: // [Bochs] ??? Not sure but OpenBSD reads it a lot
 		default:
@@ -1337,12 +1346,12 @@ define([
 			, prev_video_enabled = false, prev_line_graphics = false, prev_int_pal_size = false
 			, prev_graphics_alpha = false, prev_chain_odd_even = false
 			, needs_update = false, charmap_update = false;
-		
+
 		if (trace) {
 			util.info("VGA writeHandler() :: Write to address: "
 				+ util.format("hex", addr) + " = " + util.format("hex", val));
 		}
-		
+
 		// Debugging output dumper
 		if (trace && !noLog) {
 			if (io_len === 1) {
@@ -1356,20 +1365,20 @@ define([
 					+ io_len);
 			}
 		}
-		
+
 		// Handle 2-byte writes as 2 separate 1-byte writes
 		if (io_len === 2) {
 			writeHandler(device, addr, val & 0xFF, 1, true);
 			writeHandler(device, addr + 1, (val >> 8) & 0xFF, 1, true);
 			return;
 		}
-		
+
 		// For OS/2
 		//if (bx_options.videomode === BX_VIDEO_DIRECT) {
 		//	util.panic(" :: BX_VIDEO_DIRECT - unsupported");
 		//	return machine.io.write(addr, val, 1);
 		//}
-		
+
 		// Support only writes to certain ports depending on emulation mode
 		if ( (addr >= 0x03B0) && (addr <= 0x03BF)
 				&& (state.misc_output.color_emulation) ) {
@@ -1379,30 +1388,30 @@ define([
 				&& (state.misc_output.color_emulation == false) ) {
 			return;
 		}
-		
+
 		switch (addr) {
 		case 0x03BA: // Feature Control (monochrome emulation modes)
 			if (trace) {
 				util.debug(" :: I/O write 3BA: feature control: ignoring");
 			}
 			break;
-		
+
 		case 0x03C0: // Attribute Controller
 			if (state.attribute_ctrl.flip_flop == 0) { // Address mode
 				prev_video_enabled = state.attribute_ctrl.video_enabled;
 				state.attribute_ctrl.video_enabled = (val >> 5) & 0x01;
-				
+
 				if (trace) {
 					util.debug(" :: I/O write 3C0: video_enabled = "
 						+ state.attribute_ctrl.video_enabled);
 				}
-				
+
 				if (!state.attribute_ctrl.video_enabled) {
 					//bx_gui->clear_screen();
 					if (trace) { util.warning("clear_screen()"); }
 				} else if (!prev_video_enabled) {
 					if (trace) { util.debug(" :: Found enable-transition"); }
-					
+
 					needs_update = true;
 				}
 				val &= 0x1F; // Address = bits 0 -> 4
@@ -1455,7 +1464,7 @@ define([
 					if (((val >> 7) & 0x01) != prev_int_pal_size) {
 						needs_update = true;
 					}
-					
+
 					if (trace) {
 						util.debug(" :: I/O write 0x3C0:"
 							+ " mode control: " + util.format("hex", val));
@@ -1471,7 +1480,7 @@ define([
 				case 0x12: // Color Plane Enable Register
 					state.attribute_ctrl.color_plane_enable = (val & 0x0F);
 					needs_update = true;
-					
+
 					if (trace) {
 						util.debug(" :: I/O write 0x3c0: color plane enable = "
 							+ util.format("hex", val));
@@ -1480,7 +1489,7 @@ define([
 				case 0x13: // Horizontal Pixel Panning Register
 					state.attribute_ctrl.horiz_pel_panning = (val & 0x0F);
 					needs_update = true;
-					
+
 					if (trace) {
 						util.debug(" :: I/O write 0x3C0: horiz pel panning = "
 							+ util.format("hex", val));
@@ -1489,7 +1498,7 @@ define([
 				case 0x14: // Color Select Register
 					state.attribute_ctrl.color_select = (val & 0x0F);
 					needs_update = true;
-					
+
 					if (trace) {
 						util.debug(" :: I/O write 0x3C0: color select = "
 							+ util.format("hex", state.attribute_ctrl.color_select));
@@ -1504,7 +1513,7 @@ define([
 			}
 			state.attribute_ctrl.flip_flop = !state.attribute_ctrl.flip_flop;
 			break;
-		
+
 		case 0x03C2: // Miscellaneous Output Register
 			state.misc_output.color_emulation  = (val >> 0) & 0x01;
 			state.misc_output.enable_ram       = (val >> 1) & 0x01;
@@ -1512,7 +1521,7 @@ define([
 			state.misc_output.select_high_bank = (val >> 5) & 0x01;
 			state.misc_output.horiz_sync_pol   = (val >> 6) & 0x01;
 			state.misc_output.vert_sync_pol    = (val >> 7) & 0x01;
-			
+
 			if (trace) {
 				util.debug(" :: I/O write 3C2:");
 				util.debug(" -> color_emulation (attempted) = "
@@ -1529,24 +1538,24 @@ define([
 					+ state.misc_output.vert_sync_pol);
 			}
 			break;
-		
+
 		case 0x03C3: // VGA enable
 			// Bit0: enables VGA display if set
 			state.vga_enabled = val & 0x01;
-			
+
 			if (trace) {
 				util.debug(" :: I/O write 0x03C3: VGA enable ="
 					+ state.vga_enabled);
 			}
 			break;
-		
+
 		case 0x03C4: // Sequencer Index Register
 			if (val > 4) {
 				if (trace) { util.debug(" :: I/O write 3C4: value > 4"); }
 			}
 			state.sequencer.index = val;
 			break;
-		
+
 		case 0x03C5: // Sequencer Registers 00 -> 04
 			switch (state.sequencer.index) {
 			case 0: // Sequencer: reset
@@ -1554,7 +1563,7 @@ define([
 					util.debug(" :: I/O write 0x3C5:"
 						+ " sequencer reset: value=" + util.format("hex", val));
 				}
-				
+
 				if (state.sequencer.reset1 && ((val & 0x01) == 0)) {
 					state.sequencer.char_map_select = 0;
 					state.charmap_address = 0;
@@ -1601,7 +1610,7 @@ define([
 				state.sequencer.extended_mem   = (val >> 1) & 0x01;
 				state.sequencer.odd_even       = (val >> 2) & 0x01;
 				state.sequencer.chain_four     = (val >> 3) & 0x01;
-				
+
 				if (trace) {
 					util.debug(" :: I/O write 0x3C5: memory mode:");
 					util.debug(" -> extended_mem = " + state.sequencer.extended_mem);
@@ -1616,7 +1625,7 @@ define([
 				}
 			}
 			break;
-		
+
 		case 0x03C6: // PEL mask
 			state.pel.mask = val;
 			if (state.pel.mask != 0xFF) {
@@ -1628,19 +1637,19 @@ define([
 			// [Bochs] state.pel.mask should be and'd with final value before
 			// indexing into color register state.pel.data[]
 			break;
-		
+
 		case 0x03C7: // PEL address, read mode
 			state.pel.read_data_register = val;
 			state.pel.read_data_cycle = 0;
 			state.pel.dac_state = 0x03;
 			break;
-		
+
 		case 0x03C8: // PEL address write mode
 			state.pel.write_data_register = val;
 			state.pel.write_data_cycle    = 0;
 			state.pel.dac_state = 0x00;
 			break;
-		
+
 		case 0x03C9: // PEL Data Register, colors 00 -> FF
 			switch (state.pel.write_data_cycle) {
 			case 0:
@@ -1651,9 +1660,9 @@ define([
 				break;
 			case 2:
 				state.pel.data[ state.pel.write_data_register ].blue = val;
-				
+
 				/** TODO: VBE **/
-				
+
 				// TODO: Get rid of this check & replace w/default
 				//       (as for .textUpdate())
 				if (device.paletteChange) {
@@ -1666,7 +1675,7 @@ define([
 				}
 				break;
 			}
-			
+
 			state.pel.write_data_cycle++;
 			if (state.pel.write_data_cycle >= 3) {
 				//BX_INFO(("state.pel.data[%u] {r=%u, g=%u, b=%u}",
@@ -1678,29 +1687,29 @@ define([
 				state.pel.write_data_register++;
 			}
 			break;
-		
+
 		case 0x03CA: // Graphics 2 Position (EGA)
 			// [Bochs] ignore, EGA only???
 			break;
-		
+
 		case 0x03CC: // Graphics 1 Position (EGA)
 			// [Bochs] ignore, EGA only???
 			break;
-		
+
 		case 0x03CD: // [Bochs] ???
 			if (trace) {
 				util.debug(" :: I/O write to 0x3CD = "
 					+ util.format("hex", val));
 			}
 			break;
-		
+
 		case 0x03CE: // Graphics Controller Index Register
 			if (val > 0x08) { // [Bochs] ???
 				if (trace) { util.debug(" :: I/O write: 0x3CE: value > 8"); }
 			}
 			state.graphics_ctrl.index = val;
 			break;
-		
+
 		case 0x03CF: // Graphics Controller Registers 00 -> 08
 			switch (state.graphics_ctrl.index) {
 			case 0: // Set/Reset
@@ -1718,7 +1727,7 @@ define([
 				break;
 			case 4: // Read Map Select
 				state.graphics_ctrl.read_map_select = val & 0x03;
-				
+
 				if (trace) {
 					util.debug(" :: I/O write to 0x3CF = "
 						+ util.format("hex", val) + " (RMS)");
@@ -1729,7 +1738,7 @@ define([
 				state.graphics_ctrl.read_mode	= (val >> 3) & 0x01;
 				state.graphics_ctrl.odd_even	= (val >> 4) & 0x01;
 				state.graphics_ctrl.shift_reg	= (val >> 5) & 0x03;
-				
+
 				if (trace) {
 					util.debug(" :: I/O write: 0x3CF: mode reg:"
 						+ " value = " + util.format("hex", val));
@@ -1745,11 +1754,11 @@ define([
 				prev_graphics_alpha = state.graphics_ctrl.graphics_alpha;
 				prev_chain_odd_even = state.graphics_ctrl.chain_odd_even;
 				prev_memory_mapping = state.graphics_ctrl.memory_mapping;
-				
+
 				state.graphics_ctrl.graphics_alpha = val & 0x01;
 				state.graphics_ctrl.chain_odd_even = (val >> 1) & 0x01;
 				state.graphics_ctrl.memory_mapping = (val >> 2) & 0x03;
-				
+
 				if (trace) {
 					util.debug(" :: Miscellaneous:");
 					util.debug(" -> memory_mapping set to ",
@@ -1761,7 +1770,7 @@ define([
 					util.debug(" :: I/O write: 0x3cf: misc reg: value = "
 						+ util.format("hex", val));
 				}
-				
+
 				if ( prev_memory_mapping
 						!= state.graphics_ctrl.memory_mapping ) {
 					needs_update = true;
@@ -1786,7 +1795,7 @@ define([
 				}
 			}
 			break;
-		
+
 		case 0x03B4: // CRTC Index Register (monochrome emulation modes)
 		case 0x03D4: // CRTC Index Register (color emulation modes)
 			state.CRTC.address = val & 0x7F;
@@ -1797,7 +1806,7 @@ define([
 				}
 			}
 			break;
-		
+
 		case 0x03B5: // CRTC Registers (monochrome emulation modes)
 		case 0x03D5: // CRTC Registers (color emulation modes)
 			if (state.CRTC.address > 0x18) {
@@ -1878,7 +1887,7 @@ define([
 				case 0x14:
 				case 0x17:
 					/** TODO: VBE **/
-					
+
 					// Line offset change
 					state.line_offset = state.CRTC.reg[ 0x13 ] << 1;
 					if (state.CRTC.reg[ 0x14 ] & 0x40) {
@@ -1896,21 +1905,21 @@ define([
 				}
 			}
 			break;
-		
+
 		case 0x03DA: // Feature Control (color emulation modes)
 			if (trace) {
 				util.debug(" :: I/O write: 0x3DA: ignoring:"
 					+ " feature ctrl & vert sync");
 			}
 			break;
-		
+
 		default:
 		case 0x03C1: // [Bochs] ???
 			util.problem(" :: Unsupported write, address="
 				+ util.format("hex", addr) + "!");
 			return 0;
 		}
-		
+
 		if (charmap_update) {
 			if (trace) { util.warning("set_text_charmap()"); }
 			//bx_gui->set_text_charmap(
@@ -1922,7 +1931,7 @@ define([
 			device.redrawArea(0, 0, old_iWidth, old_iHeight);
 		}
 	}
-	
+
 	// VGA device's I/O memory read operations' handler routine
 	function memoryReadHandler(addrA20, len, arg) {
 		var idx, val = memoryRead(arg, addrA20);
@@ -1944,9 +1953,9 @@ define([
 			, color_compare = 0x00, color_dont_care = 0x00
 			, latch0 = 0x00, latch1 = 0x00, latch2 = 0x00, latch3 = 0x00
 			, retval = 0x00;
-		
+
 		/** TODO: VBE **/
-		
+
 		if (trace) {
 			util.info("VGA memoryRead() :: 8-bit read from "
 				+ util.format("hex", addrA20));
@@ -1968,7 +1977,7 @@ define([
      return value;
   }
 #endif*/
-		
+
 		// Check address is in bounds according to current memory mapping
 		//	(mapping changes depending on the video mode)
 		switch (state.graphics_ctrl.memory_mapping) {
@@ -1987,19 +1996,19 @@ define([
 		default: // 0xA0000 -> 0xBFFFF
 			offset = addrA20 & 0x1FFFF;
 		}
-		
+
 		if (state.sequencer.chain_four) {
 			// Mode 13h: 320 x 200 256 color mode: chained pixel representation
 			return bufVRAM[ (offset & ~0x03) + (offset % 4)*65536 ];
 		}
-		
+
 		/** TODO: VBE **/
-		
+
 		//plane0 = &state.memory[0<<16];
 		//plane1 = &state.memory[1<<16];
 		//plane2 = &state.memory[2<<16];
 		//plane3 = &state.memory[3<<16];
-		
+
 		// Addr between 0xA0000 and 0xAFFFF
 		switch (state.graphics_ctrl.read_mode) {
 		case 0: // Read mode 0
@@ -2016,19 +2025,19 @@ define([
 			latch1 = state.graphics_ctrl.latch[ 1 ] = bufVRAM[ (1<<16) + offset ];
 			latch2 = state.graphics_ctrl.latch[ 2 ] = bufVRAM[ (2<<16) + offset ];
 			latch3 = state.graphics_ctrl.latch[ 3 ] = bufVRAM[ (3<<16) + offset ];
-			
+
 			latch0 ^= ccdat[ color_compare ][ 0 ];
 			latch1 ^= ccdat[ color_compare ][ 1 ];
 			latch2 ^= ccdat[ color_compare ][ 2 ];
 			latch3 ^= ccdat[ color_compare ][ 3 ];
-			
+
 			latch0 &= ccdat[ color_dont_care ][ 0 ];
 			latch1 &= ccdat[ color_dont_care ][ 1 ];
 			latch2 &= ccdat[ color_dont_care ][ 2 ];
 			latch3 &= ccdat[ color_dont_care ][ 3 ];
-			
+
 			retval = ~(latch0 | latch1 | latch2 | latch3);
-			
+
 			return retval;
 		default:
 			return 0;
@@ -2052,22 +2061,22 @@ define([
 			, new_val = new Array(4)
 			, start_addr;
 			//Bit8u *plane0, *plane1, *plane2, *plane3;
-		
+
 		/** TODO: VBE **/
-		
+
 		if (trace) {
 			util.info("VGA memoryWrite() :: 8-bit write to "
 				+ util.format("hex", addrA20) + " = " + util.format("hex", val));
 		}
-		
+
 		//if (val === "?".charCodeAt(0)) {
 		//	debugger;
 		//}
-		
+
 		//if (val === "/".charCodeAt(0)) { debugger; }
-		
+
 		/** TODO: OS/2 **/
-		
+
 		// Check address is in bounds according to current memory mapping
 		//	(mapping changes depending on the video mode)
 		switch (state.graphics_ctrl.memory_mapping) {
@@ -2087,22 +2096,22 @@ define([
 			if ((addrA20 < 0xA0000) || (addrA20 > 0xBFFFF)) { return; }
 			offset = addrA20 - 0xA0000;
 		}
-		
+
 		start_addr = (state.CRTC.reg[0x0c] << 8) | state.CRTC.reg[0x0d];
-		
+
 		if (state.graphics_ctrl.graphics_alpha) {
 			util.panic("VGA memoryWrite() :: Gfx mode not implemented yet");
 		}
-		
+
 		/** Address between 0xA0000 and 0xAFFFF **/
-		
+
 		/** TODO: VBE **/
-		
+
 		//plane0 = &state.memory[0<<16];
 		//plane1 = &state.memory[1<<16];
 		//plane2 = &state.memory[2<<16];
 		//plane3 = &state.memory[3<<16];
-		
+
 		var i;
 		switch (state.graphics_ctrl.write_mode) {
 		case 0: /* write mode 0 */
@@ -2222,7 +2231,7 @@ define([
 		case 2: // Write mode 2
 			{
 			/*const Bit8u*/var bitmask = state.graphics_ctrl.bitmask;
-			
+
 			new_val[0] = state.graphics_ctrl.latch[0] & ~bitmask;
 			new_val[1] = state.graphics_ctrl.latch[1] & ~bitmask;
 			new_val[2] = state.graphics_ctrl.latch[2] & ~bitmask;
@@ -2283,7 +2292,7 @@ define([
 			{
 			/*const Bit8u*/var bitmask = state.graphics_ctrl.bitmask & val;
 			/*const Bit8u*/var set_reset = state.graphics_ctrl.set_reset;
-			
+
 			/* perform rotate on CPU data */
 			if (state.graphics_ctrl.data_rotate) {
 				val = (val >> state.graphics_ctrl.data_rotate) |
@@ -2293,9 +2302,9 @@ define([
 			new_val[1] = state.graphics_ctrl.latch[1] & ~bitmask;
 			new_val[2] = state.graphics_ctrl.latch[2] & ~bitmask;
 			new_val[3] = state.graphics_ctrl.latch[3] & ~bitmask;
-			
+
 			val &= bitmask;
-			
+
 			switch (state.graphics_ctrl.raster_op) {
 			case 0: // write
 				new_val[0] |= (set_reset & 1) ? val : 0;
@@ -2340,7 +2349,7 @@ define([
 			util.panic("VGA memoryWrite() :: Write mode %u ?",
 				+ state.graphics_ctrl.write_mode);
 		}
-		
+
 		if (state.sequencer.map_mask & 0x0f) {
 			state.vga_mem_updated = true;
 			if (state.sequencer.map_mask & 0x01) {
@@ -2353,7 +2362,7 @@ define([
 				if ((offset & 0xe000) == state.charmap_address) {
 					//bx_gui->set_text_charbyte((offset & 0x1fff), new_val[2]);
 					//if (trace) { util.warning("set_text_charbyte()"); }
-					
+
 					// TODO: Get rid of this check & replace w/default
 					//       (as for .textUpdate())
 					if (device.setTextCharByte) {
@@ -2366,7 +2375,7 @@ define([
 				bufVRAM[(3<<16)+offset] = new_val[3];
 			}
 			var x_tileno, y_tileno;
-			
+
 			if (state.graphics_ctrl.shift_reg == 2) {
 				offset -= start_addr;
 				x_tileno = (offset % state.line_offset) * 4 / (X_TILESIZE / 2);
@@ -2411,14 +2420,14 @@ define([
 			}
 		}
 	}
-	
+
 	// Periodic timer handler (see VGA.initSystemTimer())
 	//	Based on [bx_vga_c::timer_handler]
 	function handleTimer(ticksNow) {
 		this.update();
 	}
 	/* ====== /Private ====== */
-	
+
 	// Exports
 	return VGA;
 });

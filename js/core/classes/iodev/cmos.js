@@ -1,38 +1,47 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: CMOS chip class support
- *  
+ *
  *  See http://bochs.sourceforge.net/techspec/CMOS-reference.txt
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-	"../../util"
-	, "../iodev"
-	, "../register"
-	, "../http"
-], function (util, IODevice, Register, HTTP) { "use strict";
-	
+	"../../util",
+	"../iodev",
+	"../register",
+	"../http"
+], function (
+	util,
+	IODevice,
+	Register,
+	HTTP
+) {
+    "use strict";
+
 	/* ====== Private ====== */
-	
+
 	/* ==== Const ==== */
 	// Register addresses
 	var REG_SEC                     = 0x00;
@@ -57,24 +66,24 @@ define([
 	var REG_IBM_CENTURY_BYTE        = 0x32;  // Also has some alternative uses
 	var REG_IBM_PS2_CENTURY_BYTE    = 0x37;  // Also has some alternative uses
 	/* ==== /Const ==== */
-	
+
 	// Constructor / pre-init ( ie. from bx_cmos_c::bx_cmos_c(void) )
 	function CMOS(machine) {
 		util.assert(this && (this instanceof CMOS)
 			, "CMOS constructor :: error - not called properly"
 		);
-		
+
 		var idx, state, list_reg;
-		
+
 		util.info("CMOS (Intel XXXX?) PreInit");
-		
+
 		this.machine = machine;
-		
+
 		// CMOS's current state information
 		state = this.state = {
 			timerPeriodic: null
 			, intervalPeriodicUsecs: 0
-			
+
 			, timerOneSecond: null
 			, timerUIP: null
 			, time: 0	// Current time
@@ -82,16 +91,16 @@ define([
 			, modeRTC_12Hour: null
 			, modeRTC_Binary: null
 			, timeChange: 0
-			
+
 			, list_reg: []
 		};
 		list_reg = state.list_reg;
-		
+
 		/* ==== Set up registers ==== */
 		for (idx = 0 ; idx < 128 ; ++idx) {
 			list_reg[ idx ] = new Register("R_" + idx, 1);
 		}
-		
+
 		state.regSec = list_reg[ REG_SEC ];
 		state.regSecAlarm = list_reg[ REG_SEC_ALARM ];
 		state.regMin = list_reg[ REG_MIN ];
@@ -113,7 +122,7 @@ define([
 		state.regCSumLow = list_reg[ REG_CSUM_LOW ];
 		state.regIBMCenturyByte = list_reg[ REG_IBM_CENTURY_BYTE ];		// Also has some alternative uses
 		state.regIBM_PS2CenturyByte = list_reg[ REG_IBM_PS2_CENTURY_BYTE ];	// Also has some alternative uses
-		
+
 		/* Bochs CMOS map
 		 *
 		 * Idx  Len   Description
@@ -170,7 +179,7 @@ define([
 	CMOS.prototype.init = function (done, fail) {
 		var machine = this.machine;
 		var state = this.state;
-		
+
 		// Download & store BIOS firmware image
 		//this.machine.mem.loadROM(HTTP.get(
 		//	"bios/amibios-56i112.bin"
@@ -190,23 +199,23 @@ define([
 				fail();
 			}
 		);
-		
+
 		// I/O port addresses used
 		this.registerIO_Read(0x0070, "RAM", readHandler, 1);
 		this.registerIO_Read(0x0071, "RAM", readHandler, 1);
 		this.registerIO_Write(0x0070, "RAM", writeHandler, 1);
 		this.registerIO_Write(0x0071, "RAM", writeHandler, 1);
-		
+
 		// Make a note that IRQ #8 is used by the Real-Time Clock
 		this.registerIRQ(8, "RTC");
-		
+
 		this.setupTimers();
-		
+
 		// NB: In Bochs, there is support for local time,
 		//	UTC time or a specified time: here, we just
 		//	support local time for now.
 		state.timeval = new Date();
-		
+
 		/* ==== Load CMOS ==== */
 		// From image file
 		if (0) {
@@ -229,9 +238,9 @@ define([
     CMOS.prototype.setupTimers = function () {
 		var machine = this.machine;
         var state = this.state;
-        
+
         // Continuous, not active
-		if (state.timerPeriodic === null) {	
+		if (state.timerPeriodic === null) {
 			state.timerPeriodic = machine.registerTimer(
                 handlePeriodicTimer, this  // Callback & "this"
                 , 1000000                  // Interval in us (1 sec)
@@ -263,9 +272,9 @@ define([
     };
 	CMOS.prototype.reset = function (type) {
 		var state = this.state;
-		
+
 		state.addrMemory = 0;
-		
+
 		/* RESET affects the following registers:
 		 *  CRA: no effects
 		 *  CRB: bits 4,5,6 forced to 0
@@ -274,32 +283,32 @@ define([
 		 */
 		state.regStatB.set(state.regStatB.get() & 0x8F);
 		state.regStatC.set(0x00);
-        
+
         // TEMP!!
         //util.warning("Temp hack in CMOS.reset()");
         //state.regStatB.set(state.regStatB.get() | (1 << 6));
-		
+
 		// One second timer for updating clock & alarm functions
 		state.timerOneSecond.activate(1000000, true);
-		
+
 		this.CRA_Changed();
 	};
 	CMOS.prototype.saveImage = function () {
 		var state = this.state;
-		
+
 		util.info("CMOS.saveImage :: Save not implemented yet.");
 	};
 	CMOS.prototype.registerState = function () {
 		var state = this.state;
-		
+
 		// ?
 	};
 	CMOS.prototype.afterRestoreState = function () {
 		var state = this.state;
-		
+
 		state.modeRTC_12Hour = ((state.regStatB.get() & 0x02) === 0);
 		state.modeRTC_Binary = ((state.regStatB.get() & 0x04) !== 0);
-        
+
 		this.updateTimeVal();
 		this.CRA_Changed();
 	};
@@ -318,19 +327,19 @@ define([
 	};
 	CMOS.prototype.updateTimeVal = function () {
 		var state = this.state;
-		
+
 		// ...
 		//util.warning("CMOS.updateTimeVal() :: Not yet implemented");
 		var tm_sec, tm_min, tm_hour, tm_mday, tm_mon, tm_year;
 		var val_bin, pm_flag;
-		
+
 		// [Bochs] update seconds
 		tm_sec = bcd_to_bin(this.getReg(REG_SEC), state.rtc_mode_binary);
-		
+
 		// [Bochs] update minutes
 		tm_min = bcd_to_bin(this.getReg(REG_MIN),
 		state.rtc_mode_binary);
-		
+
 		// [Bochs] update hours
 		if (state.rtc_mode_12hour) {
 			pm_flag = this.getReg(REG_HOUR) & 0x80;
@@ -344,20 +353,20 @@ define([
 		} else {
 			tm_hour = bcd_to_bin(this.getReg(REG_HOUR), state.rtc_mode_binary);
 		}
-		
+
 		// [Bochs] update day of the month
 		tm_mday = bcd_to_bin(this.getReg(REG_MONTH_DAY), state.rtc_mode_binary);
-		
+
 		// [Bochs] update month
 		tm_mon = bcd_to_bin(this.getReg(REG_MONTH),
 		state.rtc_mode_binary) - 1;
-		
+
 		// [Bochs] update year
 		val_bin = bcd_to_bin(this.getReg(REG_IBM_CENTURY_BYTE), state.rtc_mode_binary);
 		val_bin = (val_bin - 19) * 100;
 		val_bin += bcd_to_bin(this.getReg(REG_YEAR), state.rtc_mode_binary);
 		tm_year = val_bin;
-		
+
 		var timeval = new Date();
 		timeval.setFullYear(tm_year + 1900, tm_mon, tm_mday);
 		timeval.setHours(tm_hour, tm_min, tm_sec);
@@ -384,15 +393,15 @@ define([
 		//struct tm *time_calendar;
 		var year, month, day, century;
 		var val_bcd, hour;
-		
+
 		//time_calendar = localtime(& BX_CMOS_THIS s.timeval);
-		
+
 		// ???
 		function x(t, m) {
 			var a = (new Date( t.getFullYear(), 0, m, 0, 0, 0, 0 )).toUTCString();
 			return t - new Date( a.slice(0, a.lastIndexOf(' ') - 1) );
 		}
-		
+
 		var time = state.timeval
 			, tm_sec = time.getSeconds()
 			, tm_min = time.getMinutes()
@@ -404,13 +413,13 @@ define([
 			, tm_yday = Math.floor(
 				(time - new Date( time.getFullYear(), 0, 1 )) / 86400000
 			), tm_isdst = +(x(time, 1) != x(time, 6));   // Is daylight savings time in effect
-		
+
 		// [Bochs] update seconds
 		this.setReg(REG_SEC, bin_to_bcd(tm_sec, state.rtc_mode_binary));
-		
+
 		// [Bochs] update minutes
 		this.setReg(REG_MIN, bin_to_bcd(tm_min, state.rtc_mode_binary));
-		
+
 		// [Bochs] update hours
 		if (state.rtc_mode_12hour) {
 			hour = tm_hour;
@@ -422,27 +431,27 @@ define([
 		} else {
 			this.setReg(REG_HOUR, bin_to_bcd(tm_hour, state.rtc_mode_binary));
 		}
-		
+
 		// [Bochs] update day of the week
 		day = tm_wday + 1; // 0..6 to 1..7
 		this.setReg(REG_WEEK_DAY, bin_to_bcd(day, state.rtc_mode_binary));
-		
+
 		// [Bochs] update day of the month
 		day = tm_mday;
 		this.setReg(REG_MONTH_DAY, bin_to_bcd(day, state.rtc_mode_binary));
-		
+
 		// [Bochs] update month
 		month = tm_mon + 1;
 		this.setReg(REG_MONTH, bin_to_bcd(month, state.rtc_mode_binary));
-		
+
 		// [Bochs] update year
 		year = tm_year % 100;
 		this.setReg(REG_YEAR, bin_to_bcd(year, state.rtc_mode_binary));
-		
+
 		// [Bochs] update century
 		century = (tm_year / 100) + 19;
 		this.setReg(REG_IBM_CENTURY_BYTE, bin_to_bcd(century, state.rtc_mode_binary));
-		
+
 		// [Bochs] Raul Hudea pointed out that some bioses also use reg 0x37 for the
 		// century byte.  Tony Heller says this is critical in getting WinXP to run.
 		this.setReg(REG_IBM_PS2_CENTURY_BYTE, this.getReg(REG_IBM_CENTURY_BYTE));
@@ -452,12 +461,12 @@ define([
 		var state = this.state;
         var nibble;
         var dcc;
-		
+
 		// Periodic Interrupt timer
 		nibble = state.regStatA.get() & 0x0F; // 1st 4 bits
 		// Divider Chain Control
 		dcc = (state.regStatA.get() >> 4) & 0x07; // Next 3 bits
-		
+
 		// No Periodic Interrupt Rate when 0, deactivate timer
 		if ((nibble === 0) || ((dcc & 0x06) === 0)) {
 			state.timerPeriodic.deactivate();
@@ -465,9 +474,9 @@ define([
 		} else {
 			// Values 0001b & 0010b are the same as 1000b & 1001b
 			if (nibble <= 2) { nibble += 7; }
-			
+
 			state.intervalPeriodicUsecs = 1000000 / (32768 / (1 << (nibble - 1)));
-			
+
 			// Activate timer if Periodic Interrupt Enable bit set
 			if (state.regStatB.get() & 0x40) {
 				state.timerPeriodic.activate(state.intervalPeriodicUsecs, true);
@@ -476,11 +485,11 @@ define([
 			}
 		}
 	};
-	
+
 	function handlePeriodicTimer(ticksNow) {
 		var machine = this.machine;
         var state = this.state;
-		
+
 		// Periodic interrupts are enabled: trip IRQ 8
 		//	and update status register C
 		if (state.regStatB.get() & 0x40) {
@@ -490,22 +499,22 @@ define([
 	}
 	function handleOneSecondTimer(ticksNow) {
 		var state = this.state;
-		
+
 		// Divider Chain reset - RTC stopped
 		if ((state.regStatA.get() & 0x60) === 0x60) { return; }
-		
+
 		// Update internal time/date buffer
 		// NB: Bochs only advances the time one second here -
 		//     that could cause syncing issues,
 		//     this should be more accurate
 		state.timeval = new Date();
-		
+
 		// Don't update CMOS user copy of time/date if CRB bit7 is 1
 		// - Nothing else to do
 		if (state.regStatB.get() & 0x80) { return; }
-		
+
 		state.regStatA.set(state.regStatA.get() | 0x80); // Set UIP bit
-		
+
 		// UIP timer for updating clock & alarm functions
 		//bx_pc_system.activate_timer(state.uip_timer_index, 244, 0);
 		state.timerUIP.activate(244, false);
@@ -514,16 +523,16 @@ define([
 		var machine = this.machine;
 		var state = this.state;
 		var matchAlarm;
-		
+
 		this.updateClock();
-		
+
 		// If updates interrupts are enabled, trip IRQ 8 & update status reg C
 		if (state.regStatB.get() & 0x10) {
 			// Interrupt Request, Update Ended
 			state.regStatC.set(state.regStatC.get() | 0x90);
 			machine.pic.raiseIRQ(8);
 		}
-		
+
 		// Compare CMOS user copy of date/time to alarm date/time here
 		if (state.regStatB.get() & 0x20) {
 			// Alarm interrupts enabled
@@ -554,22 +563,22 @@ define([
 		}
 		state.regStatA.set(state.regStatA.get() & 0x7F); // Clear UIP bit
 	}
-	
+
 	function bcd_to_bin(val, isBinary) {
 		return isBinary ? val : (((val >> 4) * 10) + (val & 0x0F));
 	}
 	function bin_to_bcd(val, isBinary) {
 		return isBinary ? val : (((val / 10) << 4) | (val % 10));
 	}
-	
+
 	// CMOS chip's I/O read operations' handler routine
 	function readHandler(device, addr, io_len) {
 		var machine = this.machine;
 		var state = device.state; // "device" will be CMOS
 		var result8; // 8-bit result
-		
+
 		util.info("CMOS readHandler() :: Read of CMOS register " + util.format("hex", state.addrMemory));
-		
+
 		switch (addr) {
 		case 0x0070:
 			// NB: This register is write-only on most machines.
@@ -594,16 +603,16 @@ define([
 		var state = device.state; // "device" will be CMOS
 		var dcc;
 		var valCRBPrevious;
-		
+
 		util.info("CMOS writeHandler() :: Write to address: "
 			+ util.format("hex", addr) + " = " + util.format("hex", val));
-		
+
 		switch (addr) {
 		case 0x0070:	// Assign new current register address
 			// This port is written to in order to specify
 			//	the register for eg. reading (extracts only 1st 7 bits)
 			state.addrMemory = val & 0x7F;
-			
+
 			// [1] http://wiki.osdev.org/CMOS
 			// [2] http://forum.osdev.org/viewtopic.php?f=1&t=8829
 			// TODO: NMIs may in fact be masked by setting high-order bit
@@ -677,7 +686,7 @@ define([
 				state.regStatA.set(state.regStatA.get() & 0x80);
 				state.regStatA.set(state.regStatA.get() | (val & 0x7F));
 				device.CRA_Changed();
-				
+
 				break;
 			case REG_STAT_B: // Control Register B
 				// bit 0: Daylight Savings Enable
@@ -826,7 +835,7 @@ define([
 		}
 	}
 	/* ====== /Private ====== */
-	
+
 	// Exports
 	return CMOS;
 });

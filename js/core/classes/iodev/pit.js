@@ -1,42 +1,50 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Programmable Interval Timer (PIT) wrapper class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-	"../../util"
-	, "../iodev"
-	, "../iodev/pit/82c54"
-], function (util, IODevice, PIT_82C54) { "use strict";
-	
+	"../../util",
+	"../iodev",
+	"../iodev/pit/82c54"
+], function (
+	util,
+	IODevice,
+	PIT_82C54
+) {
+    "use strict";
+
 	// Microseconds (us) === 1000 * 1000 per second,
 	//  but clock signal is 1193181 (because of oscillator/crystal).
 	//  Slight difference between the two, but enough to warrant additional
 	//  calculations for accuracy.
-	
+
 	var USEC_PER_SECOND = 1000000    // Of course: 1000ms * 1000 = us, but...
 		, TICKS_PER_SECOND = 1193181 // ... because of 1.193181MHz clock.
 		;
-	
+
 	/* === Macros === */
 	var TICKS_TO_USEC = function (a) {
 		return Math.floor((a * USEC_PER_SECOND) / TICKS_PER_SECOND);
@@ -44,18 +52,18 @@ define([
 		return Math.floor((a * TICKS_PER_SECOND) / USEC_PER_SECOND);
 	};
 	/* === /Macros === */
-	
+
 	// Constructor / pre-init
 	function PIT(machine) {
 		util.assert(this && (this instanceof PIT), "PIT ctor ::"
 			+ " error - constructor not called properly");
-		
+
 		/** 8254/82C54 Programmable Interval Timer (PIT) **/
-		
+
 		util.info("PIT (Intel 8254/82C54) PreInit");
-		
+
 		this.machine = machine;
-		
+
 		this.state = {
 			/* PIT_82c54 */timer: new PIT_82C54(this)
 			, speaker_data_on: 0x00
@@ -71,32 +79,32 @@ define([
 	util.extend(PIT.prototype, {
 		init: function (done, fail) {
 			var machine = this.machine, state = this.state;
-			
+
 			// Make a note that IRQ #0 is used by the PIT
 			this.registerIRQ(0, "8254 PIT");
-			
+
 			this.registerIO_Read(0x0040, "8254 PIT", readHandler, 1);
 			this.registerIO_Read(0x0041, "8254 PIT", readHandler, 1);
 			this.registerIO_Read(0x0042, "8254 PIT", readHandler, 1);
 			this.registerIO_Read(0x0043, "8254 PIT", readHandler, 1);
 			this.registerIO_Read(0x0061, "8254 PIT", readHandler, 1);
-			
+
 			this.registerIO_Write(0x0040, "8254 PIT", writeHandler, 1);
 			this.registerIO_Write(0x0041, "8254 PIT", writeHandler, 1);
 			this.registerIO_Write(0x0042, "8254 PIT", writeHandler, 1);
 			this.registerIO_Write(0x0043, "8254 PIT", writeHandler, 1);
 			this.registerIO_Write(0x0061, "8254 PIT", writeHandler, 1);
-			
+
 			util.debug(("starting init"));
-			
+
 			state.speaker_data_on = 0;
 			state.refresh_clock_div2 = 0;
-			
+
 			state.timer.init();
 			state.timer.set_OUT_handler(0, this, this.irq_handler);
-			
+
 			var my_time_usec = machine.getTimeUsecs();
-			
+
 			if (state.timer_handle == null) {
 				state.timer_handle = machine.registerTimer(
 					this.timer_handler, this, 100, true, true, "PIT"
@@ -115,12 +123,12 @@ define([
 			}
 			state.last_next_event_time = state.timer.get_next_event_time();
 			state.last_usec = my_time_usec;
-			
+
 			state.total_ticks = 0;
 			state.total_usec = 0;
-			
+
 			util.debug(("finished init"));
-			
+
 			util.debug(util.sprintf(
 				"s.last_usec=%lld"
 				, state.last_usec
@@ -148,9 +156,9 @@ define([
 				, my_time_usec = machine.getTimeUsecs();
 			var time_passed = my_time_usec - state.last_usec;
 			var time_passed32 = time_passed & 0xFFFFFFFF;
-			
+
 			util.debug(("entering timer handler"));
-			
+
 			if (time_passed32) {
 				this.periodic(time_passed32);
 			}
@@ -186,12 +194,12 @@ define([
 		}, periodic: function (usec_delta) {//return;
 			var state = this.state
 				, ticks_delta = 0;
-			
+
 			state.total_usec += usec_delta;
 			ticks_delta = ((USEC_TO_TICKS(state.total_usec)) - state.total_ticks) & 0xFFFFFFFF;
 			state.total_ticks += ticks_delta;
 			//debugger;
-			
+
 			// Modulus: get ticks & microseconds down to < one second
 			//          (modulo 1 second)
 			while ( (state.total_ticks >= TICKS_PER_SECOND)
@@ -200,12 +208,12 @@ define([
 				state.total_ticks -= TICKS_PER_SECOND;
 				state.total_usec  -= USEC_PER_SECOND;
 			}
-			
+
 			var a = 0;
 			while (ticks_delta > 0) {
 				// TEMP: FIXME
 				//if (++a > 1000) { debugger; break; }
-				
+
 				var maxchange = state.timer.get_next_event_time();
 				var timedelta = maxchange;
 				if ((maxchange == 0) || (maxchange > ticks_delta)) {
@@ -214,7 +222,7 @@ define([
 				state.timer.clock_all(timedelta);
 				ticks_delta -= timedelta;
 			}
-			
+
 			return 0;
 		// Based on [bx_pit_c::irq_handler]
 		}, irq_handler: function (val) {
@@ -229,7 +237,7 @@ define([
 			return this.state.timer.get_inlatch(timer);
 		}
 	});
-	
+
 	/* ====== Private ====== */
 	// PIT chip's I/O read operations' handler routine
 	function readHandler(device, addr, io_len) {
@@ -237,13 +245,13 @@ define([
 			, result8 // 8-bit result
 			;
 		//debugger;
-		
+
 		device.handle_timer();
-		
+
 		var my_time_usec = machine.getTimeUsecs();
-		
+
 		/** NB: This is an 8254/82C54 Programmable Interval Timer (PIT) **/
-		
+
 		switch (addr) {
 		case 0x40: /* timer 0 - system ticks */
 			result8 = state.timer.read(0);
@@ -257,7 +265,7 @@ define([
 		case 0x43: /* timer 1 read */
 			result8 = state.timer.read(3);
 			break;
-		
+
 		case 0x61:
 			/* AT, port 61h */
 			state.refresh_clock_div2 = !!((my_time_usec / 15) & 1);
@@ -284,42 +292,42 @@ define([
 		var machine = device.machine, state = device.state // "device" will be PIT
 			, val8;
 		//debugger;
-		
+
 		var my_time_usec = machine.getTimeUsecs();
 		var time_passed = my_time_usec - state.last_usec;
 		var time_passed32 = time_passed & 0xFFFFFFFF;
-		
+
 		if (time_passed32) {
 			device.periodic(time_passed32);
 		}
 		state.last_usec += time_passed;
-		
+
 		val8 = val & 0xFF; // Cast to 8-bit
-		
+
 		util.debug(util.sprintf(
 			"PIT writeHandler() :: Write to port 0x%04X, value = 0x%02X"
 			, addr, val8
 		));
-		
+
 		/** NB: This is an 8254/82C54 Programmable Interval Timer (PIT) **/
-		
+
 		switch (addr) {
 		case 0x40: /* timer 0: write count register */
 			state.timer.write(0, val8);
 			break;
-		
+
 		case 0x41: /* timer 1: write count register */
 			state.timer.write(1, val8);
 			break;
-		
+
 		case 0x42: /* timer 2: write count register */
 			state.timer.write(2, val8);
 			break;
-		
+
 		case 0x43: /* timer 0-2 mode control */
 			state.timer.write(3, val8);
 			break;
-		
+
 		case 0x61:
 			state.speaker_data_on = (val8 >> 1) & 0x01;
 			if (state.speaker_data_on) {
@@ -330,7 +338,7 @@ define([
 			/* ??? only on AT+ */
 			state.timer.set_GATE(2, val8 & 0x01);
 			break;
-		
+
 		default:
 			util.panic(util.sprintf(
 				"PIT writeHandler() :: Unsupported write to port 0x%04X, value = 0x%02X!"
@@ -368,7 +376,7 @@ define([
 		));
 	}
 	/* ====== /Private ====== */
-	
+
 	// Exports
 	return PIT;
 });

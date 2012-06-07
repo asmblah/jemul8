@@ -22,6 +22,9 @@
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
     "../util",
     "./iodev",
@@ -32,7 +35,8 @@ define([
     IODevice,
     Buffer,
     ROM
-) { "use strict";
+) {
+    "use strict";
 
     var PHY_MEM_WIDTH = 32,
     // Memory access types (read/write/execute/rw)

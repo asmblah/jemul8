@@ -1,31 +1,37 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Intel 8254/82C54 Programmable Interval Timer (PIT) class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
 	"../../../util"
-], function (util) { "use strict";
-	
+], function (
+	util
+) {
+    "use strict";
+
 	/* ==== Const ==== */
 	var MAX_COUNTER = 2, MAX_ADDRESS = 3, CONTROL_ADDRESS = 3, MAX_MODE = 5
 	// rw_status
@@ -36,27 +42,27 @@ define([
 		, UNL_2P_READ = 1
 		;
 	/* ==== /Const ==== */
-	
+
 	// TODO: Should be a config setting
 	var enableDebug = false;
-	
+
 	var debug = enableDebug ? function (msg) {
 		util.debug(msg);
 	} : function () {};
-	
+
 	// Constructor / pre-init
 	function PIT_82C54(wrapper) {
 		util.assert(this && (this instanceof PIT_82C54), "PIT_82C54 ctor ::"
 			+ " error - constructor not called properly");
-		
+
 		this.wrapper = wrapper;
-		
+
 		this.counter = [
 			new Counter(), new Counter(), new Counter()
 		];
 		this.controlword = 0xFF;
 		this.seen_problems = 0;
-		
+
 		this.init();
 	}
 	util.extend(PIT_82C54.prototype, {
@@ -171,7 +177,7 @@ define([
 			}
 		}, init: function () {
 			var i;
-			
+
 			for (i = 0 ; i < 3 ; i++) {
 				this.counter[ i ].init();
 			}
@@ -597,7 +603,7 @@ define([
 					}
 				}
 			}
-			
+
 			// Should only get here on errors;
 			return 0;
 		}, write: function (address, data) {
@@ -857,27 +863,27 @@ define([
 				util.problem(("Counter number incorrect in 82C54 read_OUT"));
 				return 0;
 			}
-			
+
 			return this.counter[ cnum ].OUTpin;
 		}, read_GATE: function (cnum) {
 			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number incorrect in 82C54 read_GATE"));
 				return 0;
 			}
-			
+
 			return this.counter[ cnum ].GATE;
 		}, get_clock_event_time: function (cnum) {
 			if (cnum > MAX_COUNTER) {
 				util.problem(("Counter number incorrect in 82C54 read_GATE"));
 				return 0;
 			}
-			
+
 			return this.counter[ cnum ].next_change_time;
 		}, get_next_event_time: function () {
 			var time0 = this.get_clock_event_time(0);
 			var time1 = this.get_clock_event_time(1);
 			var time2 = this.get_clock_event_time(2);
-			
+
 			var out = time0;
 			if (time1 && (time1 < out)) {
 				out = time1;
@@ -892,15 +898,15 @@ define([
 			this.counter[ counternum ].out_handler = [ thisObj, outh ];
 		}
 	});
-	
+
 	/* ====== Private ====== */
-	
+
 	// Counter class (like Bochs' type "counter_type")
 	// - TODO: Move methods onto this object (eg. get_inlatch())
 	function Counter() {
 		util.assert(this && (this instanceof Counter), "Counter ctor ::"
 			+ " error - constructor not called properly");
-		
+
 		/** See .init() for properties **/
 	}
 	util.extend(Counter.prototype, {
@@ -929,7 +935,7 @@ define([
 		}
 	});
 	/* ====== /Private ====== */
-	
+
 	// Exports
 	return PIT_82C54;
 });

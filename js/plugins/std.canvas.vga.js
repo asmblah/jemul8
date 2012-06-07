@@ -1,31 +1,39 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *  
+ *
  *  MODULE: HTML5 <canvas> VGA adapter plugin
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-    "../core/util"
-    , "../core/classes/iodev/keyboard/scancode"
-], function (util, Scancode) { "use strict";
+    "../core/util",
+    "../core/classes/iodev/keyboard/scancode"
+], function (
+    util,
+    Scancode
+) {
+    "use strict";
+
     var canvasVGAPlugin = {
         applyTo: function (emu) {
             var vga = emu.machine.vga;
@@ -35,12 +43,12 @@ define([
             vga.setTextCharByte = setTextCharByte;
         }
     };
-    
+
     // Text-mode blink feature
     var TEXT_BLINK_MODE = 0x01;
     var TEXT_BLINK_TOGGLE = 0x02;
     var TEXT_BLINK_STATE = 0x04;
-    
+
     // Text-mode renderer
     var res_x;
     var res_y;
@@ -577,7 +585,7 @@ define([
   [   0,   0,   0,   0,   0,   0,   0,   0,    // 255
       0,   0,   0,   0,   0,   0,   0,   0 ]
     ];
-    
+
     // Initialise 256-colour palette to all black
     for ( var i = 0 ; i < 256 ; ++i ) {
         palette[ i ] = [ 0x00, 0x00, 0x00 ];
@@ -588,7 +596,7 @@ define([
             vga_charmap[ i * 32 + j ] = font8x16[ i ][ j ];
         }
     }
-    
+
     // - See http://www.osdever.net/FreeVGA/vga/vgatext.htm
     function textUpdate(
         oldTextBuffer
@@ -639,7 +647,7 @@ define([
         var blink_mode;
         var blink_state;
         var text_palette = new Array( 16 );
-        
+
         blink_mode = (tm_info.blink_flags & TEXT_BLINK_MODE) > 0;
         blink_state = (tm_info.blink_flags & TEXT_BLINK_STATE) > 0;
         if ( blink_mode ) {
@@ -665,7 +673,7 @@ define([
         }
         disp = imageData.width; // Memory buffer pitch/width
         buf_row = 0;
-        
+
         // First, invalidate character at previous and new cursor location
         if ( (prev_cursorY < text_rows) && (prev_cursorX < text_cols) ) {
             curs = prev_cursorY * tm_info.line_offset + prev_cursorX * 2;
@@ -678,7 +686,7 @@ define([
         } else {
             curs = 0xffff;
         }
-        
+
         rows = text_rows;
         if ( v_panning ) { rows++; }
         y = 0;
@@ -692,7 +700,7 @@ define([
             split_fontrows = 0;
         }
         split_screen = 0;
-        
+
         do {
             buf = buf_row;
             hchars = text_cols;
@@ -730,12 +738,12 @@ define([
                         cfwidth = h_panning;
                     }
                 }
-                
+
                 var oldChar = oldTextBuffer[ oldTextOffset ]
                     , oldAttr = oldTextBuffer[ oldTextOffset + 1 ]
                     , newChar = newTextBuffer[ newTextOffset ]
                     , newAttr = newTextBuffer[ newTextOffset + 1 ];
-                
+
                 // Check if char needs to be updated
                 if ( forceUpdate || (oldChar != newChar)
                     || (oldAttr != newAttr)
@@ -752,7 +760,7 @@ define([
                     }
                     invert = ((offset == curs) && (cursor_visible));
                     gfxcharw9 = ((tm_info.line_graphics) && ((newChar & 0xE0) == 0xC0));
-                    
+
                     // Display this one char
                     fontrows = cfheight;
                     fontline = cfstart;
@@ -802,13 +810,13 @@ define([
                         buf += disp * 4;
                         fontline++;
                     } while ( --fontrows );
-                    
+
                     // restore output buffer ptr to start of this char
                     buf = buf_char;
                 }
                 // move to next char location on screen
                 buf += cfwidth * 4;
-                
+
                 // select next char in old/new text
                 newTextOffset += 2;
                 oldTextOffset += 2;
@@ -816,7 +824,7 @@ define([
                 x++;
             // process one entire horizontal row
             } while ( --hchars );
-            
+
             // go to next character row location
             buf_row += disp * cfheight * 4;
             if ( !split_screen && (y == split_textrow) ) {
@@ -833,16 +841,16 @@ define([
                 y++;
             }
         } while ( --rows );
-        
+
         h_panning = tm_info.h_panning;
         prev_cursorX = cursorX;
         prev_cursorY = cursorY;
-        
+
         end = Date.now();
-        
+
         // Blit updated pixels to screen
         this.ctx_screenVGA.putImageData(imageData, 0, 0);
-        
+
         blitted = Date.now();
         document.title = (end - start) + "/" + (blitted - end);
     };
@@ -866,9 +874,9 @@ define([
             text_cols = x / fontwidth;
             text_rows = y / fontheight;
         }
-        
+
         if ( (x == res_x) && (y == res_y) ) { return; }
-        
+
         res_x = x;
         res_y = y;
         half_res_x = x / 2;
@@ -880,14 +888,14 @@ define([
         var palred = red & 0xFF;
         var palgreen = green & 0xFF;
         var palblue = blue & 0xFF;
-        
+
         // 255-colour palette
         if ( index > 0xFF ) { return 0; }
-        
+
         palette[ index ][ 0 ] = palred;
         palette[ index ][ 1 ] = palgreen;
         palette[ index ][ 2 ] = palblue;
-        
+
         return 1;
     };
     function setTextCharByte( addr, data ) {
@@ -895,6 +903,6 @@ define([
         char_changed[ addr >> 5 ] = 1;
         charmap_updated = true;
     }
-    
+
     return canvasVGAPlugin;
 });

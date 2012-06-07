@@ -1,15 +1,19 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: 64-bit big integer (Int64) class support
- *  
+ *
  *  Based on Closure library's Long class support
  *  - See http://closure-library.googlecode.com/svn/docs/closure_goog_math_long.js.source.html
  */
 
-define(function () { "use strict";
-	
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
+define(function () {
+    "use strict";
+
 	/**
 	 * Constructs a 64-bit two's-complement integer, given its low and high 32-bit
 	 * values as *signed* integers.  See the from* functions below for more
@@ -786,7 +790,7 @@ define(function () { "use strict";
 		}
 	  }
 	};
-	
+
 	// Exports
 	return Int64;
 });

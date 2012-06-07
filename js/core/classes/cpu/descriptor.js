@@ -1,54 +1,60 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Segment Descriptor (selected by Selector) class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
 	"../../util"
-], function (util) { "use strict";
-	
+], function (
+	util
+) {
+    "use strict";
+
 	// Segment Descriptor class constructor
 	function Descriptor() {
 		util.assert(this && (this instanceof Descriptor)
 			, "Descriptor constructor :: error - not called properly"
 		);
-		
+
 		// ACCESS_INVALID, ACCESS_VALID_CACHE,
 		//  ACCESS_ROK or ACCESS_WOK
 		this.accessType = util.ACCESS_INVALID;
-		
+
 		// Is segment present (in memory,
 		//  ie. not out on mass storage device) or not?
 		this.present = false;
-		
+
 		// Descriptor Privilege Level (0 -> 3)
 		this.dpl = 0;
-		
+
 		// True = data/code segment, false = system/gate
 		this.segment = false;
-		
+
 		// One of util.DESC_* constants, depends on ".segment" type
 		this.type = 0;
-		
+
 		/* ==== Segment Descriptor fields ==== */
 		// Base address: 286 = 24-bits, 386 = 32-bits
 		this.base = 0;
@@ -66,7 +72,7 @@ define([
 		// One extra bit, free for OS/programmer use
 		this.available = 0;
 		/* ==== /Segment Descriptor fields ==== */
-		
+
 		/* ==== Gate fields ==== */
 		// 5 bits (0 ... 31) - no. of words/dwords to copy
 		//  from caller's stack to called procedure's stack
@@ -74,7 +80,7 @@ define([
 		this.destSelector = 0;
 		this.destOffset = 0;
 		/* ==== /Gate fields ==== */
-		
+
 		/* ==== Task Gate fields ==== */
 		// TSS segment selector
 		this.tssSelector = 0;
@@ -98,7 +104,7 @@ define([
 			var ARByte, limit
 				// High & low dwords of 64-bit raw descriptor
 				, dword1 = raw.dword1, dword2 = raw.dword2;
-			
+
 			// Access Rights byte
 			ARByte       = dword2 >> 8;
 			this.present = (ARByte >> 7) & 0x1;
@@ -106,23 +112,23 @@ define([
 			this.segment = (ARByte >> 4) & 0x1;
 			this.type    = (ARByte & 0xF);
 			this.accessType = util.ACCESS_INVALID; // Start out invalid
-			
+
 			// Data/code segment descriptors
 			if (this.segment) {
 				limit = (dword1 & 0xFFFF) | (dword2 & 0x000F0000);
-				
+
 				this.base             = (dword1 >> 16) | ((dword2 & 0xFF) << 16);
 				this.use4KPages       = (dword2 & 0x00800000) > 0;
 				this.default32BitSize = (dword2 & 0x00400000) > 0;
 				this.available        = (dword2 & 0x00100000) > 0;
 				this.base            |= (dword2 & 0xFF000000);
-				
+
 				if (this.use4KPages) {
 					this.limitScaled = ((limit << 12) | 0xFFF) >>> 0;
 				} else {
 					this.limitScaled = limit >>> 0;
 				}
-				
+
 				this.accessType = util.ACCESS_VALID_CACHE;
 			// System & gate segment descriptors
 			} else {
@@ -136,7 +142,7 @@ define([
 					this.destOffset   = dword1 & 0xFFFF;
 					this.accessType = util.ACCESS_VALID_CACHE;
 					break;
-				
+
 				case util.DESC_386_CALL_GATE:
 				case util.DESC_386_INTERRUPT_GATE:
 				case util.DESC_386_TRAP_GATE:
@@ -147,12 +153,12 @@ define([
 							 (dword1 & 0x0000ffff);
 					this.accessType = util.ACCESS_VALID_CACHE;
 					break;
-				
+
 				case util.DESC_TASK_GATE:
 					this.tssSelector = dword1 >> 16;
 					this.accessType = util.ACCESS_VALID_CACHE;
 					break;
-				
+
 				case util.DESC_SYS_SEGMENT_LDT:
 				case util.DESC_SYS_SEGMENT_AVAIL_286_TSS:
 				case util.DESC_SYS_SEGMENT_BUSY_286_TSS:
@@ -165,7 +171,7 @@ define([
 					this.use4KPages = (dword2 & 0x00800000) > 0;
 					this.default32BitSize = (dword2 & 0x00400000) > 0;
 					this.available = (dword2 & 0x00100000) > 0;
-					
+
 					if (this.use4KPages) {
 						// Push 12 1-bits on to multiply by size of pages (4K)
 						this.limitScaled = ((limit << 12) | 0xFFF) >>> 0;
@@ -179,7 +185,7 @@ define([
 					this.accessType = util.ACCESS_INVALID;
 				}
 			}
-			
+
 			return this;
 		// Is segment's descriptor valid or not
 		}, isValid: function () {
@@ -206,7 +212,7 @@ define([
 			return (this.type >> 1) & 0x1;
 		}, isSegmentAccessed: function () {
 			return this.type & 0x1;
-		
+
 		// Build/extract Access Rights byte for descriptor
 		}, getARByte: function () {
 			return this.type
@@ -219,14 +225,14 @@ define([
 			this.dpl = (val >> 5) & 0x03;
 			this.segment = (val >> 4) & 0x01;
 			this.type = val & 0x0F;
-			
+
 			return this;
 		// Segment has been accessed: set bit (see DESC_*_ACCESSED constants)
 		}, segmentAccessed: function () {
 			this.type |= 1;
 		}
 	});
-	
+
 	// Exports
 	return Descriptor;
 });

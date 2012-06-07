@@ -1,35 +1,42 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: ROM / Device BIOS images support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-	"../../util"
-	, "./buffer"
-], function (util, Buffer) { "use strict";
-	
+	"../../util",
+	"./buffer"
+], function (
+	util,
+	Buffer
+) {
+    "use strict";
+
 	// ROM extension methods for Memory class
 	var ROM = {};
-	
+
 	// 512K CMOS BIOS ROM @0xfff80000
 	//   2M CMOS BIOS ROM @0xffe00000, must be a power of 2
 	var BIOSROMSZ = (1 << 21)
@@ -37,13 +44,13 @@ define([
 		, EXROMSIZE = 0x20000
 		, BIOS_MASK = (BIOSROMSZ - 1)
 		, EXROM_MASK = (EXROMSIZE - 1);
-	
+
 	// Load a ROM into mapped memory for booting
 	// Based on [BX_MEM_C::load_ROM]
 	ROM.loadROM = function (bufROM, addr, type) {
 		var len = Buffer.getBufferLength(bufROM)
 			, offset, idx, idxStart, idxEnd;
-		
+
 		// Check size is valid
 		if ( (type === 0 && len > BIOSROMSZ)	// System (CMOS) BIOS
 			|| (type > 0 && len > 0x20000)	// VGABIOS
@@ -52,7 +59,7 @@ define([
 				+ util.format("hex", len) + " is too large");
 			return false;
 		}
-		
+
 		// System (CMOS) ROM
 		if (type === 0) {
 			// Address given may be positive to specify an absolute physical
@@ -66,7 +73,7 @@ define([
 			} else {
 				addr = -len;
 			}
-			
+
 			offset = addr & BIOS_MASK;
 			// ???
 			//if ((addr & 0xf0000) < 0xf0000) {
@@ -91,16 +98,16 @@ define([
 					+ " out of range");
 				return;
 			}
-			
+
 			// TODO: Check for overlapping ROM address spaces
 			offset = addr;
 		}
 		// ROM memory buffer begins at 0xC0000 in physical memory
 		offset -= 0xC0000;
-		
+
 		// Perform the actual copy of ROM image into ROM memory buffer
 		Buffer.copy(bufROM, 0, this.bufROMs, offset, len);
-		
+
 		// Checksum non-CMOS ROMs (& CMOS ROM image
 		//	if it includes the 0xAA55 header)
 		if ( ((addr & 0xfffff) !== 0xe0000)
@@ -127,7 +134,7 @@ define([
 		}
 		return checksum;
 	};
-	
+
 	// Exports
 	return ROM;
 });

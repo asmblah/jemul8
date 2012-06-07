@@ -1,47 +1,54 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Guest->Host interface class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-	"../../util"
-	, "../iodev"
-], function (util, IODevice) { "use strict";
-	
+	"../../util",
+	"../iodev"
+], function (
+	util,
+	IODevice
+) {
+    "use strict";
+
 	/* ====== Private ====== */
-	
+
 	/* ==== Const ==== */
-	
+
 	/* ==== /Const ==== */
-	
+
 	// Constructor / pre-init
 	function Guest2Host(machine) {
 		util.assert(this && (this instanceof Guest2Host), "Guest2Host ctor ::"
 			+ " error - constructor not called properly");
-		
+
 		util.info("Guest2Host PreInit");
-		
+
 		this.machine = machine;
-		
+
 		this.state = {
 			bufferInfo: {
 				buffer: new Array()
@@ -55,7 +62,7 @@ define([
 	util.inherit(Guest2Host, IODevice, "Guest2Host"); // Inheritance
 	Guest2Host.prototype.init = function (done, fail) {
 		var state = this.state;
-		
+
 		// I/O port addresses used
 		this.registerIO_Read(0x0402, "INFO_PORT", readHandler, 1);
 		this.registerIO_Read(0x0403, "DEBUG_PORT", readHandler, 1);
@@ -71,22 +78,22 @@ define([
 	};
 	Guest2Host.prototype.registerState = function () {
 		var state = this.state;
-		
+
 		// ?
 	};
 	Guest2Host.prototype.afterRestoreState = function () {
 		var state = this.state;
-		
+
 		// ?
 	};
-	
+
 	// Guest2Host interface's I/O read operations' handler routine
 	function readHandler(device, addr, io_len) {
 		var state = device.state; // "device" will be Guest2Host
-		
+
 		util.info("Guest2Host readHandler() :: Read from address: "
 			+ util.format("hex", addr));
-		
+
 		switch (addr) {
 		case 0x0402: // INFO_PORT
 			// ??
@@ -107,10 +114,10 @@ define([
 	function writeHandler(device, addr, val, io_len) {
 		var state = device.state // "device" will be Guest2Host
 			, idx, text;
-		
+
 		//util.info("Guest2Host writeHandler() :: Write to address: "
 		//	+ util.format("hex", addr) + " = " + util.format("hex", val));
-		
+
 		switch (addr) {
 		case 0x0402: // INFO_PORT
 			if (val !== 0x0A/* && val !== "$".charCodeAt(0)*/) {
@@ -150,7 +157,7 @@ define([
 		}
 	}
 	/* ====== /Private ====== */
-	
+
 	// Exports
 	return Guest2Host;
 });

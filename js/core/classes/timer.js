@@ -1,29 +1,33 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Timer class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-define(function () { "use strict";
-	
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
+define(function () {
+    "use strict";
+
 	// Internal timers
 	//	(could use setTimeout/setInterval,
 	//	but these would run unchecked between yields;
@@ -31,7 +35,7 @@ define(function () { "use strict";
 	function Timer( machine, fn, obj_this, intervalUsecs, isContinuous
 				, isActive, name, idx ) {
 		this.machine = machine;
-		
+
 		this.fn = fn;
 		this.obj_this = obj_this; // Scope "this" object for callback function
 		this.ticksNextFire;
@@ -58,7 +62,7 @@ define(function () { "use strict";
 		this.ticksNextFire = 0;
 		this.isActive = false;
 	};
-	
+
 	// Exports
 	return Timer;
 });

@@ -1,33 +1,37 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: BitFlag (1 bit of a BitField tied to a Register) class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
 
 define([
 	"../util"
 	, "./bit"
 	, "./register"
-], function (util, Bit, Register) { "use strict";
-	
+], function (util, Bit, Register) {
+    "use strict";
+
 	// CPU flags register (eg. EFLAGS) bit-flag
 	//	(eg IF, AF, DF) class constructor
 	function BitFlag(name, regMaster, bitsInLeft) {
@@ -37,10 +41,10 @@ define([
 		util.assert(regMaster && regMaster instanceof Register
 			, "BitFlag constructor :: no valid master register specified.");
 		/* ==== /Guards ==== */
-		
+
 		this.name = name;
 		this.regMaster = regMaster;
-		
+
 		this.get = BitFlag_CreateGetter(regMaster, bitsInLeft);
 		this.set = BitFlag_CreateSetter(regMaster, bitsInLeft);
 		this.clear = BitFlag_CreateClearer(regMaster, bitsInLeft);
@@ -69,11 +73,11 @@ define([
 		// Bitmask for extracting only the bits not occupied by this BitFlag
 		var bitmaskNotOccupies = 0xFFFFFFFF - bitmaskOccupies;
 		/* ==== /Malloc ==== */
-		
+
 		// Faster case; if no bits to shift, remove shift operation from method function
 		if (bitsInLeft == 0) {
 			return function () {
-				/* ==== Guards ==== 
+				/* ==== Guards ====
 				util.assert(arguments.length === 0, "BitFlag.set :: Does not take any arguments (hint: just .set() to set=1 or .clear() to set=0).");*/
 				/* ==== /Guards ==== */
 				regMaster.set(
@@ -86,7 +90,7 @@ define([
 		// General case
 		} else {
 			return function () {
-				/* ==== Guards ==== 
+				/* ==== Guards ====
 				util.assert(arguments.length === 0, "BitFlag.set :: Does not take any arguments (hint: just .set() to set=1 or .clear() to set=0).");*/
 				/* ==== /Guards ==== */
 				regMaster.set(
@@ -104,7 +108,7 @@ define([
 		// Bitmask for extracting only the bits not occupied by this BitFlag
 		var bitmaskNotOccupies = 0xFFFFFFFF - bitmaskOccupies;
 		/* ==== /Malloc ==== */
-		
+
 		// Faster case; if no bits to shift, remove shift operation from method function
 		if (bitsInLeft == 0) {
 			return function (val) {
@@ -133,7 +137,7 @@ define([
 		// Bitmask for extracting only the bits not occupied by this BitFlag
 		var bitmaskNotOccupies = 0xFFFFFFFF - bitmaskOccupies;
 		/* ==== /Malloc ==== */
-		
+
 		// Only general case needed because this is so simple
 		return function () {
 			regMaster.set(
@@ -146,7 +150,7 @@ define([
 		/* ==== Malloc ==== */
 		var bitmaskOccupies;
 		/* ==== /Malloc ==== */
-		
+
 		// Faster case; if no bits to shift, remove shift operation from method function
 		if (bitsInLeft == 0) {
 			return function () {
@@ -164,7 +168,7 @@ define([
 			};
 		}
 	}
-	
+
 	// Exports
 	return BitFlag;
 });

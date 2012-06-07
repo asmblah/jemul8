@@ -1,54 +1,58 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: CPU -> Northbridge -> Device I/O support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
 	"../util"
 	, "./iodev"
-], function (util, IODevice) { "use strict";
-	
+], function (util, IODevice) {
+    "use strict";
+
 	// TODO: Should be a config setting
 	var enableDebug = false;
-	
+
 	var debug = enableDebug ? function (msg) {
 		util.debug(msg);
 	} : function () {};
-	
+
 	// IRQs (hardware (I)nterrupt (R)e(Q)uests)
 	var MAX_IRQS = 16;
-	
+
 	// I/O subsystem class constructor
 	function IO(machine) {
 		util.assert(this && (this instanceof IO)
 			, "IO constructor :: error - not called properly"
 		);
-		
+
 		this.machine = machine;
-		
+
 		// I/O ports
 		this.hsh_portIORead = {};
 		this.hsh_portIOWrite = {};
-		
+
 		// Internally, as in Bochs, we keep track of the names of devices
 		//	registered against each IRQ: this isn't strictly necessary,
 		//	as IRQs are simply handled by the interrupts system
@@ -81,11 +85,11 @@ define([
 		util.assert(!isNaN(addr) && addr === parseInt(addr)
 			, "IO.registerIO_Read() :: 'addr' must be an integer");
 		/* ==== /Guards ==== */
-		
+
 		var machine = this.machine
 			, name_port = device.name + "(" + name_portPart + ")"
 			, port;
-		
+
 		// IO port has not been assigned a device yet
 		if ((port = this.hsh_portIORead[ addr ]).device === null) {
 			this.hsh_portIORead[ addr ] = new IOReadPort(
@@ -97,11 +101,11 @@ define([
 				+ port.name_port);
 			return false;
 		}
-		
+
 		debug("IO.registerIO_Read() :: I/O read port "
 			+ util.format("hex", addr) + " assigned as "
 			+ name_port + " to " + device.name);
-		
+
 		return true;
 	};
 	// Register an IO write handler for the specified port
@@ -113,11 +117,11 @@ define([
 		util.assert(!isNaN(addr) && addr === parseInt(addr)
 			, "IO.registerIO_Write() :: 'addr' must be an integer");
 		/* ==== /Guards ==== */
-		
+
 		var machine = this.machine
 			, name_port = device.name + "(" + name_portPart + ")"
 			, port;
-		
+
 		// IO port has not been assigned a device yet
 		if ((port = this.hsh_portIOWrite[ addr ]).device === null) {
 			this.hsh_portIOWrite[ addr ] = new IOWritePort(
@@ -129,11 +133,11 @@ define([
 				+ port.name_port);
 			return false;
 		}
-		
+
 		debug("IODevice.registerIO_Write() :: I/O write port "
 			+ util.format("hex", addr) + " assigned as "
 			+ name_port + " to " + device.name);
-		
+
 		return true;
 	};
 	// "Register" an IRQ for use (see note above
@@ -145,7 +149,7 @@ define([
 		util.assert(!isNaN(irq) && irq === parseInt(irq)
 			, "IO.registerIO_Write() :: 'irq' must be an integer");
 		/* ==== /Guards ==== */
-		
+
 		var name = device.name + "(" + namePart + ")";
 		var nameExisting;
 		// IRQ index out of bounds
@@ -165,7 +169,7 @@ define([
 		}
 		// Register new IRQ handler's name
 		this.hsh_irq_nameHandler[ irq ] = name;
-		
+
 		debug("IO.registerIRQ() :: IRQ #" + irq
 			+ " registered for " + name);
 		return true;
@@ -179,7 +183,7 @@ define([
 		util.assert(!isNaN(irq) && irq === parseInt(irq)
 			, "IO.registerIO_Write() :: 'irq' must be an integer");
 		/* ==== /Guards ==== */
-		
+
 		var name = device.name + "(" + namePart + ")";
 		var nameExisting;
 		// IRQ index out of bounds
@@ -202,7 +206,7 @@ define([
 		// Register new IRQ handler's name
 		this.hsh_irq_nameHandler[ irq ] = null;
 		delete this.hsh_irq_nameHandler[ irq ];
-		
+
 		debug("IO.unregisterIRQ() :: IRQ #" + irq
 			+ " unregistered from " + name);
 		return true;
@@ -214,19 +218,19 @@ define([
 		//	so there will always be a valid port object available
 		var port = this.hsh_portIORead[ addr_port ];
 		var result;
-		
+
 		if (port.mask & io_len) {
 			result = port.fn(port.device, addr_port, io_len);
 		} else {
 			if (io_len === 1) { result = 0xFF;
 			} else if (io_len === 2) { result = 0xFFFF;
 			} else { result = 0xFFFFFFFF; }
-			
+
 			// Don't flood the logs when probing PCI (from Bochs)
 			if (addr_port !== 0x0CFC) {
 				debugger;
 				util.problem("Execute (IN) :: Read from port "
-					+ util.format("hex", addr_port) 
+					+ util.format("hex", addr_port)
 					+ " with length " + io_len + " ignored");
 			}
 		}
@@ -238,10 +242,10 @@ define([
 		// All ports are initialised with null handlers,
 		//	so there will always be a valid port object available
 		var port = this.hsh_portIOWrite[ addr_port ];
-		
+
 		if (port.mask & io_len) {
 			//if (addr_port === 0x402) { /*debugger; */return; }
-			
+
 			port.fn(port.device, addr_port, val, io_len);
 		// Don't flood the logs when probing PCI (from Bochs)
 		} else if (addr_port !== 0x0CF8) {
@@ -251,7 +255,7 @@ define([
 				+ io_len + " ignored");
 		}
 	};
-	
+
 	function IOReadPort(device, addr, name_port, fn, mask) {
 		this.device = device;
 		this.addr = addr;
@@ -266,7 +270,7 @@ define([
 		this.fn = fn;
 		this.mask = mask;
 	}
-	
+
 	function null_readHandler(device, addr, lenIO) {
 		// Don't flood the logs when probing PCI (from Bochs)
 		if (addr !== 0x0CFC) {
@@ -290,10 +294,10 @@ define([
 			//);
 		}
 		//debugger;
-		
+
 		/** Do nothing. **/
 	}
-	
+
 	// Exports
 	return IO;
 });

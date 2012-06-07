@@ -1,34 +1,40 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *    
+ *
  *  MODULE: CPU "Lazy" Flag class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
     "../../util"
-], function (util) { "use strict";
-    
+], function (
+    util
+) {
+    "use strict";
+
     // Flag getter lookups
     var hsh_getCF = {}, hsh_getAF = {}, hsh_getOF = {};
-    
+
     // CPU Lazy Flag class constructor
     function LazyFlag(name, regMaster, bitsInLeft) {
         util.assert(this && (this instanceof LazyFlag), "LazyFlag ctor ::"
@@ -36,9 +42,9 @@ define([
         /*util.assert(regMaster && (regMaster instanceof jemul8.LazyFlagRegister)
             , "LazyFlag constructor ::"
             + " no valid master LazyFlagRegister specified.");*/
-        
+
         this.cpu = null; // Set on installation
-        
+
         this.bitsInLeft = bitsInLeft;
         this.bitmaskDirtyGet = 1 << bitsInLeft;
         // NB: zero-extend shift-right operator used to force
@@ -46,15 +52,15 @@ define([
         //    (eg. 0xFFFFFFFF >> 0 == -1, but 0xFFFFFFFF >>> 0 == 0xFFFFFFFF)
         // NB2: opposite is to "num | 0"
         this.bitmaskDirtySet = (~this.bitmaskDirtyGet) >>> 0;
-        
+
         // NB: It is EXTREMELY important that .value is ALWAYS stored
         //     as a 0 or 1, otherwise the use of identity operators throughout
         //     the code (=== & !==) will fail if comparing booleans to ints!
         this.value = 0;
-        
+
         this.name = name;
         this.regMaster = regMaster;
-        
+
         switch (name) {
         case "CF":
             this.hsh_get = hsh_getCF;
@@ -81,7 +87,7 @@ define([
         default:
             util.problem("LazyFlag constructor :: Unsupported Lazy Flag");
         }
-        
+
         // Add to master LazyFlagsRegister's hash
         regMaster.hsh_flg[ bitsInLeft ] = this;
     }
@@ -110,10 +116,10 @@ define([
     LazyFlag.prototype.toggle = function () {
         this.set(!this.get());
     };
-    
+
     /* =========== Lazy Flags evaluation =========== */
     // Based on Bochs source code: cpu/lazy_flags.cc
-    
+
     // These flags' calculations are the same for all instructions
     function getPF() {
         // When flagged as dirty, reads must evaluate flag from result
@@ -155,7 +161,7 @@ define([
                 this.value = (this.cpu.resLast >> 31) & 1;
                 break;
             }
-            
+
             // Flag is no longer dirty; clear dirty bit in Register
             this.regMaster.bitsDirty = (this.regMaster.bitsDirty & this.bitmaskDirtySet) >>> 0;
         }
@@ -174,14 +180,14 @@ define([
                 util.warning("Cannot calculate value for lazy-flag " + this.name
                     + ", leaving unchanged (this needs fixing!!!)");
             }
-            
+
             // Flag is no longer dirty; clear dirty bit in Register
             this.regMaster.bitsDirty = (this.regMaster.bitsDirty
                 & this.bitmaskDirtySet) >>> 0;
         }
         return this.value;
     }
-    
+
     // Carry Flag
     hsh_getCF[ "ADD" ] = function (cpu) {
         return (cpu.resLast < cpu.valLast1) & 1;
@@ -191,7 +197,7 @@ define([
         if (!cpu.insnLast.lastCF) {
             return hsh_getCF[ "ADD" ](cpu);
         }
-        
+
         return (cpu.resLast <= cpu.valLast1) & 1;
     };
     hsh_getCF[ "SUB" ]
@@ -204,12 +210,12 @@ define([
         var op1 = cpu.valLast1;
         var op2 = cpu.valLast2;
         var res = cpu.resLast;
-        
+
         // Calc flags as for SUB if CF was not set
         if (!cpu.insnLast.lastCF) {
             return hsh_getCF[ "SUB" ](cpu);
         }
-        
+
         if (sizeOperand === 4) {
             return ((op1 < res) || (op2 === 0xFFFFFFFF)) & 1;
         } else if (sizeOperand === 2) {
@@ -217,7 +223,7 @@ define([
         } else {
             return ((op1 < res) || (op2 === 0xFF)) & 1;
         }
-        
+
         //var bitmask = (1 << (cpu.insnLast.operand1.size * 8)) - 1;
         //return ((cpu.valLast1 < cpu.resLast) || (cpu.valLast2 === bitmask)) & 1;
     };
@@ -238,7 +244,7 @@ define([
     = function (cpu) {
         return 0;
     };
-    
+
     // Auxiliary / BCD Adjustment Flag
     hsh_getAF[ "ADD" ] = hsh_getAF[ "ADC" ]
     = hsh_getAF[ "SUB" ] = hsh_getAF[ "SBB" ]
@@ -268,7 +274,7 @@ define([
     = function (cpu) {
         return 0;
     };
-    
+
     // Overflow Flag
     hsh_getOF[ "ADD" ] = hsh_getOF[ "ADC" ]
     = function (cpu) {
@@ -302,7 +308,7 @@ define([
     hsh_getOF[ "DEC" ] = function (cpu) {
         //util.assert(cpu.insnLast.operand1.size < 4
         //    , "Needs to call .generateMask() if this ever occurs");
-        
+
         // eg. 7F, 7FFF, 7FFFFFFF
         //var half = ((1 << (cpu.insnLast.operand1.size * 8)) - 1) / 2;
         //return (cpu.resLast === half) & 1;
@@ -324,12 +330,12 @@ define([
         return 0;
     };
     /* =========== /Lazy Flags evaluation =========== */
-    
+
     // Determine whether there are an odd or even number
     //    of set bits in number "num"
     function getParity(num) {
         var res = 0;
-        
+
         while (num) {
             ++res;
             // Loop will execute once for each bit set in num
@@ -337,14 +343,14 @@ define([
         }
         return (res % 2 === 0) & 1;
     }
-    
+
     // Cache parity values up to 0xFF in lookup table
     //  (eg. mapParity[val & 0xFF])
     var mapParity = {};
     for (var num = 0 ; num <= 0xFF ; ++num) {
         mapParity[ num ] = getParity(num);
     }
-    
+
     // Exports
     return LazyFlag;
 });

@@ -1,47 +1,56 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *  
+ *
  *  MODULE: Miscellaneous utilities
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-define([ "jquery" ], function ($) { "use strict";
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
+define([
+    "jquery"
+], function (
+    $
+) {
+    "use strict";
+
     var util = {};
-    
+
     // Borrow some of jQuery's methods
     //  (TODO: Get rid of this - implement our own, to remove
     //  dependency on jQuery)
     util.extend = $.extend;
     util.each = $.each;
     util.isFunction = $.isFunction;
-    
+
     util.extend(util, {
     // Mask applied to addresses presented at the address bus, depending
     //  on setting of A20MASK#
         MASK_ENABLE_A20:    0xFFFFFFFF
         , MASK_DISABLE_A20: 0xFFeFFFFF
-        
+
     // Type of reset: warm (software) or cold (hardware)
         , RESET_HARDWARE: 1
         , RESET_SOFTWARE: 2
-        
+
     // CPU interrupt/exception types
         , EXTERNAL_INTERRUPT: 0
         , NMI: 2
@@ -49,7 +58,7 @@ define([ "jquery" ], function ($) { "use strict";
         , SOFTWARE_INTERRUPT: 4
         , PRIVILEGED_SOFTWARE_INTERRUPT: 5
         , SOFTWARE_EXCEPTION: 6
-        
+
     // CPU exception vectors
         , DE_EXCEPTION: 0 // Divide Error (fault)
         , DB_EXCEPTION: 1 // Debug (fault/trap)
@@ -70,13 +79,13 @@ define([ "jquery" ], function ($) { "use strict";
         , XM_EXCEPTION: 19
         // Total no. of handled exceptions
         , CPU_HANDLED_EXCEPTIONS: 20
-    
+
     // Descriptor access types
         , ACCESS_INVALID     : 0x00
         , ACCESS_VALID_CACHE : 0x01
         , ACCESS_ROK         : 0x02
         , ACCESS_WOK         : 0x04
-    
+
     // Descriptor types
         // For system & gate descriptors:
         , DESC_GATE_TYPE_NONE                       : 0x0
@@ -95,7 +104,7 @@ define([ "jquery" ], function ($) { "use strict";
                                                    // 0xD reserved
         , DESC_386_INTERRUPT_GATE                   : 0xE
         , DESC_386_TRAP_GATE                        : 0xF
-        
+
         // For data/code descriptors:
         , DESC_DATA_READ_ONLY                       : 0x0
         , DESC_DATA_READ_ONLY_ACCESSED              : 0x1
@@ -133,12 +142,12 @@ define([ "jquery" ], function ($) { "use strict";
                 }
             }
             return num;
-        
+
         }, truncateTowardZero: function (num) {
             return num >> 0;
         }
     });
-    
+
     // From [http://phpjs.org/functions/sprintf:522]
     util.sprintf = function (/* ... */) {
         // http://kevin.vanzonneveld.net
@@ -323,7 +332,7 @@ define([ "jquery" ], function ($) { "use strict";
 
         return format.replace(regex, doFormat);
     };
-    
+
     // Format various data prettily
     util.format = function (type, data /* or hour */, minute, sec) {
         var args = arguments;
@@ -338,7 +347,7 @@ define([ "jquery" ], function ($) { "use strict";
             throw new Error( "jQuery.format() :: Error - invalid 'type'" );
         }
     };
-    
+
     // For properly creating a subclass in JavaScript
     util.inherit = function (cls1, cls2, arg) {
         if (!$.isFunction(cls1)) {
@@ -352,18 +361,18 @@ define([ "jquery" ], function ($) { "use strict";
         cls1.prototype = arg !== undefined ? new cls2(arg) : new cls2();
         cls1.prototype.constructor = cls1;
     };
-    
+
     // Feature detection
     util.support = (function () {
         // ArrayBuffers are used for efficient memory storage
         var typedArrays = ("ArrayBuffer" in self) && ("Uint8Array" in self);
-        
+
         return {
             typedArrays: typedArrays
             , typedDataView: typedArrays && ("DataView" in self)
         };
     })();
-    
+
     // Safe versions of left- & right-shift
     //    (the builtin operators will convert a > 32-bit value
     //    to zero, so are not safe for some uses)
@@ -400,7 +409,7 @@ define([ "jquery" ], function ($) { "use strict";
             return num;
         }
     };
-    
+
     if (!Function.prototype.bind) {
         // Partial implementation of Function.bind()
         //    (does not support prepending arguments)
@@ -411,20 +420,20 @@ define([ "jquery" ], function ($) { "use strict";
             };
         };
     }
-    
+
     if (!Date.now) {
         Date.now = function () {
             return new Date().getTime();
         };
     }
-    
+
     // Check, because IE10 preview errors on .bind()
     var useBind = false;
     try {
         useBind = self.console && console.assert
         && console.assert.bind && console.assert.bind(console);
     } catch (e) {}
-    
+
     if (useBind) {
         util.extend(util, {
             assert: console.assert.bind(console)
@@ -448,6 +457,6 @@ define([ "jquery" ], function ($) { "use strict";
             , panic: function (msg) {}
         });
     }
-    
+
     return util;
 });

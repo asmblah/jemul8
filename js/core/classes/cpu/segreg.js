@@ -22,13 +22,21 @@
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-    "../../util"
-    , "../register"
-    , "./selector"
-    //, "../memory/accessor"
-    , "./descriptor"
-], function (util, Register, Selector, /*Accessor, */Descriptor) { "use strict";
+    "../../util",
+    "../register",
+    "./selector",
+    "./descriptor"
+], function (
+    util,
+    Register,
+    Selector,
+    Descriptor
+) {
+    "use strict";
 
     // Segment Register (eg. CS, DS, ES, FS, GS) class constructor
     function SegRegister(name, size) {

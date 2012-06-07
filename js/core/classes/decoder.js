@@ -1,42 +1,46 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: Decoder class
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
 
 define([
 	"../util"
 	, "./decoder/register"
 	, "./decoder/segreg"
-], function (util, Register, SegRegister) { "use strict";
-	
+], function (util, Register, SegRegister) {
+    "use strict";
+
 	// Decoder class constructor
 	function Decoder(regs) {
 		var d = this; // For shortening lookup tables below
-		
+
 		// Optionally specify registers to override defaults
 		if (regs) {
 			util.extend(this, regs);
 		}
-		
+
 		/* ==== Ordinal lookups ==== */
 		// Indexes in array correspond with ModR/M Reg field
 		d.hsh_regOrdinals_Byte = [
@@ -58,7 +62,7 @@ define([
 			, 2: d.hsh_regOrdinals_Word
 			, 4: d.hsh_regOrdinals_Dword
 		};
-		
+
 		d.hsh_regOrdinals_Segment = [
 			d.ES, d.CS, d.SS
 			, d.DS, d.FS, d.GS
@@ -96,12 +100,12 @@ define([
 		, DS: new SegRegister("DS")
 		, FS: new SegRegister("FS")
 		, GS: new SegRegister("GS")
-		
+
 		, AL: new Register("AL", 1), AH: new Register("AH", 1)
 		, CL: new Register("CL", 1), CH: new Register("CH", 1)
 		, DL: new Register("DL", 1), DH: new Register("DH", 1)
 		, BL: new Register("BL", 1), BH: new Register("BH", 1)
-		
+
 		, AX: new Register("AX", 2)
 		, CX: new Register("CX", 2)
 		, DX: new Register("DX", 2)
@@ -110,7 +114,7 @@ define([
 		, BP: new Register("BP", 2)
 		, SI: new Register("SI", 2)
 		, DI: new Register("DI", 2)
-		
+
 		, EAX: new Register("EAX", 4)
 		, ECX: new Register("ECX", 4)
 		, EDX: new Register("EDX", 4)
@@ -119,14 +123,14 @@ define([
 		, EBP: new Register("EBP", 4)
 		, ESI: new Register("ESI", 4)
 		, EDI: new Register("EDI", 4)
-		
+
 		, CR0: new Register("CR0", 4)
 		, CR1: new Register("CR1", 4)
 		, CR2: new Register("CR2", 4)
 		, CR3: new Register("CR3", 4)
 		, CR4: new Register("CR4", 4)
 	});
-	
+
 	// NB: all pre-shifted left by 8 bits for simple ORing together
 	//	with Operand Types
 	var A = 0x0100
@@ -152,7 +156,7 @@ define([
 		, Z = 0x1A00
 	// Ext; CO used to indicate a constant value in table
 		, CO = 0x1B00
-	
+
 	// Operand Types
 		, a = 0x01
 		, b = 0x02
@@ -168,7 +172,7 @@ define([
 		, si = 0x0C
 		, v = 0x0D
 		, w = 0x0E;
-	
+
 	/* ========== Opcode tables ========== */
 	// Format: [ <opcode_mnemonic>, <operands> ]
 	//	NB: this could be an array, if all elements were unrem'd;
@@ -259,63 +263,63 @@ define([
 		0xF4: ["HLT"],					0xF5: ["CMC"],						/*0xF6: ["#EXT_3", [E|b], 0],	0xF7: ["#EXT_3", [E|v], 1],*/
 		0xF8: ["CLC"],					0xF9: ["STC"],						0xFA: ["CLI"],					0xFB: ["STI"],
 		0xFC: ["CLD"],					0xFD: ["STD"],						/*0xFE: ["#EXT_4"],0xFF: 		["#EXT_5"]*/
-		
+
 		/*
 		 * 2-byte Intel opcodes have 0Fh as the first byte:
 		 */
-		
+
 		// 0x00
 		/*0x100: ["#EXT_6"],*/			/*0x101: ["#EXT_7"],*/				0x102: ["LAR", [G|v,E|w]],		0x103: ["LSL", [G|v, E|w]],
 		0x104: ["#RESERVED"],			0x105: ["#RESERVED"],				0x106: ["CLTS"],				0x107: ["#RESERVED"],
 		0x108: ["INVD"],				0x109: ["WBINVD"],					0x10A: ["#RESERVED"],			0x10B: ["#ILLEGAL"],
 		0x10C: ["#RESERVED"],			0x10D: ["#RESERVED"],				0x10E: ["#RESERVED"],			0x10F: ["#RESERVED"],
-		
+
 		// 0x101
 		0x110: ["movups", [V|ps,W|ps]],	0x111: ["movups", [W|ps, V|ps]],	0x112: ["movlps", [W|q,V|q]],	0x113: ["movlps", [V|q,W|q]],
 		0x114: ["unpcklps", [V|ps,W|q]],0x115: ["unpckhps", [V|ps,W|q]],	0x116: ["movhps", [V|q,W|q]],	0x117: ["movhps", [W|q,V|q]],
 		0x118: ["#EXT_16"],				0x119: ["#RESERVED"],				0x11A: ["#RESERVED"],			0x11B: ["#RESERVED"],
 		0x11C: ["#RESERVED"],			0x11D: ["#RESERVED"],				0x11E: ["#RESERVED"],			0x11F: ["#RESERVED"],
-		
+
 		// 0x102
 		0x120: ["MOV", [R|d,C|d]],		0x121: ["MOV", [R|d,D|d]],			0x122: ["MOV", [C|d,R|d]],		0x123: ["MOV", [D|d,R|d]],
 		0x124: ["#RESERVED"],			0x125: ["#RESERVED"],				0x126: ["#RESERVED"],			0x127: ["#RESERVED"],
 		0x128: ["movaps", [V|ps,W|ps]],	0x129: ["movaps", [W|ps,V|ps]],		0x12A: ["cvtpl2ps", [V|ps,Q|q]],0x12B: ["movntps", [W|ps,V|ps]],
 		0x12C: ["cvttps2pl", [Q|q,W|ps]],0x12D: ["cvtps2pl", [Q|q, W|ps]],	0x12E: ["ucomiss", [V|ss,W|ss]],0x12F: ["comiss", [V|ps,W|ps]],
-		
+
 		// 0x103
 		0x130: ["WRMSR"],				0x131: ["RDTSC"],					0x132: ["RDMSR"],				0x133: ["RDPMC"],
 		0x134: ["SYSENTER"],			0x135: ["SYSEXIT"],					0x136: ["#RESERVED"],			0x137: ["#RESERVED"],
 		0x138: ["#RESERVED"],			0x139: ["#RESERVED"],				0x13A: ["#RESERVED"],			0x13B: ["#RESERVED"],
 		0x13C: ["#RESERVED"],			0x13D: ["#RESERVED"],				0x13E: ["#RESERVED"],			0x13F: ["#RESERVED"],
-		
+
 		// 0x104
 		0x140: ["CMOVO", [G|v,E|v]],	0x141: ["CMOVNO", [G|v,E|v]],		0x142: ["CMOVB", [G|v,E|v]],	0x143: ["CMOVNB", [G|v,E|v]],
 		0x144: ["CMOVE", [G|v,E|v]],	0x145: ["CMOVNE", [G|v,E|v]],		0x146: ["CMOVBE", [G|v,E|v]],	0x147: ["CMOVNBE", [G|v,E|v]],
 		0x148: ["CMOVS", [G|v,E|v]],	0x149: ["CMOVNS", [G|v,E|v]],		0x14A: ["CMOVP", [G|v,E|v]],	0x14B: ["CMOVNP", [G|v,E|v]],
 		0x14C: ["CMOVL", [G|v,E|v]],	0x14D: ["CMOVNL", [G|v,E|v]],		0x14E: ["CMOVLE", [G|v,E|v]],	0x14F: ["CMOVNLE", [G|v,E|v]],
-		
+
 		// 0x105
 		0x150: ["movmskps", [E|d,V|ps]],0x151: ["sqrtps", [V|ps,W|ps]],		0x152: ["rsqrtps", [V|ps,W|ps]],0x153: ["rcpps", [V|ps,W|ps]],
 		0x154: ["andps", [V|ps,W|ps]],	0x155: ["andnps", [V|ps,W|ps]],		0x156: ["orps", [V|ps,W|ps]],	0x157: ["xorps", [V|ps,W|ps]],
 		0x158: ["", [G|v,E|v]],			0x159: ["", [G|v,E|v]],				0x15A: ["", [G|v,E|v]],			0x15B: ["", [G|v,E|v]],
 		0x15C: ["", [G|v,E|v]],			0x15D: ["", [G|v,E|v]],				0x15E: ["", [G|v,E|v]],			0x15F: ["", [G|v,E|v]],
-		
+
 		/** ===== GAP - TODO here!! ===== **/
-		
+
 		// 0x180
 		0x180: ["JO", [J|v]],			0x181: ["JNO", [J|v]],				0x182: ["JB", [J|v]],			0x183: ["JNB", [J|v]],
 		0x184: ["JE", [J|v]],			0x185: ["JNE", [J|v]],				0x186: ["JBE", [J|v]],			0x187: ["JNBE", [J|v]],
 		0x188: ["JS", [J|v]],			0x189: ["JNS", [J|v]],				0x18A: ["JP", [J|v]],			0x18B: ["JNP", [J|v]],
 		0x18C: ["JL", [J|v]],			0x18D: ["JNL", [J|v]],				0x18E: ["JLE", [J|v]],				0x18F: ["JNLE", [J|v]],
-		
+
 		/** ===== GAP - TODO here!! ===== **/
-		
+
 		// 0x0F 0xA0 -> 0x0F 0xAF
 		0x1A0: ["PUSH", ["FS"]],		0x1A1: ["POP", ["FS"]],				0x1A2: ["CPUID"],				0x1A3: ["BT", [E|v,G|v]],
 		0x1A4: ["SHLD", [E|v,G|v,I|b]], 0x1A5: ["SHLD", [E|v,G|v,"CL"]],	0x1A6: ["???"],					0x1A7: ["???"],
 		0x1A8: ["PUSH", ["GS"]],		0x1A9: ["POP", ["GS"]],				0x1AA: ["RSM"],					0x1AB: ["BTS", [E|v,G|v]],
 		0x1AC: ["SHRD", [E|v,G|v,I|b]],	0x1AD: ["SHRD", [E|v,G|v,"CL"]],	0x1AE: "#Grp15",				0x1AF: ["IMUL", [G|v,E|v]],
-		
+
 		// 0x0F 0xB0 -> 0x0F 0xBF
 		0x1B0: ["CMPXCHG", [E|b,G|b]],	0x1B1: ["CMPXCHG", [E|v,G|v]],		0x1B2: ["LSS", [M|p]],			0x1B3: ["BTR", [E|v,G|v]],
 		0x1B4: ["LFS", [G|v,M|p]],		0x1B5: ["LGS", [G|v,M|p]],			0x1B6: ["MOVZX", [G|v,E|b]],	0x1B7: ["MOVZX", [G|v,E|w]],
@@ -350,7 +354,7 @@ define([
 	hsh[base | 0x00] = ["ROL", [E|v, I|b]]; hsh[base | 0x01] = ["ROR", [E|v, I|b]];	hsh[base | 0x02] = ["RCL", [E|v, I|b]];
 	hsh[base | 0x03] = ["RCR", [E|v, I|b]];	hsh[base | 0x04] = ["SHL", [E|v, I|b]]; hsh[base | 0x05] = ["SHR", [E|v, I|b]];
 	hsh[base | 0x06] = ["???", [E|v, I|b]];	hsh[base | 0x07] = ["SAR", [E|v, I|b]];
-	
+
 	base = 0xD0 << 3;
 	hsh[base | 0x00] = ["ROL", [E|b, CO|1]];hsh[base | 0x01] = ["ROR", [E|b, CO|1]];hsh[base | 0x02] = ["RCL", [E|b, CO|1]];
 	hsh[base | 0x03] = ["RCR", [E|b, CO|1]];hsh[base | 0x04] = ["SHL", [E|b, CO|1]];hsh[base | 0x05] = ["SHR", [E|b, CO|1]];
@@ -368,7 +372,7 @@ define([
 	hsh[base | 0x03] = ["RCR", [E|v, "CL"]];hsh[base | 0x04] = ["SHL", [E|v, "CL"]];hsh[base | 0x05] = ["SHR", [E|v, "CL"]];
 	hsh[base | 0x06] = ["???", [E|v, "CL"]];hsh[base | 0x07] = ["SAR", [E|v, "CL"]];
 	/* ====== /Ext. group 2 - Shift Grp 2 (1A) ====== */
-	
+
 	/* ====== Ext. group 3 - Unary Grp 3 (1A) ====== */
 	base = 0xF6 << 3;
 	hsh[base | 0x00] = ["TEST", [E|b, I|b]];hsh[base | 0x01] = ["???", [E|b]];		hsh[base | 0x02] = ["NOT", [E|b]];
@@ -379,49 +383,49 @@ define([
 	hsh[base | 0x03] = ["NEG", [E|v]];		hsh[base | 0x04] = ["MUL", ["eAX", E|v]];hsh[base | 0x05] = ["IMUL", [E|v]];
 	hsh[base | 0x06] = ["DIV", ["eAX", E|v]];hsh[base | 0x07] = ["IDIV", [E|v]];
 	/* ====== /Ext. group 3 - Unary Grp 3 (1A) ====== */
-	
+
 	/* ====== Ext. group 4 - INC/DEC Grp 4 (1A) ====== */
 	base = 0xFE << 3;
 	hsh[base | 0x00] = ["INC", [E|b]]; 		hsh[base | 0x01] = ["DEC", [E|b]];		hsh[base | 0x02] = ["???", [E|b]];
 	hsh[base | 0x03] = ["???", [E|b]];		hsh[base | 0x04] = ["???", [E|b]]; 		hsh[base | 0x05] = ["???", [E|b]];
 	hsh[base | 0x06] = ["???", [E|b]];		hsh[base | 0x07] = ["???", [E|b]];
 	/* ====== /Ext. group 4 - INC/DEC Grp 4 (1A) ====== */
-	
+
 	/* ====== Ext. group 5 - INC/DEC Grp 5 (1A) ====== */
 	base = 0xFF << 3;
 	hsh[base | 0x00] = ["INC", [E|v]]; 		hsh[base | 0x01] = ["DEC", [E|v]];		hsh[base | 0x02] = ["CALLN", [E|v]];
 	hsh[base | 0x03] = ["CALLF", [E|p]];	hsh[base | 0x04] = ["JMPN", [E|v]]; 	hsh[base | 0x05] = ["JMPF", [E|p]];
 	hsh[base | 0x06] = ["PUSH", [E|v]];		hsh[base | 0x07] = ["???", [E|b]];
 	/* ====== /Ext. group 5 - INC/DEC Grp 5 (1A) ====== */
-	
+
 	/* ====== Ext. group 6 - Two-byte opcode extensions ====== */
 	base = 0x100 << 3; // 0x0F 0x00
 	hsh[base | 0x00] = ["SLDT", [E|w]]; 	hsh[base | 0x01] = ["STR", [E|w]];		hsh[base | 0x02] = ["LLDT", [E|w]];
 	hsh[base | 0x03] = ["LTR", [E|w]];		hsh[base | 0x04] = ["VERR", [E|w]]; 	hsh[base | 0x05] = ["VERW", [E|w]];
 	hsh[base | 0x06] = ["???", [E|w]];		hsh[base | 0x07] = ["???", [E|w]];
 	/* ====== /Ext. group 6 - Two-byte opcode extensions ====== */
-	
+
 	/* ====== Ext. group 7 - Two-byte opcode extensions ====== */
 	base = 0x101 << 3; // 0x0F 0x01
 	hsh[base | 0x00] = ["SGDT", [M|s]]; 	hsh[base | 0x01] = ["SIDT", [M|s]];		hsh[base | 0x02] = ["LGDT", [M|s]];
 	hsh[base | 0x03] = ["LIDT", [M|s]];		hsh[base | 0x04] = ["SMSW", [E|w]]; 	hsh[base | 0x05] = ["???", [E|w]];
 	hsh[base | 0x06] = ["LMSW", [E|w]];		hsh[base | 0x07] = ["INVLPG", [M|b]];
 	/* ====== /Ext. group 7 - Two-byte opcode extensions ====== */
-	
+
 	/* ====== Ext. group 8 - Two-byte opcode extensions ====== */
 	base = 0x1BA << 3; // 0x0F 0xBA
 	hsh[base | 0x00] = ["???"];				hsh[base | 0x01] = ["???"];				hsh[base | 0x02] = ["???"];
 	hsh[base | 0x03] = ["???"];				hsh[base | 0x04] = ["BT"]; 				hsh[base | 0x05] = ["BTS"];
 	hsh[base | 0x06] = ["BTR"];				hsh[base | 0x07] = ["BTC"];
 	/* ====== /Ext. group 8 - Two-byte opcode extensions ====== */
-	
+
 	/* ====== Ext. group 8 - Two-byte opcode extensions ====== */
 	base = 0x1C7 << 3; // 0x0F 0xC7
 	hsh[base | 0x00] = ["???"];				hsh[base | 0x01] = ["CMPXCHG", [M|q]];	hsh[base | 0x02] = ["???"];
 	hsh[base | 0x03] = ["???"];				hsh[base | 0x04] = ["???"]; 			hsh[base | 0x05] = ["???"];
 	hsh[base | 0x06] = ["???"];				hsh[base | 0x07] = ["???"];
 	/* ====== /Ext. group 8 - Two-byte opcode extensions ====== */
-	
+
 	/* ====== Ext. group 11 - MOV Grp 11 (1A) ====== */
 	base = 0xC6 << 3;
 	hsh[base | 0x00] = ["MOV", [E|b, I|b]]; hsh[base | 0x01] = ["???", [E|b, I|b]];	hsh[base | 0x02] = ["???", [E|b, I|b]];
@@ -433,7 +437,7 @@ define([
 	hsh[base | 0x06] = ["???", [E|v, I|v]];	hsh[base | 0x07] = ["???", [E|v, I|v]];
 	/* ====== /Ext. group 11 - MOV Grp 11 (1A) ====== */
 	/* ========== /Opcode tables ========== */
-	
+
 	var hsh, base;
 	// Map from typeCodes to operand sizes
 	Decoder.hsh_size_operand = hsh = {};
@@ -451,7 +455,7 @@ define([
 	hsh[ si ]	= [ 0, 0 ];	// Dword integer register (eg. EAX)
 	hsh[ v ]	= [ 2, 4 ];	// Word or dword, depending on operand-size attr
 	hsh[ w ]	= [ 2, 2 ];	// Word, regardless of operand-size attr
-	
+
 	// Sizes for typeCodes when operand-size attribute is set
 	//	(will multiply their size in bytes from above hash by 2)
 	Decoder.hsh_flgDependsOnOperandSizeAttr = hsh = {};
@@ -459,7 +463,7 @@ define([
 	= hsh[ c ]
 	= hsh[ p ]
 	= hsh[ v ] = true;
-	
+
 	Decoder.hsh_addrmethodRegister = hsh = {};
 	hsh[ C ] = "CONTROL";		// Control register
 	hsh[ D ] = "DEBUG";			// Debug register
@@ -470,7 +474,7 @@ define([
 	hsh[ S ] = "SEGMENT";		// Segment register
 	hsh[ T ] = "TEST";			// Test register
 	hsh[ V ] = "SIMD";			// SIMD floating-point register
-	
+
 	var X = 0; // Undefined opcode
 	Decoder.opcodeHasModRM32 = [
   /*       0 1 2 3 4 5 6 7 8 9 a b c d e f          */
@@ -512,6 +516,6 @@ define([
   /*       -------------------------------           */
   /*       0 1 2 3 4 5 6 7 8 9 a b c d e f           */
 	];
-	
+
 	return Decoder;
 });

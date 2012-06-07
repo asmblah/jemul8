@@ -1,56 +1,63 @@
 /*
  *	jemul8 - JavaScript x86 Emulator
  *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *	
+ *
  *	MODULE: x86 Instruction Operand class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
-	"../../util"
-	, "../decoder"
-], function (util, Decoder) { "use strict";
-	
+	"../../util",
+	"../decoder"
+], function (
+	util,
+	Decoder
+) {
+    "use strict";
+
 	// x86 Instruction Operand (eg. dest or src) class constructor
 	function Operand(insn, offset) {
 		//util.assert(this && (this instanceof Operand)
 		//	, "Operand ctor :: error - constructor not called properly"
 		//);
-		
+
 		// Instruction this Operand belongs to
 		this.insn = insn;
 		// Offset (in bytes) of this Operand in memory
 		this.offset = offset;
-		
+
 		this.addressSize = 0;
 		this.addressMask = 0;
 		this.size = 0; // May change further down
 		this.mask = 0;
-		
+
 		// Scale, Index & Base registers used (if applicable)
 		this.reg = null;
 		this.reg2 = null;
-		
+
 		// Usually will be null, meaning use instruction's segreg,
 		//  but some (eg. string) operations may need ES: for operand 2
 		this.segreg = null;
-		
+
 		// Immediate/scalar number value of operand (if applicable) -
 		//	NOT for storing memory addresses (use displacement for that)
 		//	(Mutex'd with .displacement)
@@ -58,7 +65,7 @@ define([
 		this.immedSize = 0;
         this.highImmed = 0;
 		this.highImmedSize = 0;
-        
+
 		// Displacement / operand's Memory Pointer address in bytes (if applicable)
 		//	(Mutex'd with .immed)
 		this.displacement = 0;
@@ -67,10 +74,10 @@ define([
 		this.type = null;
 		// Whether operand represents a memory pointer
 		this.isPointer = false;
-		
+
 		this.isRelativeJump = false;
 	}
-	
+
 	util.extend(Operand, {
 		// Create an Operand object by disassembling machine code
 		decode: function (decoder, insn, read, offset, attrs, mod, nnn, rm) {
@@ -82,13 +89,13 @@ define([
 			var size = insn.operandSizeAttr ? 4 : 2;
 			var displacement;
 			var typeCode;
-			
+
 			// Defaults
 			operand.addressSize = addressSize;
 			operand.addressMask = util.generateMask(addressSize);
 			operand.size = size;
 			operand.mask = util.generateMask(size);
-			
+
 			// Normal operand descriptor
 			if (typeof attrs === "number") {
 				/* ============ Determine size (in bytes) of operand from TypeCode ============ */
@@ -98,7 +105,7 @@ define([
 				if ((attrs & 0xFF00) !== 0x1B00) {
 					// TypeCode stored in low byte
 					typeCode = attrs & 0xFF;
-					
+
 					// Look up TypeCode to determine operand size in bytes
 					if ( !(size = Decoder.hsh_size_operand
 						[ typeCode ][ insn.operandSizeAttr & 1 ])
@@ -106,11 +113,11 @@ define([
 						util.problem("Invalid operand flags :: '"
 							+ attrs + "'");
 					}
-					
+
 					// Size has been recalculated; update
 					operand.size = size;
 					operand.mask = util.generateMask(size);
-					
+
 					// AddressingMethod stored in high byte (for speed we leave the AddressingMethod shifted
 					//	left by 8 bits, so that we do not need to shift right here before doing a table lookup)
 					//	TODO: This is confusing - why not just "= attrs >> 8" with
@@ -123,7 +130,7 @@ define([
 							= Decoder.hsh_addrmethodRegister[ addrMethodCode ])
 							!== undefined ) {
 						operand.type = addrMethod;
-						
+
 						// Segment register
 						if (addrMethod === "SEGMENT") {
 							operand.reg = decoder.hsh_regOrdinals_Segment[ nnn ];
@@ -168,7 +175,7 @@ define([
 							operand.setImmediate(read(operand.offset, size), size);
 							// Move offset pointer past the value just read
 							operand.offset += size;
-							
+
 							operand.isRelativeJump = true;
 							break;
 						// No ModR/M byte, offset coded as word or dword
@@ -185,19 +192,19 @@ define([
 							// Mod field represents that RM indicates just a general register
 							if (mod === 0x03) {
 								operand.type = "GENERAL";
-								
+
 								operand.reg = decoder.hsh_size_regOrdinals
 									[ size ][ rm ];
-								
+
 								return operand;	// Done!
 							}
-							
+
 							// Otherwise must be memory pointer
 							operand.isPointer = true;
-							
+
 							// Default base register
 							operand.reg = decoder.hsh_size_regOrdinals[ addressSize ][ rm ];
-							
+
 							// 32-bit addressing modes: note that mod === 0x03
 							//  is handled above
 							if (addressSize == 4) {
@@ -218,7 +225,7 @@ define([
 								} else {
 									util.panic("No SIB support yet.");
 								}
-								
+
 								if (mod === 0x01) {
 									// 8-bit displacement, sign-extended to 32-bit
 									operand.setDisplacement(read(operand.offset, 1), 1);
@@ -226,7 +233,7 @@ define([
 									++operand.offset;
 									return operand; // Done!
 								}
-								
+
 								// mod = 10b
 								operand.setDisplacement(read(operand.offset, 4), 4);
 								// Move offset pointer past the displacement just read
@@ -237,11 +244,11 @@ define([
 								// Derive Base & Index registers to use from RM field (eg. [BX+SI])
 								operand.reg = decoder.hsh_regOrdinals_Base[ rm ];
 								operand.reg2 = decoder.hsh_regOrdinals_Index[ rm ];
-								
+
 								if (mod == 0x00) {
 									// Derive Segment Register to use from RM field
 									insn.segreg = decoder.hsh_regOrdinals_Segment_Mod00RM16[ rm ];
-									
+
 									// Fixed memory addressing is available (a WORD displacement)
                                     //  if arbitrary combination [ mod=00, reg=BP/EBP ]
 									//	NB: this obviously means that there is no simple way
@@ -251,38 +258,38 @@ define([
 									if (rm === 0x06) {
 										// Not using (E)BP (see above notes)
 										operand.reg = null;
-										
+
 										operand.setDisplacement(read(operand.offset, 2), 2);
 										// Move offset pointer past the displacement just read
 										operand.offset += 2;
-										
+
 										return operand;	// Done!
 									}
 									operand.type = "GENERAL";
-									
+
 									return operand;	// Done!
 								}
 								operand.type = "GENERAL";
-								
+
 								// Derive Segment Register to use from RM field
 								//  (uses different map from the one above)
 								insn.segreg = decoder.hsh_regOrdinals_Segment_Mod01or10RM16[ rm ];
-								
+
 								// 8-bit / 1-byte displacement (memory address is reg1 + byte-size displacement)
 								if (mod === 0x01) {
 									operand.setDisplacement(read(operand.offset, 1), 1);
 									// Move offset pointer past the displacement just read
 									++operand.offset;
-									
+
 									return operand;	// Done!
 								}
-								
+
 								// 16-bit / 2-byte displacement (memory address is reg1 + word-size displacement)
 								//  (mod === 0x02)
 								operand.setDisplacement(read(operand.offset, 2), 2);
 								// Move offset pointer past the displacement just read
 								operand.offset += 2;
-								
+
 								return operand;	// Done!
 							}
 							break;
@@ -343,18 +350,18 @@ define([
 				operand.size = operand.reg.size;
 				operand.mask = util.generateMask(operand.size);
 			}
-			
+
 			return operand;
 		}
 	});
-	
+
 	// Alias
 	Operand.disassemble = Operand.decode;
-	
+
 	util.extend(Operand.prototype, {
 		setImmediate: function (immed, size) {
 			this.type = "IMMEDIATE";
-			
+
 			this.immed = immed;
 			this.immedSize = size;
 		}, getImmediate: function () {
@@ -382,7 +389,7 @@ define([
 		// Returns a human-readable ASM-format representation of the operand's data
 		}, toASM: function () {
 			var asm = "";
-			
+
 			if (this.immedSize) {
 				if (asm) { asm += "+"; }
 				asm += util.sprintf(
@@ -405,7 +412,7 @@ define([
 					, this.displacement
 				);
 			}
-			
+
 			// Surround with square brackets to indicate memory pointer
 			if (this.isPointer) {
 				asm = util.sprintf(
@@ -435,7 +442,7 @@ define([
 		//  use ES: for destination segment)
 		}, getSegReg: function () {
 			return this.segreg || this.insn.getSegReg();
-        
+
         // Accessors: lazily set polymorphically on first use
 		}, read: function (offset, size) {
             this.read = this.isPointer ? readWithPointer : readNonPointer;
@@ -445,7 +452,7 @@ define([
             this.write(val, offset, size);
         }
 	});
-    
+
     // Accessors: see Operand.read() & Operand.write()
 	function readWithPointer(offset, size) {
         return this.getSegReg().readSegment(
@@ -470,7 +477,7 @@ define([
         // NB: Must be to a register
         this.reg.set(val & this.mask);
     }
-	
+
 	// Exports
 	return Operand;
 });
