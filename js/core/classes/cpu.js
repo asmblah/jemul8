@@ -22,6 +22,9 @@
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*jslint bitwise: true, plusplus: true */
+/*global define, require */
+
 define([
     "../util",
     "./cpu/lazy_flags_register",
@@ -36,7 +39,8 @@ define([
     "./decoder",
     "./cpu/execute",
     "./cpu/global_table_register",
-    "./cpu/local_table_register"
+    "./cpu/local_table_register",
+    "./memory/buffer"
 ], function (
     util,
     LazyFlagRegister,
@@ -51,18 +55,19 @@ define([
     Decoder,
     Execute,
     GlobalTableRegister,
-    LocalTableRegister
+    LocalTableRegister,
+    Buffer
 ) { "use strict";
 
-    var DEBUG_LIST_INSN = []
-        , ticksLastUpdate = Date.now()
-        , ips = 0, yps = 0;
+    var DEBUG_LIST_INSN = [],
+        ticksLastUpdate = Date.now(),
+        ips = 0,
+        yps = 0;
 
     // x86 CPU class constructor
     function CPU(machine, name_class) {
-        util.assert(this && (this instanceof CPU)
-            , "CPU constructor :: error - not called properly"
-        );
+        util.assert(this && (this instanceof CPU),
+            "CPU constructor :: error - not called properly");
 
         this.machine = machine;
 
@@ -102,34 +107,46 @@ define([
         this.installStdRegisters();
 
         // Create Instruction decoder
-        this.decoder = new Decoder( {
-            ES: this.ES
-            , CS: this.CS
-            , SS: this.SS
-            , DS: this.DS
-            , FS: this.FS
-            , GS: this.GS
+        this.decoder = new Decoder({
+            ES: this.ES,
+            CS: this.CS,
+            SS: this.SS,
+            DS: this.DS,
+            FS: this.FS,
+            GS: this.GS,
 
-            , AL: this.AL, AH: this.AH
-            , CL: this.CL, CH: this.CH
-            , BL: this.BL, BH: this.BH
-            , DL: this.DL, DH: this.DH
+            AL: this.AL,
+            AH: this.AH,
+            CL: this.CL,
+            CH: this.CH,
+            BL: this.BL,
+            BH: this.BH,
+            DL: this.DL,
+            DH: this.DH,
 
-            , AX: this.AX, EAX: this.EAX
-            , CX: this.CX, ECX: this.ECX
-            , BX: this.BX, EBX: this.EBX
-            , DX: this.DX, EDX: this.EDX
-            , SP: this.SP, ESP: this.ESP
-            , BP: this.BP, EBP: this.EBP
-            , SI: this.SI, ESI: this.ESI
-            , DI: this.DI, EDI: this.EDI
+            AX: this.AX,
+            EAX: this.EAX,
+            CX: this.CX,
+            ECX: this.ECX,
+            BX: this.BX,
+            EBX: this.EBX,
+            DX: this.DX,
+            EDX: this.EDX,
+            SP: this.SP,
+            ESP: this.ESP,
+            BP: this.BP,
+            EBP: this.EBP,
+            SI: this.SI,
+            ESI: this.ESI,
+            DI: this.DI,
+            EDI: this.EDI,
 
-            , CR0: this.CR0
-            , CR1: this.CR1
-            , CR2: this.CR2
-            , CR3: this.CR3
-            , CR4: this.CR4
-        } );
+            CR0: this.CR0,
+            CR1: this.CR1,
+            CR2: this.CR2,
+            CR3: this.CR3,
+            CR4: this.CR4
+        });
     }
     util.extend(CPU.prototype, {
         install: function (component) {
@@ -147,9 +164,9 @@ define([
                 // Don't bother for unnamed components
                 if (component.name) {
                     // Hash used to get Register by its name
-                    this.hsh_reg[ component.name ] = component;
+                    this.hsh_reg[component.name] = component;
                     // Shortcut to using hash for time-critical parts
-                    this[ component.name ] = component;
+                    this[component.name] = component;
                 }
                 break;
             default:
@@ -160,6 +177,9 @@ define([
         // Install all standard x86 Registers onto the CPU
         //    (i486 pinout: http://pclinks.xtreemhost.com/486pin.htm)
         installStdRegisters: function () {
+            var EFLAGS,
+                CR0;
+
             // Accumulator
             this.install(new Register("EAX", 4));
             this.install(new SubRegister("AX", 2, this.EAX, 0xFFFF, 0));
@@ -207,24 +227,24 @@ define([
             this.install(new SegRegister("GS", 2));    // "GS" segment
 
             // EFlags (32-bit) register
-            var EFLAGS = new LazyFlagRegister("EFLAGS", 4);
+            EFLAGS = new LazyFlagRegister("EFLAGS", 4);
             this.install(EFLAGS);
             // Flags (16-bit) register
             this.install(new SubRegister("FLAGS", 2, this.EFLAGS, 0xFFFF, 0));
             // Carry Flag
             EFLAGS.install(new LazyFlag("CF", this.EFLAGS, 0));
             /* ==== Gap ==== */
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 1));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 1));
             /* ==== /Gap ==== */
             // Parity Flag
             EFLAGS.install(new LazyFlag("PF", this.EFLAGS, 2));
             /* ==== Gap ==== */
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 3));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 3));
             /* ==== /Gap ==== */
             // Auxiliary Flag
             EFLAGS.install(new LazyFlag("AF", this.EFLAGS, 4));
             /* ==== Gap ==== */
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 5));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 5));
             /* ==== /Gap ==== */
             // Zero Flag
             EFLAGS.install(new LazyFlag("ZF", this.EFLAGS, 6));
@@ -245,7 +265,7 @@ define([
             // NT (Nested Task) Flag - Intel 286+ only
             EFLAGS.install(new UnlazyFlag("NT", this.EFLAGS, 14));
             /* ==== Gap ==== */
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 15));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 15));
             /* ==== /Gap ==== */
             // Resume Flag
             EFLAGS.install(new UnlazyFlag("RF", this.EFLAGS, 16));
@@ -259,17 +279,18 @@ define([
             EFLAGS.install(new UnlazyFlag("VIP", this.EFLAGS, 20));
             // Identification Flag (Pentium+)
             EFLAGS.install(new UnlazyFlag("ID", this.EFLAGS, 21));
+
             /* ==== Gap ==== */
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 22));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 23));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 24));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 25));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 26));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 27));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 28));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 29));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 30));
-                EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 31));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 22));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 23));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 24));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 25));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 26));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 27));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 28));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 29));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 30));
+            EFLAGS.install(new UnlazyFlag(null, this.EFLAGS, 31));
             /* ==== /Gap ==== */
 
             // Global Descriptor Table Register
@@ -282,7 +303,7 @@ define([
             this.install(new SegRegister("TR", 4));
 
             // Control Register 0
-            var CR0 = new LazyFlagRegister("CR0", 4);
+            CR0 = new LazyFlagRegister("CR0", 4);
             this.install(CR0);
 
             // Machine Status Word
@@ -305,37 +326,43 @@ define([
             //  (Enable internal x87 floating point error reporting when set,
             //    else enables PC style x87 error detection)
             CR0.install(new UnlazyFlag("NE", this.CR0, 5));
+
             /* ==== Gap ==== */
-                CR0.install(new UnlazyFlag(null, this.CR0, 6));
-                CR0.install(new UnlazyFlag(null, this.CR0, 7));
-                CR0.install(new UnlazyFlag(null, this.CR0, 8));
-                CR0.install(new UnlazyFlag(null, this.CR0, 9));
-                CR0.install(new UnlazyFlag(null, this.CR0, 10));
-                CR0.install(new UnlazyFlag(null, this.CR0, 11));
-                CR0.install(new UnlazyFlag(null, this.CR0, 12));
-                CR0.install(new UnlazyFlag(null, this.CR0, 13));
-                CR0.install(new UnlazyFlag(null, this.CR0, 14));
-                CR0.install(new UnlazyFlag(null, this.CR0, 15));
+            CR0.install(new UnlazyFlag(null, this.CR0, 6));
+            CR0.install(new UnlazyFlag(null, this.CR0, 7));
+            CR0.install(new UnlazyFlag(null, this.CR0, 8));
+            CR0.install(new UnlazyFlag(null, this.CR0, 9));
+            CR0.install(new UnlazyFlag(null, this.CR0, 10));
+            CR0.install(new UnlazyFlag(null, this.CR0, 11));
+            CR0.install(new UnlazyFlag(null, this.CR0, 12));
+            CR0.install(new UnlazyFlag(null, this.CR0, 13));
+            CR0.install(new UnlazyFlag(null, this.CR0, 14));
+            CR0.install(new UnlazyFlag(null, this.CR0, 15));
             /* ==== /Gap ==== */
+
             // Write Protect
             CR0.install(new UnlazyFlag("WP", this.CR0, 16));
+
             /* ==== Gap ==== */
-                CR0.install(new UnlazyFlag(null, this.CR0, 17));
+            CR0.install(new UnlazyFlag(null, this.CR0, 17));
             /* ==== /Gap ==== */
+
             // Alignment Mask
-            this.AM = this.hsh_reg["AM"] = new UnlazyFlag("AM", this.CR0, 18);
+            this.AM = this.hsh_reg.AM = new UnlazyFlag("AM", this.CR0, 18);
+
             /* ==== Gap ==== */
-                CR0.install(new UnlazyFlag(null, this.CR0, 19));
-                CR0.install(new UnlazyFlag(null, this.CR0, 20));
-                CR0.install(new UnlazyFlag(null, this.CR0, 21));
-                CR0.install(new UnlazyFlag(null, this.CR0, 22));
-                CR0.install(new UnlazyFlag(null, this.CR0, 23));
-                CR0.install(new UnlazyFlag(null, this.CR0, 24));
-                CR0.install(new UnlazyFlag(null, this.CR0, 25));
-                CR0.install(new UnlazyFlag(null, this.CR0, 26));
-                CR0.install(new UnlazyFlag(null, this.CR0, 27));
-                CR0.install(new UnlazyFlag(null, this.CR0, 28));
+            CR0.install(new UnlazyFlag(null, this.CR0, 19));
+            CR0.install(new UnlazyFlag(null, this.CR0, 20));
+            CR0.install(new UnlazyFlag(null, this.CR0, 21));
+            CR0.install(new UnlazyFlag(null, this.CR0, 22));
+            CR0.install(new UnlazyFlag(null, this.CR0, 23));
+            CR0.install(new UnlazyFlag(null, this.CR0, 24));
+            CR0.install(new UnlazyFlag(null, this.CR0, 25));
+            CR0.install(new UnlazyFlag(null, this.CR0, 26));
+            CR0.install(new UnlazyFlag(null, this.CR0, 27));
+            CR0.install(new UnlazyFlag(null, this.CR0, 28));
             /* ==== /Gap ==== */
+
             // Not-write through
             CR0.install(new UnlazyFlag("NW", this.CR0, 29));
             // Cache Disable
@@ -501,12 +528,12 @@ define([
             // CPU emulation speed (in IPS, not Hertz as there
             //    is no direct correlation in this emulator between CPU cycles
             //    and Instruction exec time)
-            insnsPerSecond
+            insnsPerSecond,
             // Yield rate of emulator (stop CPU processing and refresh video,
             //    process DOM events and translate to Interrupts, etc.)
-            , yieldsPerSecond
+            yieldsPerSecond,
             // Amount of time Yield lasts for before returning to CPU processing
-            , msPerYield
+            msPerYield
         ) {
             var msAllSlices, msPerSlice, max_insnsPerSlice;
 
@@ -541,7 +568,7 @@ define([
                 * (insnsPerSecond / msAllSlices));
             // Ensure that rounding does not leave us with a CPU
             //    running at 0 Instructions per slice, otherwise nothing will happen!
-            if (max_insnsPerSlice == 0) {
+            if (max_insnsPerSlice === 0) {
                 max_insnsPerSlice = 1;
             }
 
@@ -558,43 +585,38 @@ define([
         },
         // For debugging purposes with Firebug/Chrome debugger etc.
         getState: function () {
-            var textEFlags;
-
             // Build DEBUG.COM-like Flags state text
-            textEFlags = (this.OF.get() ? "OV/1 " : "NV/0 ")
-                        + (this.DF.get() ? "DN/1 " : "UP/0 ")
-                        + (this.IF.get() ? "EI/1 " : "DI/0 ")
-                        + (this.SF.get() ? "NG/1 " : "PL/0 ")
-                        + (this.ZF.get() ? "ZR/1 " : "NZ/0 ")
-                        + (this.AF.get() ? "AC/1 " : "NA/0 ")
-                        + (this.PF.get() ? "PE/1 " : "PO/0 ")
-                        + (this.CF.get() ? "CY/1" : "NC/0");
+            var textEFlags = (this.OF.get() ? "OV/1 " : "NV/0 ") +
+                (this.DF.get() ? "DN/1 " : "UP/0 ") +
+                (this.IF.get() ? "EI/1 " : "DI/0 ") +
+                (this.SF.get() ? "NG/1 " : "PL/0 ") +
+                (this.ZF.get() ? "ZR/1 " : "NZ/0 ") +
+                (this.AF.get() ? "AC/1 " : "NA/0 ") +
+                (this.PF.get() ? "PE/1 " : "PO/0 ") +
+                (this.CF.get() ? "CY/1" : "NC/0");
 
             // Numbers used to ensure correct order
             return {
-                "1 :: EAX": this.EAX.getHexString()
-                , "2 :: EBX": this.EBX.getHexString()
-                , "3 :: ECX": this.ECX.getHexString()
-                , "4 :: EDX": this.EDX.getHexString()
-                , "5 :: ESP": this.ESP.getHexString()
-                , "6 :: EBP": this.EBP.getHexString()
-                , "7 :: ESI": this.ESI.getHexString()
-                , "8 :: EDI": this.EDI.getHexString()
-                , "9 :: DS": this.DS.getHexString()
-                , "10 :: ES": this.ES.getHexString()
-                , "11 :: SS": this.SS.getHexString()
-                , "12 :: CS": this.CS.getHexString()
-                , "13 :: EIP": this.EIP.getHexString()
-                , "14 :: EFLAGS": textEFlags
+                "1 :: EAX": this.EAX.getHexString(),
+                "2 :: EBX": this.EBX.getHexString(),
+                "3 :: ECX": this.ECX.getHexString(),
+                "4 :: EDX": this.EDX.getHexString(),
+                "5 :: ESP": this.ESP.getHexString(),
+                "6 :: EBP": this.EBP.getHexString(),
+                "7 :: ESI": this.ESI.getHexString(),
+                "8 :: EDI": this.EDI.getHexString(),
+                "9 :: DS": this.DS.getHexString(),
+                "10 :: ES": this.ES.getHexString(),
+                "11 :: SS": this.SS.getHexString(),
+                "12 :: CS": this.CS.getHexString(),
+                "13 :: EIP": this.EIP.getHexString(),
+                "14 :: EFLAGS": textEFlags
             };
         },
         // Set up the CPU - start fetch/execute cycle etc.
         init: function () {
-            //this.decodePage();
-            //return;
-
-            var machine = this.machine;
-            var cpu = this;
+            var machine = this.machine,
+                cpu = this;
 
             // Config setting for max no. of DMA quantums (byte or word)
             //  that may be transferred in one bulk batch during Yield
@@ -622,20 +644,21 @@ define([
         },
         // Decode one page of instructions (23)
         decodePage: function (offset) {
-            var i, insn
-                , CS = this.CS
-                , decoder = this.decoder
-                , asm = "";
+            var i,
+                insn,
+                CS = this.CS,
+                decoder = this.decoder,
+                asm = "";
 
             if (offset === undefined) {
-                offset = this.EIP.get()
+                offset = this.EIP.get();
             }
 
             function read(offset, len) {
                 return CS.readSegment(offset, len);
             }
 
-            for (i = 0 ; i < 23 && offset <= 0xFFFF ; ++i) {
+            for (i = 0; i < 23 && offset <= 0xFFFF; ++i) {
                 insn = Instruction.decode(decoder, read, offset, false, false);
 
                 asm += util.sprintf("%08X: %s\n", offset, insn.toASM());
@@ -647,25 +670,32 @@ define([
         },
         // Private method; start next set of Fetch-Decode-Execute cycles up until next Yield is scheduled
         fetchDecodeExecute: function () {
-            var machine = this.machine
-                , idx, list, len
+            var machine = this.machine,
+                idx,
+                list,
+                len,
             // Address- & operand-size attributes (true = 32-bit, false = 16-bit)
-                , addressSizeAttr = false, operandSizeAttr = false
+                addressSizeAttr = false,
+                operandSizeAttr = false,
             // CPU's instruction cache (for speed... !)
-                , cache_insn = this.cache_insn
-                , insn
-                , offset
-                , textASM
-                , reg_segment, CS = this.CS, EIP = this.EIP
-                , decoder = this.decoder
-                , functions = Execute.functions
+                cache_insn = this.cache_insn,
+                insn,
+                offset,
+                textASM,
+                reg_segment,
+                CS = this.CS,
+                EIP = this.EIP,
+                decoder = this.decoder,
+                functions = Execute.functions,
             // Total no. of instructions executed during this time-slice
-                , insns = 0
-                , tmr
-                , ticksSlice = Math.floor(1000 / 30)
-                , ticksNow = machine.getTimeMsecs()
-                , ticksEndSlice = Math.floor(ticksNow - (ticksNow % ticksSlice) + ticksSlice)
-            ;
+                insns = 0,
+                tmr,
+                ticksSlice = Math.floor(1000 / 30),
+                ticksNow = machine.getTimeMsecs(),
+                ticksEndSlice = Math.floor(ticksNow - (ticksNow % ticksSlice) + ticksSlice);
+                /*, prefetchBuffer = this.a || (this.a=Buffer.wrapMultibyteBuffer(Buffer.createBuffer(40)))
+                , prefetchAddress = Infinity
+            ;*/
 
             // Also use next time-slice if we are already
             //    close to the end of this one
@@ -675,8 +705,23 @@ define([
             // TODO: Currently performs memory mapping on every single read() call,
             //       which for decoder can be every byte! Need to optimise
             //       by memory mapping & then prefetching blocks of code
-            function read(offset, len) {
-                return CS.readSegment(offset, len);
+            function read(address, size) {
+                /*if (address < prefetchAddress || (address + size) - prefetchAddress >= 40) {
+                    CS.readSegmentBlock(address, prefetchBuffer, 40);
+                    prefetchAddress = address;
+                }
+
+                if (size === 1) {
+                    return prefetchBuffer.getUint8(address - prefetchAddress, true);
+                }
+                if (size === 2) {
+                    return prefetchBuffer.getUint16(address - prefetchAddress, true);
+                }
+                if (size === 4) {
+                    return prefetchBuffer.getUint32(address - prefetchAddress, true);
+                }*/
+
+                return CS.readSegment(address, size);
             }
 
             do {
@@ -697,7 +742,9 @@ define([
                  *    just delete rest of cache after the changed instruction
                  *    by setting the length property of the cache array
                  */
-                if (insn = cache_insn[ offset ]) {
+                insn = cache_insn[offset];
+
+                if (insn) {
                     // Move pointer past Instruction
                     offset += insn.lenBytes;
                 // Instruction needs to be decoded into cache
@@ -713,15 +760,18 @@ define([
 
                     // Decode & create new Instruction, then store in cache,
                     //  indexed by address for fast lookups later
-                    insn = cache_insn[ offset ]
-                    = Instruction.decode(
-                        decoder, read, offset
-                        , addressSizeAttr, operandSizeAttr
-                    );
+                    insn = cache_insn[offset]
+                        = Instruction.decode(
+                            decoder,
+                            read,
+                            offset,
+                            addressSizeAttr,
+                            operandSizeAttr
+                        );
 
                     // POLYMORPHIC: Look up & store
                     //  execute function for Instruction
-                    insn.execute = functions[ insn.name ];
+                    insn.execute = functions[insn.name];
 
                     // Move past decoded instruction
                     offset += insn.lenBytes;
@@ -1088,9 +1138,15 @@ define([
         },
         // See end of .fetchDecodeExecute() / CPU loop
         handleAsynchronousEvents: function () {
-            var idx, list, len
-                , vector, quantums, maxQuantums
-                , ticksNow, machine = this.machine, tmr;
+            var idx,
+                list,
+                len,
+                vector,
+                quantums,
+                maxQuantums,
+                ticksNow,
+                machine = this.machine,
+                tmr;
 
             /*
              *    Priority 1: Hardware Reset and Machine Checks
@@ -1153,10 +1209,10 @@ define([
             if (this.NMI.get()) {
                 this.NMI.lower(); // Will be handled now
                 this.interrupt(
-                    2                             // Vector (NMI is always INT #2)
-                    , util.NON_MASKABLE_INTERRUPT // Type
-                    , false                       // Push error (no)
-                    , 0                           // Error code (none)
+                    2,                           // Vector (NMI is always INT #2)
+                    util.NON_MASKABLE_INTERRUPT, // Type
+                    false,                       // Push error (no)
+                    0                            // Error code (none)
                 );
                 // An NMI will wake the CPU if halted
                 this.run();
@@ -1168,10 +1224,10 @@ define([
                 // (NB: This may set INTR with the next interrupt)
                 vector = machine.pic.acknowledgeInterrupt();
                 this.interrupt(
-                    vector                    // Vector
-                    , util.EXTERNAL_INTERRUPT // Type
-                    , false                   // Push error (no)
-                    , 0                       // Error code (none)
+                    vector,                  // Vector
+                    util.EXTERNAL_INTERRUPT, // Type
+                    false,                   // Push error (no)
+                    0                        // Error code (none)
                 );
                 // An enabled interrupt will wake the CPU if halted
                 this.run();
@@ -1181,7 +1237,7 @@ define([
                 //  transferring up to the specified max. no of quantums
                 //  (after which the bus is effectively released until the next yield)
                 maxQuantums = this.maxDMAQuantumsPerYield;
-                for (quantums = 0 ; quantums < maxQuantums ; ++quantums) {
+                for (quantums = 0; quantums < maxQuantums; ++quantums) {
                     machine.dma.raiseHLDA();
 
                     // Stop if transfer is complete
@@ -1225,11 +1281,10 @@ define([
             //    is not a good idea: however, only checking once per yield
             //    may not be often enough!
             ticksNow = machine.getTimeMsecs();
-            for ( idx = 0, list = machine.list_tmr, len = list.length
-                    ; idx < len ; ++idx
-            ) {
+            for (idx = 0, list = machine.list_tmr, len = list.length; idx < len; ++idx) {
                 // Ignore if unreg'd or inactive
-                if (!(tmr = list[ idx ]) || !tmr.isActive) { continue; }
+                tmr = list[idx];
+                if (!tmr || !tmr.isActive) { continue; }
 
                 // Timer has expired: fire its handler
                 if (tmr.ticksNextFire <= ticksNow) {
@@ -1250,8 +1305,8 @@ define([
         // Push data onto the Stack
         pushStack: function (val, len) {//debugger;
             // Pointer to top of Stack
-            var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP
-                , ptrStack = SP.get();
+            var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP,
+                ptrStack = SP.get();
 
             // Value pushed should be 16-bits or 32-bits (no sign extension)
             if (len === 1) { len = 2; }
@@ -1268,9 +1323,9 @@ define([
         // Pop data off the Stack
         popStack: function (len) {
             // Pointer to top of Stack
-            var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP
-                , ptrStack = SP.get()
-                , res;
+            var SP = this.SS.cache.default32BitSize ? this.ESP : this.SP,
+                ptrStack = SP.get(),
+                res;
 
             // Value popped should be 16-bits or 32-bits
             if (len !== 2 && len !== 4) {
@@ -1296,18 +1351,18 @@ define([
 
             // Protected-mode
             if (this.PE.get()) {
-                throw new Error( "CPU.interrupt() :: Protected mode not supported yet." );
+                throw new Error("CPU.interrupt() :: Protected mode not supported yet.");
             // Real-mode
             } else {
                 this.realModeInterrupt(vector, pushError, errorCode);
             }
         },
         realModeInterrupt: function (vector, pushError, errorCode) {
-            var IDTR = this.IDTR;
+            var IDTR = this.IDTR,
             // Calc offset as 4 bytes for every vector before this one
-            var offset = vector * 4;
-            var newCS;
-            var newIP;
+                offset = vector * 4,
+                newCS,
+                newIP;
 
             // Check whether vector is out of bounds (vector being read
             //    must be inside IDTR - its size is variable)
@@ -1381,7 +1436,9 @@ define([
         },
         // Return from Interrupt Service Routine (ISR)
         interruptReturn: function (is32) {
-            var eflags;
+            var eflags,
+                flags;
+
             if (!is32) {
                 // Set all of EIP to zero-out high word
                 this.EIP.set(this.popStack(2));
@@ -1390,7 +1447,7 @@ define([
                 // FIXME: Allow change of IOPL & IF here,
                 //        disallow in many other places
                 // Don't clear high EFLAGS word (is this right??)
-                var flags = this.popStack(2);
+                flags = this.popStack(2);
 
                 //if (flags === 65411) { debugger; }
 
@@ -1408,8 +1465,7 @@ define([
 
                 // VIF, VIP, VM unchanged
                 // FIXME: What is 0x1A0000 mask for? Can't remember...
-                this.EFLAGS.set((eflags & 0x257FD5)
-                    | (this.EFLAGS.get() & 0x1A0000));
+                this.EFLAGS.set((eflags & 0x257FD5) | (this.EFLAGS.get() & 0x1A0000));
             }
         },
         // Current Privilege Level is the RPL of current code segment selector
