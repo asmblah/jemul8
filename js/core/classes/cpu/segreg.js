@@ -1,23 +1,23 @@
 /*
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
- *  
+ *
  *  MODULE: Segment Register class support
  *
  *  ====
- *  
+ *
  *  This file is part of jemul8.
- *  
+ *
  *  jemul8 is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  jemul8 is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -29,24 +29,24 @@ define([
     //, "../memory/accessor"
     , "./descriptor"
 ], function (util, Register, Selector, /*Accessor, */Descriptor) { "use strict";
-    
+
     // Segment Register (eg. CS, DS, ES, FS, GS) class constructor
     function SegRegister(name, size) {
         util.assert(this && (this instanceof SegRegister)
             , "SegRegister constructor :: error - not called properly"
         );
-        
+
         Register.call(this, name, size);
-        
+
         this.mask = util.generateMask(size);
-        
+
         // Visible part of segment selector
         this.selector = new Selector();
-        
+
         // Hidden "cache" for segment descriptors, populated
         //  when segment register's value is updated
         this.cache = new Descriptor();
-        
+
         // Memory accessor (from MMU)
         //this.accessor = new Accessor();
     }
@@ -55,38 +55,56 @@ define([
         // Read a data quantum from this segment by virtual address/offset
         readSegment: function (addrVirtual, size) {
             //return this.accessor.read(addrVirtual, size);
-            
+
             var machine = this.cpu.machine;
             var cpu = machine.cpu;
             var descriptor = this.cache;
             // Translate virtual address to linear by segmentation
             var addrLinear = descriptor.base + addrVirtual;
             var cpl = cpu.getCPL();
-            
+
             if (addrVirtual > descriptor.limitScaled) {
                 debugger;
-                
+
                 util.problem("SegRegister.readSegment() :: Segment limit violation");
                 cpu.exception(this.getExceptionVector(), 0);
             }
-            
+
             return machine.mem.readLinear(addrLinear, size, cpl);
-        // Write data quantum to this segment by virtual address/offset
-        }, writeSegment: function (addrVirtual, val, size) {
-            //this.accessor.write(addrVirtual, val, size);
-            
+        }, readSegmentBlock: function (addrVirtual, buffer, size) {
+            //return this.accessor.read(addrVirtual, size);
+
             var machine = this.cpu.machine;
             var cpu = machine.cpu;
             var descriptor = this.cache;
             // Translate virtual address to linear by segmentation
             var addrLinear = descriptor.base + addrVirtual;
             var cpl = cpu.getCPL();
-            
+
+            if (addrVirtual > descriptor.limitScaled) {
+                debugger;
+
+                util.problem("SegRegister.readSegment() :: Segment limit violation");
+                cpu.exception(this.getExceptionVector(), 0);
+            }
+
+            machine.mem.readLinearBlock(addrLinear, buffer, size, cpl);
+        // Write data quantum to this segment by virtual address/offset
+        }, writeSegment: function (addrVirtual, val, size) {
+            //this.accessor.write(addrVirtual, val, size);
+
+            var machine = this.cpu.machine;
+            var cpu = machine.cpu;
+            var descriptor = this.cache;
+            // Translate virtual address to linear by segmentation
+            var addrLinear = descriptor.base + addrVirtual;
+            var cpl = cpu.getCPL();
+
             if (addrVirtual > descriptor.limitScaled) {
                 util.problem("SegRegister.writeSegment() :: Segment limit violation");
                 cpu.exception(this.getExceptionVector(), 0);
             }
-            
+
             return machine.mem.writeLinear(addrLinear, val, size, cpl);
         // Translates a Virtual address to a Linear one by segmentation
         //  (NB: Not used in .read/writeSegment() as no handling is performed
@@ -96,7 +114,7 @@ define([
         // Sets the Segment register back to its startup state
         }, reset: function () {
             var cache = this.cache;
-            
+
             cache.accessType = util.ACCESS_VALID_CACHE
                 | util.ACCESS_ROK
                 | util.ACCESS_WOK;
@@ -104,18 +122,18 @@ define([
             cache.dpl = 0;
             cache.segment = 1; // Data/code segment
             cache.type = util.DESC_DATA_READ_WRITE_ACCESSED;
-            
+
             cache.base = 0;
             // No scaling applied (x1) as byte-granular
             cache.limitScaled = 0xFFFF;
             cache.available = 0;
             cache.use4KPages = false;
             cache.default32BitSize = false;
-            
+
             if (this === this.cpu.CS) {
                 cache.base = 0xFFFF0000;
             }
-            
+
             // Clear raw value too
             this.value = 0;
         // Loads a null selector into the segreg
@@ -123,19 +141,19 @@ define([
             util.assert((val & 0xFFFC) == 0
                 , "SegRegister.loadNullSelector() :: Invalid value"
             );
-            
+
             var selector = this.selector, cache = this.cache;
-            
+
             selector.index = 0;
             selector.table = 0;
             selector.rpl = Selector.parse(val).rpl;
-            
+
             cache.accessType = util.ACCESS_INVALID; // Invalidate null selector
             cache.present = false;
             cache.dpl = 0;
             cache.segment = true; // Code/data segment
             cache.type = 0;
-            
+
             cache.base = 0;
             cache.limitScaled = 0;
             cache.use4KPages = false;
@@ -151,19 +169,19 @@ define([
             var rawDescriptor;
             var descriptor;
             var cpl;
-            
+
             // Mask out bits of value outside Register's bit-width
             val &= this.mask;
-            
+
             // This is still a register: store its value
             this.value = val;
-            
+
             // When (C)ode (S)egment is changed, eg. for a [far jmp],
             //  Instruction cache needs to be flushed
             if (this === cpu.CS) {
                 cpu.flushInstructionCaches();
             }
-            
+
             // Protected mode
             if (cpu.PE.get() && !cpu.VM.get()) {
                 // Find out the Current Privilege Level
@@ -174,30 +192,30 @@ define([
                 if (this === cpu.SS) {
                     // Parse raw selector into components
                     selector = Selector.parse(val);
-                    
+
                     // Null selector
                     if ((val & 0xFFFC) === 0) {
                         util.problem("SS.set() :: Loading null selector");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // Fetch raw descriptor as specified by selector
                     rawDescriptor = mem.fetchRawDescriptor(selector, util.GP_EXCEPTION);
-                    
+
                     /* selector's RPL must = CPL, else #GP(selector) */
                     if (selector.rpl != cpl) {
                         util.problem("SS.set() :: RPL != CPL");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // Parse raw descriptor into components
                     descriptor = Descriptor.parse(rawDescriptor);
-                    
+
                     if (descriptor.isValid() == false) {
                         util.problem("SS.set() :: Valid bit cleared");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // AR byte must indicate a writable data segment else #GP(selector)
                     if ( descriptor.isSegment() == false
                         || descriptor.isCodeSegment()
@@ -206,22 +224,22 @@ define([
                         util.problem("SS.set() :: Not writable data segment");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // DPL in the AR byte must equal CPL else #GP(selector)
                     if (descriptor.dpl != cpl) {
                         util.problem("SS.set() :: DPL != CPL");
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // Segment must be marked PRESENT else #SS(selector)
                     if (descriptor.isPresent() == false) {
                         util.problem("SS.set() :: Not present");
                         cpu.exception(util.SS_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // Mark segment as accessed
                     mem.touchSegment(selector, descriptor);
-                    
+
                     // Load SS with selector, load SS cache with descriptor
                     // FIXME: Can we not reuse the same Descriptor object
                     //        instead of creating a new one each time?
@@ -236,16 +254,16 @@ define([
                         this.loadNullSelector(val);
                         return;
                     }
-                    
+
                     // Parse raw selector into components
                     selector = Selector.parse(val);
-                    
+
                     // Fetch raw descriptor as specified by selector
                     rawDescriptor = mem.fetchRawDescriptor(selector, util.GP_EXCEPTION);
-                    
+
                     // Parse raw descriptor into components
                     descriptor = Descriptor.parse(rawDescriptor);
-                    
+
                     if (descriptor.isValid() == false) {
                         util.problem(util.sprintf(
                             "load_seg_reg(%s, 0x%04x): invalid segment"
@@ -253,7 +271,7 @@ define([
                         ));
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // AR byte must indicate data
                     //  or readable code segment else #GP(selector)
                     if ( descriptor.isSegment() == false
@@ -267,7 +285,7 @@ define([
                         ));
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // If data or non-conforming code, then both the RPL and the CPL
                     //  must be less than or equal to DPL in AR byte else #GP(selector)
                     if ( descriptor.isDataSegment()
@@ -283,7 +301,7 @@ define([
                             cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
                         }
                     }
-                    
+
                     // Segment must be marked PRESENT else #NP(selector)
                     if (descriptor.isPresent() == false) {
                         util.problem(util.sprintf(
@@ -292,10 +310,10 @@ define([
                         ));
                         cpu.exception(util.NP_EXCEPTION, val & 0xFFFC);
                     }
-                    
+
                     // Mark segment as accessed
                     mem.touchSegment(selector, descriptor);
-                    
+
                     // Load segment register with selector,
                     //  & load segment register-cache with descriptor
                     this.selector         = selector;
@@ -319,20 +337,20 @@ define([
                  * rights and segment size limit attributes from any previous setting are
                  * honored.
                  */
-                
+
                 selector = this.selector;
                 descriptor = this.cache;
-                
+
                 selector.rpl = cpu.VM.get() ? 3 : 0; // RPL = 3 in V8086-mode
                 descriptor.accessType = util.ACCESS_VALID_CACHE;
                 descriptor.base = val << 4; // Apply real-mode segment shift
                 descriptor.segment = true;  // Data/code segment
                 descriptor.present = true;  // Segment always present/resident
-                
+
                 // V8086-mode
                 if (cpu.VM.get()) {
                     util.warning("No V8086 support yet");
-                    
+
                     descriptor.type = util.DESC_DATA_READ_WRITE_ACCESSED;
                     descriptor.dpl = 3; // We are in V8086-mode
                     // Again, note that limit is only reset in V8086-mode,
@@ -352,7 +370,7 @@ define([
             }
         }
     });
-    
+
     // Exports
     return SegRegister;
 });

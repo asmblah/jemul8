@@ -175,6 +175,14 @@ define([
             size
         );
     };
+    Memory.prototype.readLinearBlock = function (addrLinear, buffer, size, cpl) {
+        this.readPhysicalBlock(
+            // Translate Linear to Physical address
+            this.linearToPhysical(addrLinear),
+            buffer,
+            size
+        );
+    };
     Memory.prototype.writeLinear = function (addrLinear, val, size, cpl) {
         this.writePhysical(
             // Translate Linear to Physical address
@@ -210,6 +218,20 @@ define([
         // Read via handler function
         handler = accessor.handler;
         return handler.fnRead(addrA20, size, handler.arg);
+    };
+    Memory.prototype.readPhysicalBlock = function (addrPhysical, toBuffer, size) {
+        var accessor = this.mapPhysical(addrPhysical, size),
+            addrA20 = accessor.addrA20,
+            buf = accessor.buf,
+            handler;
+
+        // Read memory buffer
+        if (buf) {
+            Buffer.copy(buf, addrA20 - accessor.addrStart_buf, toBuffer, 0, size);
+        // Read via handler function
+        } else {
+            util.panic("Memory.readPhysicalBlock() :: Memory-mapped I/O not supported");
+        }
     };
     Memory.prototype.writePhysical = function (addrPhysical, val, size) {
         var accessor = this.mapPhysical(addrPhysical, size),
