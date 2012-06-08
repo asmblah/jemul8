@@ -12,6 +12,11 @@ the amateur programmer.
 It aims to reflect computer science concepts, such as Fetch-Decode-Execute, in a largely abstract context,
 although the only instruction set currently supported is Intel's IA-32/x86 architecture.
 
+Live demo
+---------
+
+[http://asmblah.github.com/jemul8](http://asmblah.github.com/jemul8)
+
 A simple example of instantiating the emulator:
 -----------------------------------------------
 
