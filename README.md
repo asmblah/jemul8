@@ -15,6 +15,7 @@ although the only instruction set currently supported is Intel's IA-32/x86 archi
 A simple example of instantiating the emulator:
 -----------------------------------------------
 
+```javascript
 var emu = new jemul8( {
     "floppy0.driveType":
         "FDD_350HD"
@@ -32,3 +33,4 @@ emu.init(function () {
 }, function () {
     // Load failed
 });
+```
