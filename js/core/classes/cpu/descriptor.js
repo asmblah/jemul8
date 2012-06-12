@@ -34,9 +34,8 @@ define([
 
 	// Segment Descriptor class constructor
 	function Descriptor() {
-		util.assert(this && (this instanceof Descriptor)
-			, "Descriptor constructor :: error - not called properly"
-		);
+		util.assert(this && (this instanceof Descriptor),
+			"Descriptor constructor :: error - not called properly");
 
 		// ACCESS_INVALID, ACCESS_VALID_CACHE,
 		//  ACCESS_ROK or ACCESS_WOK
@@ -99,11 +98,14 @@ define([
 			//return this.rpl
 			//	| (this.table << 2)
 			//	| (this.index << 3);
+		},
 		// Parse raw descriptor & load into descriptor
-		}, parse: function (raw) {
-			var ARByte, limit
+		parse: function (raw) {
+			var ARByte,
+				limit,
 				// High & low dwords of 64-bit raw descriptor
-				, dword1 = raw.dword1, dword2 = raw.dword2;
+				dword1 = raw.dword1,
+				dword2 = raw.dword2;
 
 			// Access Rights byte
 			ARByte       = dword2 >> 8;
@@ -150,7 +152,7 @@ define([
 					this.param_count   = dword2 & 0x1f;
 					this.dest_selector = dword1 >> 16;
 					this.dest_offset   = (dword2 & 0xffff0000) |
-							 (dword1 & 0x0000ffff);
+						(dword1 & 0x0000ffff);
 					this.accessType = util.ACCESS_VALID_CACHE;
 					break;
 
@@ -187,48 +189,61 @@ define([
 			}
 
 			return this;
+		},
 		// Is segment's descriptor valid or not
-		}, isValid: function () {
+		isValid: function () {
 			return this.accessType !== util.ACCESS_INVALID;
+		},
 		// Is the descriptor pointing to a code/data segment?
-		}, isSegment: function () {
+		isSegment: function () {
 			return this.segment;
+		},
 		// Is the segment present (resident in memory) or not?
-		}, isPresent: function () {
+		isPresent: function () {
 			return this.present;
-		}, isCodeSegment: function () {
+		},
+		isCodeSegment: function () {
 			return (this.type >> 3) & 0x1;
-		}, isCodeSegmentConforming: function () {
+		},
+		isCodeSegmentConforming: function () {
 			return (this.type >> 2) & 0x1;
-		}, isCodeSegmentNonConforming: function () {
+		},
+		isCodeSegmentNonConforming: function () {
 			return !this.isCodeSegmentConforming();
-		}, isCodeSegmentReadable: function () {
+		},
+		isCodeSegmentReadable: function () {
 			return (this.type >> 1) & 0x1;
-		}, isDataSegment: function () {
+		},
+		isDataSegment: function () {
 			return !this.isCodeSegment();
-		}, isDataSegmentExpandDown: function () {
+		},
+		isDataSegmentExpandDown: function () {
 			return (this.type >> 2) & 0x1;
-		}, isDataSegmentWriteable: function () {
+		},
+		isDataSegmentWriteable: function () {
 			return (this.type >> 1) & 0x1;
-		}, isSegmentAccessed: function () {
+		},
+		isSegmentAccessed: function () {
 			return this.type & 0x1;
-
+		},
 		// Build/extract Access Rights byte for descriptor
-		}, getARByte: function () {
+		getARByte: function () {
 			return this.type
 				| (this.segment << 4)
 				| (this.dpl << 5)
 				| (this.present << 7);
+		},
 		// Update descriptor's Access Rights fields
-		}, setARByte: function (val) {
+		setARByte: function (val) {
 			this.present = (val >> 7) & 0x01;
 			this.dpl = (val >> 5) & 0x03;
 			this.segment = (val >> 4) & 0x01;
 			this.type = val & 0x0F;
 
 			return this;
+		},
 		// Segment has been accessed: set bit (see DESC_*_ACCESSED constants)
-		}, segmentAccessed: function () {
+		segmentAccessed: function () {
 			this.type |= 1;
 		}
 	});
