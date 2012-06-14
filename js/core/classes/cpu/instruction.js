@@ -149,23 +149,6 @@ get_prefixes:
                 dataOpcode = Decoder.arr_mapOpcodeExtensions[(byt << 3) | nnn];
             }
 
-
-
-            /* ==== DEBUGGING CHECKS ==== */
-            if (!dataOpcode || dataOpcode[0] === "???") {
-                debugger;
-                util.panic("Invalid opcode");
-            }
-            if (repeat && dataOpcode[0] !== "CMPS" && dataOpcode[0] !== "SCAS" && dataOpcode !== "LODS" &&
-                    dataOpcode[0] !== "INS" && dataOpcode[0] !== "OUTS" && dataOpcode[0] !== "STOS" && dataOpcode[0] !== "MOVS"
-                    ) {
-                debugger;
-                util.panic("Invalid REP prefix");
-            }
-            /* ==== DEBUGGING CHECKS ==== */
-
-
-
             // Create new Instruction object
             insn = new Instruction(
                 dataOpcode[0], // (For now) Instruction's name/mnemonic
