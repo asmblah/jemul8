@@ -693,8 +693,8 @@ define([
                 tmr,
                 ticksSlice = Math.floor(1000 / 30),
                 ticksNow = machine.getTimeMsecs(),
-                ticksEndSlice = Math.floor(ticksNow - (ticksNow % ticksSlice) + ticksSlice);
-                /*, prefetchBuffer = this.a || (this.a=Buffer.wrapMultibyteBuffer(Buffer.createBuffer(40)))
+                ticksEndSlice = ticksNow + ticksSlice; //Math.floor(ticksNow - (ticksNow % ticksSlice) + ticksSlice);
+                /*prefetchBuffer = this.a || (this.a=Buffer.wrapMultibyteBuffer(Buffer.createBuffer(40)));
                 , prefetchAddress = Infinity
             ;*/
 
@@ -710,16 +710,16 @@ define([
                 /*if (address < prefetchAddress || (address + size) - prefetchAddress >= 40) {
                     CS.readSegmentBlock(address, prefetchBuffer, 40);
                     prefetchAddress = address;
-                }
+                }*/
 
-                if (size === 1) {
-                    return prefetchBuffer.getUint8(address - prefetchAddress, true);
+                /*if (size === 1) {
+                    return prefetchBuffer.getUint8(address, true);
                 }
                 if (size === 2) {
-                    return prefetchBuffer.getUint16(address - prefetchAddress, true);
+                    return prefetchBuffer.getUint16(address, true);
                 }
                 if (size === 4) {
-                    return prefetchBuffer.getUint32(address - prefetchAddress, true);
+                    return prefetchBuffer.getUint32(address, true);
                 }*/
 
                 return CS.readSegment(address, size);
@@ -758,6 +758,8 @@ define([
                     //        this.decodePage();
                     //    }
                     //}
+
+                    //CS.readSegmentBlock(offset, prefetchBuffer, 40);
 
                     // Decode & create new Instruction, then store in cache,
                     //  indexed by address for fast lookups later
@@ -852,7 +854,7 @@ define([
                 //}
 
                 // In CMOS BIOS (Bochs)
-                if (CS.get() === 0xF000) {
+                //if (CS.get() === 0xF000) {
                     // memsetb()
                     //if (this.IP.get() === 0x0000) { debugger; } // Entry [push bp]
                     //if (this.IP.get() === 0x0023) { debugger; } // Exit [retn]
@@ -920,7 +922,7 @@ define([
 
                     // normal_post
                     //if (this.IP.get() === 0xE222) { debugger; } // [call _init_boot_vectors()]
-                }
+                //}
 
                 // In CMOS BIOS (AMI 56i112)
                 //if (CS.get() === 0xF000) {
@@ -951,7 +953,7 @@ define([
                 //}
 
                 // PC-DOS IBMBIO.COM (IO.SYS equiv)
-                if (CS.get() === 0x0060) {
+                /*if (CS.get() === 0x0060) {
 
                     // Init serial port
                     //if (insn.offset === 0x0206) { debugger; } // [int 0x14]
@@ -965,10 +967,10 @@ define([
                     if (insn.offset === 0x029E) { debugger; } // [int 0x21]
                     // pcdos11.img@0x10A0
                     if (insn.offset === 0x02A0) { debugger; } // [or al,al] after 2nd [int 0x21]
-                }
+                }*/
 
                 // PC-DOS INT 21h segment
-                if (CS.get() === 0x00BF) {
+                /*if (CS.get() === 0x00BF) {
                     // pcdos11.img@0x1909
                     // - function that sets AL = -1 (0xFF), indicating error
                     if (insn.offset === 0x0309) { debugger; } // [mov al,0xFF]
@@ -978,10 +980,10 @@ define([
                     if (insn.offset === 0x030C) { debugger; } // [mov b,cs:[168F], 0]
 
                     if (insn.offset === 0x034D) { debugger; } // [stosb]
-                }
+                }*/
 
                 // MS-DOS IO.SYS
-                if (CS.get() === 0x0070) {
+                /*if (CS.get() === 0x0070) {
                     //if (this.IP.get() === 0x0237) { debugger; } // [retf]
 
                     //if (this.IP.get() === 0x0517) { debugger; } //
@@ -1002,7 +1004,7 @@ define([
                     //if (this.IP.get() === 0x3F8D) { debugger; } // [int 0x17]
                     // Dos3.3.img@0x839D
                     //if (this.IP.get() === 0x3F8F) { debugger; } // [retn] after [int 0x17]
-                }
+                }*/
                 //if (CS.get() === 0x9F44) {
                     //if (this.IP.get() >= 0x3AF && this.IP.get() <= 0x420) {
                         //if (!this.test) { this.test = []; }
@@ -1018,7 +1020,7 @@ define([
                     //if (this.IP.get() === 0x316f) { debugger; } // @64A5h [dec si]
                 //}
 
-                if (insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL") { debugger; }
+                //if (insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL") { debugger; }
                 //if (insn.name === "AND" && insn.toASM() === "AND b,DS:[BX+SI], AH") { debugger; }
                 //if (insn.name === "MOV" && insn.toASM() === "MOV AH, b,DS:[SI+FFh]") { debugger; }
 
@@ -1072,17 +1074,17 @@ define([
                 //}
 
                 // V8086 support is lacking...
-                if (this.VM.get()) {
+                /*if (this.VM.get()) {
                     debugger;
-                }
+                }*/
 
                 // VGABIOS INT 10h handler
                 //if (CS.get() === 0xC000 && this.IP.get() === 0x3B39) { debugger; }
 
-                DEBUG_LIST_INSN.push(insn);
+                /*DEBUG_LIST_INSN.push(insn);
                 if (DEBUG_LIST_INSN.length > 1000) {
                     DEBUG_LIST_INSN = DEBUG_LIST_INSN.slice(DEBUG_LIST_INSN.length - 512);
-                }
+                }*/
 
                 /* // Resume Flag
                 if (this.RF.get()) {
@@ -1109,7 +1111,7 @@ define([
                  * interrupt (if enabled) is every 244us,
                  * so approx. 4000 times/sec!)
                  */
-                if ((insns % 20) === 0) {
+                if ((insns % 40) === 0) {
                     // Stop CPU loop for this slice if we run out of time
                     if (Date.now() > ticksEndSlice) {
                         break;
