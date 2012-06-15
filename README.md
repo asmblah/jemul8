@@ -15,7 +15,7 @@ although the only instruction set currently supported is Intel's IA-32/x86 archi
 Live demo
 ---------
 
-[http://asmblah.github.com/jemul8](http://asmblah.github.com/jemul8)
+[http://jemul8.com](http://jemul8.com)
 
 A simple example of instantiating the emulator:
 -----------------------------------------------
