@@ -1,0 +1,11 @@
+# Boot images shouldn't be in tree
+boot/
+
+# Shouldn't include reference docs
+docs/
+
+# Dev testing bits
+dev/
+
+#
+Hiew726w
