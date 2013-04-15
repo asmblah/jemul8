@@ -1,8 +1,7 @@
 /*
- *	jemul8 - JavaScript x86 Emulator
- *	Copyright (c) 2012 http://ovms.co. All Rights Reserved.
+ * jemul8 - JavaScript x86 Emulator
  *
- *	MODULE: 64-bit big integer (Int64) class support
+ * MODULE: 64-bit big integer (Int64) class support
  *
  *  Based on Closure library's Long class support
  *  - See http://closure-library.googlecode.com/svn/docs/closure_goog_math_long.js.source.html
