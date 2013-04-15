@@ -20,3 +20,10 @@ vendor/modular:
   squashed: true
   type: git
   url: git://github.com/asmblah/modular.git
+vendor/sinon-chai: 
+  branch: master
+  remote: master/braid/vendor/sinon-chai
+  revision: 70b05d6f73c257998b145dcbc3b23b07b5596602
+  squashed: true
+  type: git
+  url: git://github.com/domenic/sinon-chai.git
