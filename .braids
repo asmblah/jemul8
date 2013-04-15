@@ -1,4 +1,11 @@
 --- 
+vendor/mocha: 
+  branch: master
+  remote: master/braid/vendor/mocha
+  revision: 8a1555e24a543c05c6f3a99820f3d0b761bbb917
+  squashed: true
+  type: git
+  url: git://github.com/asmblah/mocha.git
 vendor/modular: 
   branch: master
   remote: master/braid/vendor/modular

@@ -1,0 +1,7 @@
+--require should
+--reporter dot
+--ui bdd
+--growl
+--globals okGlobalA,okGlobalB
+--globals okGlobalC
+--timeout 200
