@@ -1,0 +1,8 @@
+--- 
+vendor/modular: 
+  branch: master
+  remote: master/braid/vendor/modular
+  revision: ba05a53ed829ed78bc3d8f5771540daeba50039d
+  squashed: true
+  type: git
+  url: git://github.com/asmblah/modular.git
