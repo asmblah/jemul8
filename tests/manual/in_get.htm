@@ -1,0 +1,52 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+	<head>
+		<title>Intel x86 Emulator</title>
+		<script type="text/javascript">
+			window.onload = function () {
+				var start = new Date().getTime();
+				var arr = { a: 1, b: 2, c: 3 };
+				var elem;
+				var found = 0;
+				
+				for ( var i = 0 ; i < 1000000 ; ++i ) {
+					if ( "c" in arr ) {
+						//elem = arr["d"];
+						found++;
+					}
+				}
+				
+				var end = (new Date().getTime() - start);
+				
+				found = 0;
+				
+				var start = new Date().getTime();
+				
+				for ( var i = 0 ; i < 1000000 ; ++i ) {
+					if ( elem = arr["c"] ) {
+						found++;
+					}
+				}
+				
+				alert(end + " , " + (new Date().getTime() - start));
+			};
+			
+			function Test1() {
+				
+			}
+			
+			function Test2() {
+				
+			}
+		</script>
+		
+		<style type="text/css">
+			* {
+				margin: 0px; padding: 0px; border: 0px none; outline: none;
+			}
+		</style>
+	</head>
+	<body>
+		
+	</body>
+</html>

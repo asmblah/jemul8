@@ -1,3 +1,0 @@
-[submodule "lib/modular"]
-	path = lib/modular
-	url = git://github.com/asmblah/modular.git

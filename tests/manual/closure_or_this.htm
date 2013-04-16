@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript">
+			var time1, time2;
+			var reps = 1000000;
+			
+			// Closure-based
+			(function () {
+				function CPU() {
+					var ax = 0x0000, bx = 0x0000, cx = 0x0000, dx = 0x0000;
+					
+					this.compile = function ( code ) {
+						code = this.wrap(code);
+						return eval(code);
+					};
+					this.snapshotRegisters = function () {
+						return { ax: ax, bx: bx, cx: cx, dx: dx };
+					};
+				}
+				CPU.prototype.wrap = function ( code ) {
+					return "(function () {\n" + code + "\n})";
+				};
+				
+				// ...
+				
+				var cpu = new CPU();
+				var unit = cpu.compile("ax=(ax+0xFF00)&0xFFFF;bx=(ax+0x0FFF)&0xFFFF;");
+				var start = new Date().getTime();
+				for ( var i = 0 ; i < reps ; ++i ) {
+					unit();
+				}
+				time1 = new Date().getTime() - start;
+				//alert(cpu.snapshotRegisters().bx.toString(16).toUpperCase());
+			})();
+			
+			// "This"/object-based
+			(function () {
+				function CPU() {
+					this.ax = 0x0000; this.bx = 0x0000; this.cx = 0x0000; this.dx = 0x0000;
+				}
+				CPU.prototype.compile = function ( code ) {
+					code = this.wrap(code);
+					return eval(code);
+				};
+				CPU.prototype.snapshotRegisters = function () {
+					return { ax: this.ax, bx: this.bx, cx: this.cx, dx: this.dx };
+				};
+				CPU.prototype.wrap = function ( code ) {
+					return "(function ( cpu ) {\n" + code + "\n})";
+				};
+				
+				// ...
+				
+				var cpu = new CPU();
+				var unit = cpu.compile("cpu.ax=(cpu.ax+0xFF00)&0xFFFF;cpu.bx=(cpu.ax+0x0FFF)&0xFFFF;");
+				var start = new Date().getTime();
+				for ( var i = 0 ; i < reps * 10 ; ++i ) {
+					unit(cpu);
+				}
+				time2 = new Date().getTime() - start;
+				//alert(cpu.snapshotRegisters().bx.toString(16).toUpperCase());
+			})();
+			
+			alert(time1 + "," + time2);
+		</script>
+	</head>
+	<body>
+		
+	</body>
+</html>

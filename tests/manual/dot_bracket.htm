@@ -1,0 +1,39 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+	<head>
+		<title>Intel x86 Emulator</title>
+		<script type="text/javascript">
+			window.onload = function () {
+				var a = { a:1, b:2, c:3, d:4, e:5, f:6, g:7, h:8 };
+				var s1 = "a";
+				var s2 = "c";
+				var start = new Date().getTime();
+				
+				for ( var i = 0 ; i < 1000000 ; ++i ) {
+					a["a"] = i;
+					a["c"] = i;
+				}
+				
+				var end = (new Date().getTime() - start);
+				
+				var start = new Date().getTime();
+				
+				for ( var i = 0 ; i < 1000000 ; ++i ) {
+					a.a = i;
+					a.c = i;
+				}
+				
+				alert(end + " , " + (new Date().getTime() - start));
+			};
+		</script>
+		
+		<style type="text/css">
+			* {
+				margin: 0px; padding: 0px; border: 0px none; outline: none;
+			}
+		</style>
+	</head>
+	<body>
+		
+	</body>
+</html>

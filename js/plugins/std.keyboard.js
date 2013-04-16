@@ -2,24 +2,13 @@
  *  jemul8 - JavaScript x86 Emulator
  *  Copyright (c) 2012 http://ovms.co. All Rights Reserved.
  *
- *  MODULE: Simple DOM event-based keyboard plugin
+ * MODULE: Simple DOM event-based keyboard plugin
  *
- *  ====
+ * ====
  *
- *  This file is part of jemul8.
- *
- *  jemul8 is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  jemul8 is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with jemul8.  If not, see <http://www.gnu.org/licenses/>.
+ * Copyright 2013 jemul8.com (http://github.com/asmblah/jemul8)
+ * Released under the MIT license
+ * http://jemul8.com/MIT-LICENSE.txt
  */
 
 /*jslint bitwise: true, plusplus: true */
@@ -39,7 +28,7 @@ define([
 	var keyboardPlugin = {
 		applyTo: function (emu) {
 			var cancelKeypress = false;
-			$(document).keydown(function (evt) {
+			$(util.global.document).keydown(function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 
 				// Simple translation to KEY_* values (needs a keymap)
@@ -66,37 +55,38 @@ define([
 
 	// Convert a DOM keyCode to a key index
 	function toKeyIndex( keyCode ) {
+		var specialKeys;
         //$("<div>").text(keyCode).insertBefore($("canvas"));
 
         if (keyCode >= 112 && keyCode <= 112 + 12) {
-        	return Scancode.getKeyIndex("KEY_F" + (keyCode - 112 + 1));
+            return Scancode.getKeyIndex("KEY_F" + (keyCode - 112 + 1));
         }
 
-		switch ( keyCode ) {
-		case 8:
-			return Scancode.getKeyIndex("KEY_BACKSPACE");
-		case 13:
-			return Scancode.getKeyIndex("KEY_ENTER");
-		case 16:
-			return Scancode.getKeyIndex("KEY_SHIFT_L");
-		case 27:
-			return Scancode.getKeyIndex("KEY_ESC");
-		case 32:
-			return Scancode.getKeyIndex("KEY_SPACE");
-		case 37:
-			return Scancode.getKeyIndex("KEY_LEFT");
-		case 38:
-			return Scancode.getKeyIndex("KEY_UP");
-		case 39:
-			return Scancode.getKeyIndex("KEY_RIGHT");
-		case 40:
-			return Scancode.getKeyIndex("KEY_DOWN");
-        case 190:
-            return Scancode.getKeyIndex("KEY_PERIOD");
-		// Other ANSI key
-		default:
-			return keyCode - (65 - 20);
-		}
+        if (keyCode >= 48 && keyCode <= 57) {
+            return Scancode.getKeyIndex("KEY_" + (keyCode - 48));
+        }
+
+        specialKeys = {
+            8: "KEY_BACKSPACE",
+            13: "KEY_ENTER",
+            16: "KEY_SHIFT_L",
+            17: "KEY_CTRL_L",
+            27: "KEY_ESC",
+            32: "KEY_SPACE",
+            37: "KEY_LEFT",
+            38: "KEY_UP",
+            39: "KEY_RIGHT",
+            40: "KEY_DOWN",
+            190: "KEY_PERIOD"
+        };
+
+        // Special key
+        if (specialKeys[keyCode]) {
+            return Scancode.getKeyIndex(specialKeys[keyCode]);
+        }
+
+        // Other ANSI key
+        return keyCode - (65 - 20);
 	}
 
 	return keyboardPlugin;
