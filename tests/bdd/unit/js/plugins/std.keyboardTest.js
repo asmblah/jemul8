@@ -87,6 +87,7 @@ define([
 
         rootUtil.each([
             {keyName: "KEY_CTRL_L", keyCode: 17, keyIndex: 0},
+            {keyName: "KEY_SHIFT_L", keyCode: 16, keyIndex: 1},
             {keyName: "KEY_F1", keyCode: 112, keyIndex: 2},
             {keyName: "KEY_F2", keyCode: 113, keyIndex: 3},
             {keyName: "KEY_F3", keyCode: 114, keyIndex: 4},
@@ -99,16 +100,15 @@ define([
             {keyName: "KEY_F10", keyCode: 121, keyIndex: 11},
             {keyName: "KEY_F11", keyCode: 122, keyIndex: 12},
             {keyName: "KEY_F12", keyCode: 123, keyIndex: 13},
-            {keyName: "KEY_BACKSPACE", keyCode: 8, keyIndex: 69},
-            {keyName: "KEY_ENTER", keyCode: 13, keyIndex: 70},
-            {keyName: "KEY_SHIFT_L", keyCode: 16, keyIndex: 1},
             {keyName: "KEY_ESC", keyCode: 27, keyIndex: 56},
             {keyName: "KEY_SPACE", keyCode: 32, keyIndex: 57},
-            {keyName: "KEY_LEFT", keyCode: 37, keyIndex: 97},
+            {keyName: "KEY_PERIOD", keyCode: 190, keyIndex: 60},
+            {keyName: "KEY_BACKSPACE", keyCode: 8, keyIndex: 69},
+            {keyName: "KEY_ENTER", keyCode: 13, keyIndex: 70},
             {keyName: "KEY_UP", keyCode: 38, keyIndex: 95},
-            {keyName: "KEY_RIGHT", keyCode: 39, keyIndex: 98},
             {keyName: "KEY_DOWN", keyCode: 40, keyIndex: 96},
-            {keyName: "KEY_PERIOD", keyCode: 190, keyIndex: 60}
+            {keyName: "KEY_LEFT", keyCode: 37, keyIndex: 97},
+            {keyName: "KEY_RIGHT", keyCode: 39, keyIndex: 98}
         ], function (index, fixture) {
             describe("for key with keyCode " + fixture.keyCode + " (" + fixture.keyName + ")", function () {
                 describe("when a 'keydown' event fires", function () {
