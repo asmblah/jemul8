@@ -66,6 +66,8 @@ define([
 			return Scancode.getKeyIndex("KEY_BACKSPACE");
 		case 13:
 			return Scancode.getKeyIndex("KEY_ENTER");
+		case 17:
+			return Scancode.getKeyIndex("KEY_CTRL_L");
 		case 16:
 			return Scancode.getKeyIndex("KEY_SHIFT_L");
 		case 27:

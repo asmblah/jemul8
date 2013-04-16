@@ -86,6 +86,7 @@ define([
         });
 
         rootUtil.each([
+            {keyName: "KEY_CTRL_L", keyCode: 17, keyIndex: 0},
             {keyName: "KEY_F1", keyCode: 112, keyIndex: 2},
             {keyName: "KEY_F2", keyCode: 113, keyIndex: 3},
             {keyName: "KEY_F3", keyCode: 114, keyIndex: 4},
