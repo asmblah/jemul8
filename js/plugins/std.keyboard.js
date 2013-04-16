@@ -55,39 +55,38 @@ define([
 
 	// Convert a DOM keyCode to a key index
 	function toKeyIndex( keyCode ) {
+		var specialKeys;
         //$("<div>").text(keyCode).insertBefore($("canvas"));
 
         if (keyCode >= 112 && keyCode <= 112 + 12) {
-        	return Scancode.getKeyIndex("KEY_F" + (keyCode - 112 + 1));
+            return Scancode.getKeyIndex("KEY_F" + (keyCode - 112 + 1));
         }
 
-		switch ( keyCode ) {
-		case 8:
-			return Scancode.getKeyIndex("KEY_BACKSPACE");
-		case 13:
-			return Scancode.getKeyIndex("KEY_ENTER");
-		case 17:
-			return Scancode.getKeyIndex("KEY_CTRL_L");
-		case 16:
-			return Scancode.getKeyIndex("KEY_SHIFT_L");
-		case 27:
-			return Scancode.getKeyIndex("KEY_ESC");
-		case 32:
-			return Scancode.getKeyIndex("KEY_SPACE");
-		case 37:
-			return Scancode.getKeyIndex("KEY_LEFT");
-		case 38:
-			return Scancode.getKeyIndex("KEY_UP");
-		case 39:
-			return Scancode.getKeyIndex("KEY_RIGHT");
-		case 40:
-			return Scancode.getKeyIndex("KEY_DOWN");
-        case 190:
-            return Scancode.getKeyIndex("KEY_PERIOD");
-		// Other ANSI key
-		default:
-			return keyCode - (65 - 20);
-		}
+        if (keyCode >= 48 && keyCode <= 57) {
+            return Scancode.getKeyIndex("KEY_" + (keyCode - 48));
+        }
+
+        specialKeys = {
+            8: "KEY_BACKSPACE",
+            13: "KEY_ENTER",
+            16: "KEY_SHIFT_L",
+            17: "KEY_CTRL_L",
+            27: "KEY_ESC",
+            32: "KEY_SPACE",
+            37: "KEY_LEFT",
+            38: "KEY_UP",
+            39: "KEY_RIGHT",
+            40: "KEY_DOWN",
+            190: "KEY_PERIOD"
+        };
+
+        // Special key
+        if (specialKeys[keyCode]) {
+            return Scancode.getKeyIndex(specialKeys[keyCode]);
+        }
+
+        // Other ANSI key
+        return keyCode - (65 - 20);
 	}
 
 	return keyboardPlugin;
