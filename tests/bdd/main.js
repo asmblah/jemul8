@@ -49,7 +49,8 @@ define({
     global.sinon = sinon;
 
     require([
-        "bdd/unit/js/plugins/std.keyboardTest"
+        "bdd/unit/js/plugins/std.keyboardTest",
+        "bdd/unit/js/utilTest"
     ], function () {
         mocha.run();
     });
