@@ -15,9 +15,11 @@
 /*global define, require */
 
 define([
-    "jquery"
+    "jquery",
+    "modular"
 ], function (
-    $
+    $,
+    modular
 ) {
     "use strict";
 
@@ -28,6 +30,7 @@ define([
     //  dependency on jQuery)
     util.extend = $.extend;
     util.each = $.each;
+    util.global = modular.util.global;
     util.isFunction = $.isFunction;
 
     util.extend(util, {

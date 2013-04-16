@@ -28,7 +28,7 @@ define([
 	var keyboardPlugin = {
 		applyTo: function (emu) {
 			var cancelKeypress = false;
-			$(document).keydown(function (evt) {
+			$(util.global.document).keydown(function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 
 				// Simple translation to KEY_* values (needs a keymap)
