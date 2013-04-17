@@ -46,6 +46,17 @@ define([
             });
         });
 
+        describe("inherit()", function () {
+            it("should set the .prototype of the To class to be an object that uses the From class' .prototype as its prototype", function () {
+                function From() {}
+                function To() {}
+
+                util.inherit(To).from(From);
+
+                expect(Object.getPrototypeOf(To.prototype)).to.equal(From.prototype);
+            });
+        });
+
         describe("mask()", function () {
             util.each([
                 {number: 0, mask: 0, result: 0},

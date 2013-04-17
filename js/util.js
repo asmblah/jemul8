@@ -26,6 +26,8 @@ define([
         // Create a bitmask for the specified value size in bytes
         // - eg. for masking off higher bits of a value to fit it into a CPU register
         generateMask: function (size) {
+            /*jslint bitwise: true */
+
             // 4 bytes creates a number that is too large for ECMAScript
             // - (before the -1) ... in Chrome/FF, the result would be zero,
             //   so we hard-code this particular scenario.
@@ -36,7 +38,18 @@ define([
             }
         },
 
+        inherit: function (To) {
+            return {
+                from: function (From) {
+                    To.prototype = create(From.prototype);
+                    To.prototype.constructor = To;
+                }
+            };
+        },
+
         mask: function (number, mask) {
+            /*jslint bitwise: true */
+
             return (number & mask) >>> 0;
         }
     });
