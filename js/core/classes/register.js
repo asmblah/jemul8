@@ -10,7 +10,6 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*jslint bitwise: true */
 /*global define */
 define([
 	"js/util",
@@ -47,6 +46,8 @@ define([
 
 		// Returns a nicely formatted hex string, with register value, padded to its size
 		getHexString: function () {
+            /*jslint bitwise: true */
+
 			var val = (this.get() >>> 0).toString(16).toUpperCase(),
 				sizeHexChars = this.getSize() * 2,
 				textLeadingZeroes = new Array(sizeHexChars - val.length + 1).join("0"),
@@ -57,6 +58,8 @@ define([
 		},
 
 		set: function (val) {
+            /*jslint bitwise: true */
+
 			// Mask out bits of value outside Register's bit-width
 			this.value = (val & this.mask) >>> 0;
 		}
