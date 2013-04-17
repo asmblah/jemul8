@@ -36,6 +36,15 @@ define([
             }
         },
 
+        inherit: function (To) {
+            return {
+                from: function (From) {
+                    To.prototype = create(From.prototype);
+                    To.prototype.constructor = To;
+                }
+            };
+        },
+
         mask: function (number, mask) {
             return (number & mask) >>> 0;
         }
