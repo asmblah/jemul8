@@ -1,142 +1,9 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE html>
 <html lang="en">
     <head>
         <title>Intel x86 Emulator</title>
 
-        <script type="text/javascript" src="vendor/modular/modular.js"></script>
-        <script type="text/javascript" src="js/jquery/jquery-1.7.1.js"></script>
-
-        <script type="text/javascript">
-            require([
-                "jquery"
-                , "js/core/classes/emulator"
-                , "js/plugins/std.canvas.vga"
-                , "js/plugins/std.keyboard"
-            ], function (
-                $
-                , jemul8
-                , canvasVGAPlugin
-                , keyboardPlugin
-            ) { "use strict";
-                $(function () {
-                    var emu = new jemul8( {
-                        "floppy0.driveType":
-                            "FDD_350HD"
-                            //"FDD_525HD"
-                        , "floppy0.diskType":
-                            "FLOPPY_1_44"
-                            //"FLOPPY_160K"
-                        , "floppy0.path":
-                            //"asm/tests/branch.bin"
-                            //"asm/tests/jmp_pt1.bin"
-                            //"asm/tests/flags.bin"
-                            //"asm/tests/mul_pt1.bin"
-                            //"asm/tests/mul_pt2.bin"
-                            //"asm/tests/mul_pt3.bin"
-                            //"asm/tests/div_pt1.bin"
-                            //"asm/tests/div_pt2.bin"
-                            //"asm/tests/div_pt3.bin"
-                            //"asm/tests/str_pt1.bin"
-                            //"asm/boot.img"
-                            //"asm/branch_test.bin"
-                            //"boot/Xenix386/N1"
-                            //"boot/chaOS/chaOS.img"
-                            //"boot/nanoos/nanoos-20-march-2010.img"
-                            //"boot/nawios/fd.img"
-                            "boot/mikeos/mikeos-4.3/disk_images/mikeos.flp"
-                            //"boot/MSDOS/Dos5.0.img"
-                            //"boot/MSDOS/Dos3.3.img"
-                            //"boot/PC-DOS/pcdos11.img"
-                            //"boot/MT86/mt86-0.11.9.11.img"
-                            //"boot/FreeDOS/fdboot.img"
-                            //"boot/lightos/lightos.img"
-                            //"boot/odin/FDOEM.144.img"
-                            //"boot/memtest/floppy/memtestp.bin"
-                            //"boot/kos/kos.img"
-                            //"vmware/grub.img"
-                        , "floppy0.status": true
-                    } );
-                    canvasVGAPlugin.applyTo(emu);
-                    keyboardPlugin.applyTo(emu);
-
-                    emu.init(function () {
-                        $("#reset").click(function ( evt ) {
-                            emu.reset();
-                            emu.run();
-                        });
-                        $("#pause").click(function ( evt ) {
-                            emu.pause();
-                        });
-                        $("#run").click(function ( evt ) {
-                            emu.run();
-                        });
-                        /*$("#enter").click(function ( evt ) {
-                            //emu.pressKey(0x1C);
-                            function pressKey( name ) {
-                                var idx = Scancode.getKeyIndex(name);
-                                emu.machine.keyboard.keyboard.generateScancode(idx, "make");
-                                emu.machine.keyboard.keyboard.generateScancode(idx, "break");
-                            }
-                            pressKey("KEY_D");
-                            pressKey("KEY_I");
-                            pressKey("KEY_R");
-                            pressKey("KEY_ENTER");
-                        });*/
-                        emu.run();
-                        //alert("Started");
-                    }, function () {
-                        // Load failed
-                        //alert("Load failed");
-                    });
-                });
-            });
-        </script>
-
-        <style type="text/css">
-            html, body, div, span, h1, h2, h3, h4 {
-                margin: 0; padding: 0; border: 0 none; outline: 0 none;
-            }
-
-            html, body {
-                width: 100%;
-                height: 100%;
-            }
-
-            body {
-                background-color: #000000;
-                color: #FFFFFF;
-                font-size: 100%;
-            }
-
-            #screenVGA {
-                position: absolute;
-                margin: -200px 0px 0px -360px;
-
-                border: solid #FFFFFF 2px;
-
-                left: 50%;
-                top: 50%;
-                /*width: 40em;*/ /* 640px; */
-                /*height: 25em;*/ /* 375px; */
-                width: 720px;
-                height: 400px;
-
-                overflow: hidden;
-            }
-
-            .controls {
-                border-bottom : solid #FFFFFF 1px;
-
-                padding: 10px;
-            }
-            #mouse_pos {
-                color: #FFFFFF;
-                font-size: 14px;
-            }
-            button.reset {
-                color: #0000FF;
-            }
-        </style>
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
         <div class="controls">
@@ -148,5 +15,9 @@
             <span id="performance"></span>
         </div>
         <canvas id="screenVGA" width="720" height="400"></canvas>
+        
+        <script src="vendor/modular/modular.js"></script>
+        <script src="js/jquery/jquery-1.7.1.js"></script>
+        <script src="js/demo.js"></script>
     </body>
 </html>
