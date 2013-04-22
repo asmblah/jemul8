@@ -17,6 +17,12 @@ Live demo
 
 [http://jemul8.com](http://jemul8.com)
 
+Run the tests
+-------------
+
+To run the tests, visit /tests/bdd/ in the browser. For example, to run the tests from the demo environment on jemul8.com,
+visit http://jemul8.com/tests/bdd/ to run the Mocha tests (warning: this is slow - it is recommended to run the tests locally.)
+
 A simple example of instantiating the emulator:
 -----------------------------------------------
 
