@@ -1,0 +1,44 @@
+
+html, body, div, span, h1, h2, h3, h4 {
+    margin: 0; padding: 0; border: 0 none; outline: 0 none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-color: #000000;
+    color: #FFFFFF;
+    font-size: 100%;
+}
+
+#screenVGA {
+    position: absolute;
+    margin: -200px 0px 0px -360px;
+
+    border: solid #FFFFFF 2px;
+
+    left: 50%;
+    top: 50%;
+    /*width: 40em;*/ /* 640px; */
+    /*height: 25em;*/ /* 375px; */
+    width: 720px;
+    height: 400px;
+
+    overflow: hidden;
+}
+
+.controls {
+    border-bottom : solid #FFFFFF 1px;
+
+    padding: 10px;
+}
+#mouse_pos {
+    color: #FFFFFF;
+    font-size: 14px;
+}
+button.reset {
+    color: #0000FF;
+}
