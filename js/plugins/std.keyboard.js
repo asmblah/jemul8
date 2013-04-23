@@ -15,11 +15,9 @@
 /*global define, require */
 
 define([
-	"jquery",
 	"../core/util",
 	"../core/classes/iodev/keyboard/scancode"
 ], function (
-	$,
 	util,
 	Scancode
 ) {
