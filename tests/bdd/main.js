@@ -12,8 +12,8 @@ define({
     cache: false,
     paths: {
         "bdd": ".",
-        "plugins": "/../../js/plugins",
         "js": "/../../js",
+        "plugins": "/../../js/plugins",
         "vendor": "/../../vendor"
     }
 }, [
