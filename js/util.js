@@ -38,6 +38,15 @@ define([
             }
         },
 
+        hexify: function (number, byteSize) {
+            /*jshint bitwise: true */
+            var val = (number >>> 0).toString(16).toUpperCase(),
+                sizeHexChars = byteSize * 2,
+                textLeadingZeroes = new Array(8 - val.length + 1).join("0");
+
+            return "0x" + textLeadingZeroes + val;
+        },
+
         inherit: function (To) {
             return {
                 from: function (From) {

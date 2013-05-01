@@ -46,6 +46,37 @@ define([
             });
         });
 
+        describe("hexify()", function () {
+            util.each([
+                {byteSize: 1, values: [
+                    {value: 0,    hex: "0x00000000"},
+                    {value: 1,    hex: "0x00000001"},
+                    {value: 0xFF, hex: "0x000000FF"}
+                ]},
+                {byteSize: 2, values: [
+                    {value: 0,      hex: "0x00000000"},
+                    {value: 1,      hex: "0x00000001"},
+                    {value: 0xFF,   hex: "0x000000FF"},
+                    {value: 0xFFFF, hex: "0x0000FFFF"}
+                ]},
+                {byteSize: 4, values: [
+                    {value: 0,          hex: "0x00000000"},
+                    {value: 1,          hex: "0x00000001"},
+                    {value: 0xFF,       hex: "0x000000FF"},
+                    {value: 0xFFFF,     hex: "0x0000FFFF"},
+                    {value: 0xFFFFFFFF, hex: "0xFFFFFFFF"}
+                ]}
+            ], function (scenario) {
+                describe("when the value is " + scenario.byteSize + " byte(s) wide", function () {
+                    util.each(scenario.values, function (fixture) {
+                        it("should return " + fixture.hex + " when the value is " + fixture.value, function () {
+                            expect(util.hexify(fixture.value, scenario.byteSize)).to.equal(fixture.hex);
+                        });
+                    });
+                });
+            });
+        });
+
         describe("inherit()", function () {
             it("should set the .prototype of the To class to be an object that uses the From class' .prototype as its prototype", function () {
                 function From() {}
