@@ -51,6 +51,7 @@ define({
     require([
         "bdd/unit/js/core/classes/registerTest",
         "bdd/unit/js/plugins/std.keyboardTest",
+        "bdd/unit/js/RegisterTest",
         "bdd/unit/js/utilTest"
     ], function () {
         mocha.run();

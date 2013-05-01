@@ -1,0 +1,69 @@
+/**
+ * jemul8 - JavaScript x86 Emulator v0.0.1
+ * http://jemul8.com/
+ *
+ * Copyright 2013 jemul8.com (http://github.com/asmblah/jemul8)
+ * Released under the MIT license
+ * http://jemul8.com/MIT-LICENSE.txt
+ */
+
+/*global define, Uint8Array, Uint16Array, Uint32Array */
+define([
+    "js/util"
+], function (
+    util
+) {
+    "use strict";
+
+    var byteSizeToViewClass = {
+        1: Uint8Array,
+        2: Uint16Array,
+        4: Uint32Array
+    };
+
+    function Register(buffer, offset, byteSize) {
+        this.byteSize = byteSize;
+        this.view = new byteSizeToViewClass[byteSize](buffer, offset, 1);
+    }
+
+    util.extend(Register.prototype, {
+        clear: function () {
+            var register = this;
+
+            register.view[0] = 0;
+
+            return register;
+        },
+
+        createSubRegister: function (offset, byteSize) {
+            var view = this.view;
+
+            return new Register(view.buffer, view.byteOffset + offset, byteSize);
+        },
+
+        get: function () {
+            return this.view[0];
+        },
+
+        // Returns a nicely formatted hex string, with register value, padded to its size
+        getHex: function () {
+            var register = this;
+
+            return util.hexify(register.get(), register.getSize());
+        },
+
+        getSize: function () {
+            return this.byteSize;
+        },
+
+        set: function (value) {
+            var register = this;
+
+            register.view[0] = value;
+
+            return register;
+        }
+    });
+
+    return Register;
+});
