@@ -11,14 +11,12 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global afterEach, beforeEach, define, describe, expect, it, sinon */
+/*global define, describe, expect, it */
 define([
-    "jquery",
     "modular",
     "require",
     "js/util"
 ], function (
-    $,
     modular,
     require,
     util
