@@ -69,6 +69,26 @@ define([
                     });
                 });
             });
+
+            describe("subregister name", function () {
+                beforeEach(function () {
+                    register = new Register(buffer, 0, 1);
+                });
+
+                util.each(["eax", "ebp"], function (name) {
+                    it("should set the subregister's name to '" + name + "' when passed", function () {
+                        subregister = register.createSubRegister(0, 1, name);
+
+                        expect(subregister.getName()).to.equal(name);
+                    });
+                });
+
+                it("should return null when the name is not specified", function () {
+                    subregister = register.createSubRegister(0, 1);
+
+                    expect(subregister.getName()).to.be.null;
+                });
+            });
         });
 
         describe("get()/set()", function () {
@@ -181,6 +201,22 @@ define([
                         });
                     });
                 });
+            });
+        });
+
+        describe("getName()", function () {
+            util.each(["eax", "ebp"], function (name) {
+                it("should return '" + name + "' when the Register's name is '" + name + "'", function () {
+                    register = new Register(buffer, 0, 1, name);
+
+                    expect(register.getName()).to.equal(name);
+                });
+            });
+
+            it("should return null when the name is not specified", function () {
+                register = new Register(buffer, 0, 1);
+
+                expect(register.getName()).to.be.null;
             });
         });
     });

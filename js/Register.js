@@ -21,8 +21,9 @@ define([
         4: Uint32Array
     };
 
-    function Register(buffer, offset, byteSize) {
+    function Register(buffer, offset, byteSize, name) {
         this.byteSize = byteSize;
+        this.name = name;
         this.view = new byteSizeToViewClass[byteSize](buffer, offset, 1);
     }
 
@@ -35,10 +36,10 @@ define([
             return register;
         },
 
-        createSubRegister: function (offset, byteSize) {
+        createSubRegister: function (byteOffset, byteSize, name) {
             var view = this.view;
 
-            return new Register(view.buffer, view.byteOffset + offset, byteSize);
+            return new Register(view.buffer, view.byteOffset + byteOffset, byteSize, name);
         },
 
         get: function () {
@@ -50,6 +51,10 @@ define([
             var register = this;
 
             return util.hexify(register.get(), register.getSize());
+        },
+
+        getName: function () {
+            return this.name || null;
         },
 
         getSize: function () {
