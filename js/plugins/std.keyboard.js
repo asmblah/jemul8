@@ -15,9 +15,11 @@
 /*global define, require */
 
 define([
+	"jquery",
 	"../core/util",
 	"../core/classes/iodev/keyboard/scancode"
 ], function (
+	$,
 	util,
 	Scancode
 ) {
@@ -26,7 +28,7 @@ define([
 	var keyboardPlugin = {
 		applyTo: function (emu) {
 			var cancelKeypress = false;
-			util.global.document.addEventListener("keydown", function (evt) {
+			$(util.global.document).keydown(function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 
 				// Simple translation to KEY_* values (needs a keymap)
@@ -36,14 +38,12 @@ define([
 				cancelKeypress = true;
 				evt.preventDefault();
 				return false;
-			});
-			util.global.document.addEventListener("keyup", function (evt) {
+			}).keyup(function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 
 				// Simple translation to KEY_* values (needs a keymap)
 				emu.machine.keyboard.keyboard.generateScancode(key, "break");
-			})
-			util.global.document.addEventListener("keypress", function (evt) {
+			}).keypress(function (evt) {
 				if ( cancelKeypress ) {
 					cancelKeypress = false; // Only this keypress
 					evt.preventDefault();
