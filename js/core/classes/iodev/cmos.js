@@ -179,7 +179,7 @@ define([
 		//	"docs/bochs-20100605/bios/BIOS-bochs-latest"
 		//), 0xE0000, 0);
 		HTTP.get(
-			"docs/bochs-20100605/bios/BIOS-bochs-legacy"
+			machine.emu.getSetting("rombios")
 			, function (path, buffer) {
 				machine.mem.loadROM(buffer, 0xF0000, 0);
 				done();

@@ -217,7 +217,7 @@ define([
 
 		// Download & store VGABIOS firmware image
 		HTTP.get(
-			"docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+			machine.emu.getSetting("vgabios")
 			//"docs/vgabios-0.6c/VGABIOS-lgpl-latest.debug.bin")
 			//"docs/bochs-20100605/bios/VGABIOS-elpin-2.40")
 			, function (path, buffer) {
@@ -231,7 +231,7 @@ define([
 		// VGA output
 		//	TODO: Separate DOM access out into plugins for eg. jQuery
 		this.screenVGA = $("#screenVGA")[ 0 ];
-		if (this.screenVGA.getContext) {
+		if (this.screenVGA && this.screenVGA.getContext) {
 			this.ctx_screenVGA = this.screenVGA.getContext("2d");
 			this.imageData = this.ctx_screenVGA.createImageData(
 				this.screenVGA.width, this.screenVGA.height

@@ -84,7 +84,7 @@ define([
         //    See SegRegister.set() in /classes/memory.js
         this.cache_insn = [];
 
-        this.isHalted = false;
+        this.isHalted = true;
 
         // Operands & result from last flag-affecting operation
         //    (used by the Bochs-derived Lazy Flags optimisation system)

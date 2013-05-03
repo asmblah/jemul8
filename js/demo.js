@@ -11,6 +11,8 @@ require([
   ) { "use strict";
       $(function () {
           var emu = new jemul8( {
+              "rombios": "docs/bochs-20100605/bios/BIOS-bochs-legacy",
+              "vgabios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest",
               "floppy0.driveType":
                   "FDD_350HD"
                   //"FDD_525HD"

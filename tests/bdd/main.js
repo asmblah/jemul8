@@ -49,8 +49,10 @@ define({
     global.sinon = sinon;
 
     require([
+        "bdd/acceptance/real-mode/Sample1",
         "bdd/unit/js/core/classes/registerTest",
         "bdd/unit/js/plugins/std.keyboardTest",
+        "bdd/unit/js/Jemul8Test",
         "bdd/unit/js/RegisterTest",
         "bdd/unit/js/utilTest"
     ], function () {
