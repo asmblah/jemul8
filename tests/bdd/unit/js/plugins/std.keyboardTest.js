@@ -13,28 +13,35 @@
 
 /*global afterEach, beforeEach, define, describe, expect, it, sinon */
 define([
-    "jquery",
     "modular",
     "require",
     "js/core/util"
 ], function (
-    $,
     modular,
     require,
     rootUtil
 ) {
     "use strict";
 
+     function createEvent(eventName, keyCode){
+        var event = document.createEvent('Event');
+        
+        event.initEvent(eventName, true, true);
+        event.keyCode = keyCode;
+        event.isDefaultPrevented = function(){
+            return this.defaultPrevented;
+        };
+        
+        return event;
+    }
+    
     describe("Standard Keyboard plugin", function () {
-        var document,
-            emu,
+        var emu,
             event,
             generateScancode,
-            mock,
             util;
 
         beforeEach(function (done) {
-            document = {};
             generateScancode = sinon.spy();
 
             emu = {
@@ -61,9 +68,6 @@ define([
                 var mockModular = new Modular(),
                     define = mockModular.createDefiner();
 
-                define("jquery", function () {
-                    return $;
-                });
                 define("../../js/core/util", util);
 
                 mockModular.createRequirer()(rootUtil.extend({}, modular.configure(), {
@@ -123,9 +127,9 @@ define([
             describe("for key with keyCode " + fixture.keyCode + " (" + fixture.keyName + ")", function () {
                 describe("when a 'keydown' event fires", function () {
                     beforeEach(function () {
-                        event = new $.Event("keydown", { keyCode: fixture.keyCode });
-
-                        $(document).trigger(event);
+                        event = createEvent("keydown", fixture.keyCode);
+                        
+                        document.dispatchEvent(event);
                     });
 
                     it("should generate a 'make' scancode", function () {
@@ -143,9 +147,9 @@ define([
 
                 describe("when a 'keyup' event fires", function () {
                     beforeEach(function () {
-                        event = new $.Event("keyup", { keyCode: fixture.keyCode });
-
-                        $(document).trigger(event);
+                        event = createEvent("keyup", fixture.keyCode);
+                        
+                        document.dispatchEvent(event);
                     });
 
                     it("should generate a 'break' scancode", function () {
