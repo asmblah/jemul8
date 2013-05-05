@@ -23,25 +23,38 @@ define([
 ) {
     "use strict";
 
-    function createEvent(eventName, keyCode){
-        var event = document.createEvent('Event');
-
-        event.initEvent(eventName, true, true);
-        event.keyCode = keyCode;
-        event.isDefaultPrevented = function(){
-            return this.defaultPrevented;
-        };
-
-        return event;
-    }
-
     describe("Standard Keyboard plugin", function () {
-        var emu,
+        var document,
+            emu,
             event,
             generateScancode,
             util;
 
         beforeEach(function (done) {
+            document = {
+                addEventListener: sinon.spy(),
+                createEvent: function (type, keyCode) {
+                    var defaultPrevented = false;
+
+                    return {
+                        isDefaultPrevented: function () {
+                            return defaultPrevented;
+                        },
+                        keyCode: keyCode,
+                        preventDefault: function () {
+                            defaultPrevented = true;
+                        },
+                        type: type
+                    };
+                },
+                dispatchEvent: function (event) {
+                    rootUtil.each(document.addEventListener.args, function (index, call) {
+                        if (call[0] === event.type) {
+                            call[1](event);
+                        }
+                    });
+                }
+            };
             generateScancode = sinon.spy();
 
             emu = {
@@ -127,7 +140,7 @@ define([
             describe("for key with keyCode " + fixture.keyCode + " (" + fixture.keyName + ")", function () {
                 describe("when a 'keydown' event fires", function () {
                     beforeEach(function () {
-                        event = createEvent("keydown", fixture.keyCode);
+                        event = document.createEvent("keydown", fixture.keyCode);
 
                         document.dispatchEvent(event);
                     });
@@ -147,7 +160,7 @@ define([
 
                 describe("when a 'keyup' event fires", function () {
                     beforeEach(function () {
-                        event = createEvent("keyup", fixture.keyCode);
+                        event = document.createEvent("keyup", fixture.keyCode);
 
                         document.dispatchEvent(event);
                     });
