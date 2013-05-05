@@ -12,7 +12,7 @@
  */
 
 /*jslint bitwise: true, plusplus: true */
-/*global define, require */
+/*global define */
 
 define([
     "../util",
@@ -28,8 +28,7 @@ define([
     "./decoder",
     "./cpu/execute",
     "./cpu/global_table_register",
-    "./cpu/local_table_register",
-    "./memory/buffer"
+    "./cpu/local_table_register"
 ], function (
     util,
     LazyFlagRegister,
@@ -44,13 +43,11 @@ define([
     Decoder,
     Execute,
     GlobalTableRegister,
-    LocalTableRegister,
-    Buffer
+    LocalTableRegister
 ) {
     "use strict";
 
-    var DEBUG_LIST_INSN = [],
-        ticksLastUpdate = Date.now(),
+    var ticksLastUpdate = Date.now(),
         ips = 0,
         yps = 0;
 
@@ -160,8 +157,7 @@ define([
                 }
                 break;
             default:
-                util.panic("CPU.install :: Provided component cannot be"
-                    + " installed into the CPU.");
+                util.panic("CPU.install :: Provided component cannot be installed into the CPU.");
             }
         },
         // Install all standard x86 Registers onto the CPU
@@ -462,10 +458,14 @@ define([
             this.EIP.set(0x0000FFF0);
 
             // Clear all general-purpose registers
-            this.EAX.set(0x00000000); this.EBX.set(0x00000000);
-            this.ECX.set(0x00000000); this.EDX.set(0x00000000);
-            this.EBP.set(0x00000000); this.ESI.set(0x00000000);
-            this.EDI.set(0x00000000); this.ESP.set(0x00000000);
+            this.EAX.set(0x00000000);
+            this.EBX.set(0x00000000);
+            this.ECX.set(0x00000000);
+            this.EDX.set(0x00000000);
+            this.EBP.set(0x00000000);
+            this.ESI.set(0x00000000);
+            this.EDI.set(0x00000000);
+            this.ESP.set(0x00000000);
 
             // Descriptor Table Registers
             this.GDTR.reset(); // See GlobalTableRegister
@@ -554,8 +554,7 @@ define([
              *     However, after rounding, 10000 insns/sec will be 333,
              *     which * 30yields/sec = 9990 insns/sec.)
              */
-            max_insnsPerSlice = Math.floor(msPerSlice
-                * (insnsPerSecond / msAllSlices));
+            max_insnsPerSlice = Math.floor(msPerSlice * (insnsPerSecond / msAllSlices));
             // Ensure that rounding does not leave us with a CPU
             //    running at 0 Instructions per slice, otherwise nothing will happen!
             if (max_insnsPerSlice === 0) {
@@ -661,9 +660,6 @@ define([
         // Private method; start next set of Fetch-Decode-Execute cycles up until next Yield is scheduled
         fetchDecodeExecute: function () {
             var machine = this.machine,
-                idx,
-                list,
-                len,
             // Address- & operand-size attributes (true = 32-bit, false = 16-bit)
                 addressSizeAttr = false,
                 operandSizeAttr = false,
@@ -671,21 +667,15 @@ define([
                 cache_insn = this.cache_insn,
                 insn,
                 offset,
-                textASM,
-                reg_segment,
                 CS = this.CS,
                 EIP = this.EIP,
                 decoder = this.decoder,
                 functions = Execute.functions,
             // Total no. of instructions executed during this time-slice
                 insns = 0,
-                tmr,
                 ticksSlice = Math.floor(1000 / 30),
                 ticksNow = machine.getTimeMsecs(),
-                ticksEndSlice = ticksNow + ticksSlice; //Math.floor(ticksNow - (ticksNow % ticksSlice) + ticksSlice);
-                /*prefetchBuffer = this.a || (this.a=Buffer.wrapMultibyteBuffer(Buffer.createBuffer(40)));
-                , prefetchAddress = Infinity
-            ;*/
+                ticksEndSlice = ticksNow + ticksSlice;
 
             // Also use next time-slice if we are already
             //    close to the end of this one
@@ -696,21 +686,6 @@ define([
             //       which for decoder can be every byte! Need to optimise
             //       by memory mapping & then prefetching blocks of code
             function read(address, size) {
-                /*if (address < prefetchAddress || (address + size) - prefetchAddress >= 40) {
-                    CS.readSegmentBlock(address, prefetchBuffer, 40);
-                    prefetchAddress = address;
-                }*/
-
-                /*if (size === 1) {
-                    return prefetchBuffer.getUint8(address, true);
-                }
-                if (size === 2) {
-                    return prefetchBuffer.getUint16(address, true);
-                }
-                if (size === 4) {
-                    return prefetchBuffer.getUint32(address, true);
-                }*/
-
                 return CS.readSegment(address, size);
             }
 
@@ -739,17 +714,6 @@ define([
                     offset += insn.lenBytes;
                 // Instruction needs to be decoded into cache
                 } else {
-
-                    //if (offset === 0xE05D) { debugger; }
-                    //if (CS.get() === 0x2000) {
-                    //    if (offset === 5086) {
-                    //        debugger;
-                    //        this.decodePage();
-                    //    }
-                    //}
-
-                    //CS.readSegmentBlock(offset, prefetchBuffer, 40);
-
                     // Decode & create new Instruction, then store in cache,
                     //  indexed by address for fast lookups later
                     insn = cache_insn[offset]
@@ -769,311 +733,16 @@ define([
                     offset += insn.lenBytes;
                 }
 
-                /** For debugging **/
-                //var asm = insn.toASM();
-
-                // Skip (slow) flush of incoming keys
-                //    in BIOS-bochs-legacy keyboard_init() (line 1685+)
-                //if (CS.get() === 0xF000 && insn.offset === 0x0DAC) { this.AX.set(0x0F); }
-
-                //if (this.IP.get() === 0x0D4E) { debugger; }    // BIOS push 's'
-                //if (this.IP.get() === 0x05F9) { debugger; }
-                //if (this.IP.get() === 0x0660) { debugger; }    // BIOS send()
-                //if (this.IP.get() === 0xE0C6) { debugger; }    // _log_bios_start
-                //if (this.IP.get() === 0xE0C9) { debugger; }    // post_init_ivt
-                //if (this.IP.get() === 0xE1F2) { debugger; }    // Video INT setup
-                //if (this.IP.get() === 0x09A4) { debugger; }    // bios_printf() begin
-                /*if (this.IP.get() === 0x09A7) { debugger; }    // bios_printf() [add sp, -016h]
-                if (this.IP.get() === 0x09AD) { debugger; }    // bios_printf() just after LEA (&)
-                if (this.IP.get() === 0x09DE) { debugger; }    // Recursive bios_printf() call
-                if (this.IP.get() === 0x0CC0) { debugger; }    // bios_printf() [if (c == 's')]
-                if (this.IP.get() === 0x0D23) { debugger; }*/    // bios_printf() BX_PANIC "unknown format"
-                //if (this.IP.get() === 0x0D60 && this.ZF.get()) { debugger; }    // bios_printf() jmp after while() test
-                //if (this.IP.get() === 0x0877) { debugger; }    // put_str() begin
-                //if (this.IP.get() === 0xB8D4) { debugger; }    // pcibios_init_sel_reg() begin
-                //if (this.IP.get() === 0xB8EC) { debugger; }    // [pop eax] in pcibios_init_sel_reg
-                //if (this.IP.get() === 0xBB70) { debugger; }    // rom_scan() begin
-                //if (this.IP.get() === 0xBBA6) { debugger; }    // [callf] in rom_scan() ROM init
-                //if (this.IP.get() === 0xBBA8) { debugger; }    // [callf] in rom_scan()
-                //if (this.IP.get() === 0xBBAB) { debugger; }    // [cli] in rom_scan()
-                //if (this.IP.get() === 0xBBDA) { debugger; }    // [callf] in rom_scan() ROM BCV
-                //if (this.IP.get() === 0xBC27) { debugger; }    // [jbe] in rom_scan()
-                //if (this.IP.get() === 0xBC30) { debugger; }    // End of rom_scan()
-                //if (this.IP.get() === 0x0FC7) { debugger; }    //
-
-                // In VGABIOS
-                //if (CS.get() === 0xC000) {
-                    //if (this.IP.get() === 0x0125) { debugger; } // [call display_info()]
-
-                    // vgabios_int10_handler()
-                    //if (this.IP.get() === 0x012C) { debugger; } // Entry [pushf]
-                    //if (this.IP.get() === 0x01E6) { debugger; } // int10_normal: [push es]
-
-                    // display_string()
-                    //if (this.IP.get() === 0x362E) { debugger; } // Entry [mov ax, ds]
-                    //if (this.IP.get() === 0x363B) { debugger; } //
-
-                    // _int10_func()
-                    //if ( this.IP.get() === 0x3655
-                    //    && this.AH.get() === 0x13 ) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0x3B47) { debugger; } // switch() lookup [jmp]
-                    //if (offset === 0x3B98) { debugger; } //
-                    //if (this.IP.get() === 0x39E5) { debugger; } // [case 0x13 in switch()]
-                    //if (this.IP.get() === 0x3A10) { debugger; } // call to biosfn_write_string()
-                    //if (this.IP.get() === 0x3A13) { debugger; } // after call
-
-
-                    //if (this.IP.get() === 0x3D87) { debugger; } // [cmp]
-
-                    // biosfn_write_teletype()
-                    //if (this.IP.get() === 0x5E87) { debugger; }
-                    //if (this.IP.get() === 0x5ECF) { debugger; } // [lea] for biosfn_get_cursor_pos()
-                    //if (this.IP.get() === 0x5F46) { debugger; } // [case '\t':] in switch(car)
-
-                    // biosfn_write_string()
-                    //if (this.IP.get() === 0x6C9E) { debugger; } // Entry
-                    //if (this.IP.get() === 0x6CB5) { debugger; } // after biosfn_get_cursor_pos() call
-                    //if (this.IP.get() === 0x6CFB) { debugger; } // after 1st biosfn_set_cursor_pos() call
-                    //if (this.IP.get() === 0x6D4F) { debugger; } // cond @ e/o while() loop
-
-                    // biosfn_save_video_state()
-                    //if (this.IP.get() >= 0x6F4D && this.IP.get() <= 0x7516) { debugger; }
-                    //if (this.IP.get() === 0x6F4D) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0x7516) { debugger; } // Exit [retn]
-                //}
-
-                // In CMOS BIOS (Bochs)
-                //if (CS.get() === 0xF000) {
-                    // memsetb()
-                    //if (this.IP.get() === 0x0000) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0x0023) { debugger; } // Exit [retn]
-
-                    // get_SS()
-                    //if (this.IP.get() === 0x064D) { debugger; } // Entry [mov ax, ss]
-                    //if (this.IP.get() === 0x064F) { debugger; } // Exit [retn]
-
-                    //if (this.IP.get() === 0x065B) { debugger; } // [int 0x10]
-
-                    // init_boot_vectors()
-                    //if (this.IP.get() === 0x12D1) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0x12D7) { debugger; } // [xor ax, ax] for count=0
-                    //if (this.IP.get() === 0x12F2) { debugger; } // [call memsetb()]
-                    //if (this.IP.get() === 0x1304) { debugger; } // [call write_word()]
-                    //if (this.IP.get() === 0x134A) { debugger; } // memcpyb() for Floppy drive
-                    //if (this.IP.get() === 0x1353) { debugger; } // count++ for Floppy drive
-                    //if (this.IP.get() === 0x13A0) { debugger; } // count++ for First HDD
-                    //if (this.IP.get() === 0x13ED) { debugger; } // count++ for ElTorito/CDROM
-                    //if (this.IP.get() === 0x1417) { debugger; } // Exit [retn]
-
-                    // get_boot_vector()
-                    //if (this.IP.get() === 0x1418) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0x1459) { debugger; } // [call memcpyb()]
-                    //if (this.IP.get() === 0x1464) { debugger; } // Exit [retn]
-
-                    // print_boot_device()
-                    //if (this.IP.get() === 0x165E) { debugger; } // Entry [push bp]
-                    // error is because type > 0x4
-
-                    // floppy_prepare_controller
-                    //if (this.IP.get() === 0x908B) { debugger; } // while ( (val8 & 0xc0) != 0x80 ) [jne 9078]
-
-                    // int13_diskette_function
-                    //if (this.IP.get() === 0x93AD) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0x957F) { debugger; } // [call floppy_media_sense()]
-                    //if (this.IP.get() === 0x95D0) { debugger; } // base_es = (ES << 4);
-                    //if (this.IP.get() === 0x95D6) { debugger; } // ...  + BX
-                    //if (this.IP.get() === 0x95F3) { debugger; } // (num_sectors * 512)
-                    //if (this.IP.get() === 0xA495) { debugger; } // [jmp w,cs:[bx][0A49A]]
-
-                    // int19_function()
-                    //if (this.IP.get() === 0xA64C) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0xA70F) { debugger; } // [call get_boot_vector()]
-                    //if (this.IP.get() === 0xA732) { debugger; } // [call print_boot_device()]
-                    //if (this.IP.get() === 0xA73D) { debugger; } // [case IPL_TYPE_FLOPPY:]
-                    //if (this.IP.get() === 0xA774) { debugger; } // [int 0x13]
-                    //if (this.IP.get() === 0xA776) { debugger; } // [jae] just after [int 0x13]
-                    //if (this.IP.get() === 0xA782) { debugger; } // Last [pop bp] in ASM after int19_load_done
-                    //if (this.IP.get() === 0xA7D4) { debugger; } // /* Canonicalize bootseg:bootip */
-                    //if (this.IP.get() === 0x0A84) { debugger; } // "nibble = " in "X or x"
-                    //if (this.IP.get() === 0xA880) { insn.execute=function(){}; } // [call BX_INFO Booting from %x:%x]
-                    //if (this.IP.get() === 0xA880) { debugger; }
-                    //if (this.IP.get() === 0xA8A3) { debugger; } // [iret]
-
-                    //if (offset === 0xAE12) { debugger; }
-                    //if (this.IP.get() === 0xAE1A) { debugger; } // [jmp int13_diskette_function]
-
-                    // int19_relocated:
-                    //if (this.IP.get() === 0xAE5E) { debugger; } // Entry [push bp]
-                    //if (this.IP.get() === 0xAE75) { debugger; } // [call int19_function()]
-
-                    //if (offset === 0xB222) { debugger; } // [mov]
-                    //if (this.IP.get() === 0xB238) { debugger; } // [iret]
-
-                    // normal_post
-                    //if (this.IP.get() === 0xE222) { debugger; } // [call _init_boot_vectors()]
-                //}
-
-                // In CMOS BIOS (AMI 56i112)
-                //if (CS.get() === 0xF000) {
-                    //if (this.IP.get() === 0xE87C) { debugger; } // [mov si, ax]
-                    //if (this.IP.get() === 0xE888) { debugger; } // [jmpn si]
-                //}
-
-                // DOS 5.0 MBR/boot sector (Floppy)
-                //if (CS.get() === 0x0000) {
-                    //if (this.IP.get() === 0x7C3E) { debugger; } // Start [cli]
-                    //if (this.IP.get() === 0x7C70) { debugger; } // [int 0x13]
-                    //if (this.IP.get() === 0x7C72) { debugger; } // [jb] after [int 0x13]
-                    //if (this.IP.get() === 0x7CD2) { debugger; } //
-                    //if (this.IP.get() === 0x7CD5) { debugger; } //
-                    //if (this.IP.get() === 0x7D3C) { debugger; } //
-                    //if (this.IP.get() === 0x7D72) { debugger; } //
-                //}
-
-                // MT86 boot sector (Floppy)
-                //if (CS.get() === 0x0000) {
-                    //if (this.IP.get() === 0x7C00 + 0x00B1) { debugger; } // [int 0x13]
-                    //if (this.IP.get() === 0x7C00 + 0x00B3) { debugger; } // [inc]
-                //}
-
-                // FreeDOS boot sector (Floppy)
-                //if (CS.get() === 0x1FE0) {
-                    //if (this.IP.get() === 0x7C66) { debugger; }
-                //}
-
-                // PC-DOS IBMBIO.COM (IO.SYS equiv)
-                /*if (CS.get() === 0x0060) {
-
-                    // Init serial port
-                    //if (insn.offset === 0x0206) { debugger; } // [int 0x14]
-
-                    // Init DOS
-                    //if (insn.offset === 0x026B) { debugger; } // [callf 00BF:0000]
-                    // (Next cmd after DOS setup)
-                    //if (insn.offset === 0x0270) { debugger; } // [sti]
-
-                    // pcdos11.img@0x109E
-                    if (insn.offset === 0x029E) { debugger; } // [int 0x21]
-                    // pcdos11.img@0x10A0
-                    if (insn.offset === 0x02A0) { debugger; } // [or al,al] after 2nd [int 0x21]
-                }*/
-
-                // PC-DOS INT 21h segment
-                /*if (CS.get() === 0x00BF) {
-                    // pcdos11.img@0x1909
-                    // - function that sets AL = -1 (0xFF), indicating error
-                    if (insn.offset === 0x0309) { debugger; } // [mov al,0xFF]
-                    // pcdos11.img@0x190C
-                    // - function that sets CF before returning, indicating error,
-                    //   causing error fn (above) to be called, setting AL = -1 (0xFF)
-                    if (insn.offset === 0x030C) { debugger; } // [mov b,cs:[168F], 0]
-
-                    if (insn.offset === 0x034D) { debugger; } // [stosb]
-                }*/
-
-                // MS-DOS IO.SYS
-                /*if (CS.get() === 0x0070) {
-                    //if (this.IP.get() === 0x0237) { debugger; } // [retf]
-
-                    //if (this.IP.get() === 0x0517) { debugger; } //
-
-                    //if (insn.offset === 0x18BE) { debugger; } // [int 0x15]
-
-                    // Dos3.3.img@0x8289
-                    //if (this.IP.get() === 0x3E83 - 8) { debugger; } // [les]
-
-                    // Dos3.3.img@0x7999
-                    //if (this.IP.get() === 0x358B) { debugger; } // [mov si, 0x01EE]
-                                                                  // after call to fn calling int 0x17
-                    // Dos3.3.img@0x79A5
-                    if (this.IP.get() === 0x358B + 12) { debugger; } // [xor dx,dx] after list of calls
-                    // Dos3.3.img@0x79A5
-                    if (this.IP.get() === 0x39F7) { debugger; } // [jmpf] in IO.SYS - loads MSDOS.SYS...??
-                    // Dos3.3.img@0x839B
-                    //if (this.IP.get() === 0x3F8D) { debugger; } // [int 0x17]
-                    // Dos3.3.img@0x839D
-                    //if (this.IP.get() === 0x3F8F) { debugger; } // [retn] after [int 0x17]
-                }*/
-                //if (CS.get() === 0x9F44) {
-                    //if (this.IP.get() >= 0x3AF && this.IP.get() <= 0x420) {
-                        //if (!this.test) { this.test = []; }
-                        //this.test.push(this.getState());
-                    //}
-                    //if (this.IP.get() === 0x0420) { debugger; } // [int 0x13]
-                    //if (this.IP.get() === 0x04AB) { debugger; } // [long test insn]
-                //}
-
-                // MT86 Floppy .img
-                //if (CS.get() === 0x1000) {
-                    //if (this.IP.get() === 0x3167) { debugger; } // @649Dh [lea]
-                    //if (this.IP.get() === 0x316f) { debugger; } // @64A5h [dec si]
-                //}
-
-                //if (insn.name === "ADD" && insn.toASM() === "ADD b,DS:[BX+SI], AL") { debugger; }
-                //if (insn.name === "AND" && insn.toASM() === "AND b,DS:[BX+SI], AH") { debugger; }
-                //if (insn.name === "MOV" && insn.toASM() === "MOV AH, b,DS:[SI+FFh]") { debugger; }
-
-                //if (insn.name === "MOV" && insn.offset === 29297) { debugger; }
-
-                // Catch a short jump to self (hang)
-                //if (insn.name === "JMPS" && insn.toASM() === "JMPS FEh") { debugger; }
-
-                //if (CS.get() === 0xF000 && insn.offset === 0x0000) { debugger; }
-
-                //if (CS.get() === 0xF000 && insn.offset === 0x0023) { debugger; }
-
                 // Execute immediately
-                EIP.set(offset);// - (CS.get() << 4));
-                // if (!insn.execute) { debugger; }    // DEBUG: Support check
+                EIP.set(offset);
+
                 insn.execute(this);
 
-                //if (EIP.get() === 0xF000) { debugger; }
-
-                // Bypass put_str() bug (bug in emulator!!!)
-                //if (this.IP.get() === 0x0877) { this.IP.set(0x08AA); }
-
-                // Bypass infinite loop in BIOS-bochs-legacy bios_printf (!!!!)
-                //if (this.IP.get() === 0x09E4) { this.IP.set(0x0D64); }
-                //if (this.IP.get() === 0x09EA) { debugger; }
-
+                // FIXME
                 if (CS.get() === 0xF000) {
-                    // ?
-                    //if (this.IP.get() >= 0x5347 && this.IP.get() < 0x5360 + 10) { debugger; }
-
-                    //if (insn.offset === 23) { debugger; }
-
-                    // Skip BIOS-bochs-legacy keyboard_init()
-                    //if (this.IP.get() === 0xE134) { this.IP.set(0xE137); }
-                    // Skip BIOS-bochs-legacy Parallel & Serial setups
-                    //if (this.IP.get() === 0xE143) { this.IP.set(0xE1B3); }
-                    // Skip BIOS-bochs-legacy _ata_detect()
-                    //if (this.IP.get() === 0xE21C) { this.IP.set(0xE21F); }
-                    // Skip BIOS-bochs-legacy _init_boot_vectors()
-                    //if (this.IP.get() === 0xE222) { this.IP.set(0xE225); }
                     // Skip BIOS-bochs-legacy _interactive_bootkey()
                     if (this.IP.get() === 0xE22E) { this.IP.set(0xE231); }
                 }
-
-                // PC-DOS IBMBIO.COM (IO.SYS equiv)
-                //if (CS.get() === 0x0060) {
-                    // Skip DOS init [callf 00BF:0000]
-                    // - This far call should return after setting up DOS
-                    //   (eg. setting up INT 21h etc.) but never does...
-                    //if (this.IP.get() === 0x026B) { this.IP.set(0x0270); }
-                //}
-
-                // V8086 support is lacking...
-                /*if (this.VM.get()) {
-                    debugger;
-                }*/
-
-                // VGABIOS INT 10h handler
-                //if (CS.get() === 0xC000 && this.IP.get() === 0x3B39) { debugger; }
-
-                /*DEBUG_LIST_INSN.push(insn);
-                if (DEBUG_LIST_INSN.length > 1000) {
-                    DEBUG_LIST_INSN = DEBUG_LIST_INSN.slice(DEBUG_LIST_INSN.length - 512);
-                }*/
 
                 /* // Resume Flag
                 if (this.RF.get()) {
@@ -1364,43 +1033,6 @@ define([
                 this.exception(util.GP_EXCEPTION, 0);
             }
 
-            if (vector === 0x00) {
-                //console.log("INT 0x00! Stop.");
-                //debugger;
-                //this.halt();
-            } else if (vector === 0x08) {
-                //util.debug("INT 0x08 :: CMOS RTC tripped");
-                //debugger;
-            } else if (vector === 0x10) {
-                //debugger;
-                //alert(String.fromCharCode(this.AL.get()));
-                //if (this.AL.get() === "?".charCodeAt(0)) {
-                //    debugger;
-                //}
-            } else if (vector === 0x13) {
-                // Read sector
-                //debugger;
-            } else if (vector === 0x14) {
-                // Init serial port
-                //debugger;
-            } else if (vector === 0x15) {
-                // System Services Entry Point
-                //debugger;
-            } else if (vector === 0x16) {
-                // Keyboard Services Entry Point
-                //debugger;
-            } else if (vector === 0x17) {
-                // Init printer
-                //debugger;
-            } else if (vector === 0x19) {
-                //debugger;
-                //alert("Boot first available device!");
-                //this.halt();
-            } else if (vector === 0x21) {
-                // DOS services
-                //debugger;
-            }
-
             // Save current FLAGS and CS:IP (CPU state) on stack
             this.pushStack(this.FLAGS.get(), 2);
             this.pushStack(this.CS.get(), 2);
@@ -1441,15 +1073,8 @@ define([
                 // Don't clear high EFLAGS word (is this right??)
                 flags = this.popStack(2);
 
-                //if (flags === 65411) { debugger; }
-
                 this.FLAGS.set(flags);
-
-                //if (this.VM.get()) {
-                //    debugger;
-                //    this.FLAGS.set(flags);
-                //}
-            } else {debugger;
+            } else {
                 this.EIP.set(this.popStack(4));
                 // Yes, we must pop 32 bits but discard high word
                 this.CS.set(this.popStack(4));
