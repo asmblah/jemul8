@@ -89,9 +89,18 @@ define([
         init: function () {
             var emulator = this,
                 legacyJemul8 = emulator.legacyJemul8,
+                cpu = legacyJemul8.machine.cpu,
                 promise = new Promise();
 
             legacyJemul8.init(function () {
+                // Monkey-patch a trap for interrupts
+                cpu.interrupt = (function (interrupt) {
+                    return function (vector) {
+                        emulator.emit("interrupt", vector);
+                        interrupt.apply(this, arguments);
+                    };
+                }(cpu.interrupt));
+
                 emulator.inited = true;
                 promise.resolve();
             });
