@@ -129,6 +129,7 @@ define([
             }
 
             emulator.running = true;
+            // Monkey-patch a trap for CPU halt
             legacyCPU.halt = (function (halt) {
                 return function haltSpy() {
                     promise.resolve();
