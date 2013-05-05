@@ -48,6 +48,18 @@ define({
     global.expect = chai.expect;
     global.sinon = sinon;
 
+    describe.setSlowTimeout = (function (BaseReporter) {
+        return function (slowTimeout) {
+            var oldSlow = BaseReporter.slow;
+
+            BaseReporter.slow = slowTimeout;
+
+            describe.restoreSlowTimeout = function () {
+                BaseReporter.slow = oldSlow;
+            };
+        };
+    }(mocha.reporters.Base));
+
     require([
         "bdd/acceptance/real-mode/Sample1",
         "bdd/unit/js/core/classes/registerTest",
