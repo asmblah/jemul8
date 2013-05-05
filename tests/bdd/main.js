@@ -61,7 +61,7 @@ define({
     }(mocha.reporters.Base));
 
     require([
-        "bdd/acceptance/real-mode/Sample1",
+        "bdd/acceptance/real-mode/NOP-Test",
         "bdd/unit/js/core/classes/registerTest",
         "bdd/unit/js/plugins/std.keyboardTest",
         "bdd/unit/js/Jemul8Test",
