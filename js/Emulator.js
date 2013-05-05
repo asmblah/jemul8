@@ -108,7 +108,7 @@ define([
             var emulator = this;
 
             emulator.running = false;
-            emulator.legacyJemul8.machine.cpu.pause();
+            emulator.legacyJemul8.machine.cpu.halt();
             emulator.emit("pause");
 
             return emulator;
