@@ -15,7 +15,7 @@
 define([
     "modular",
     "require",
-    "js/core/util"
+    "js/util"
 ], function (
     modular,
     require,
@@ -48,7 +48,7 @@ define([
                     };
                 },
                 dispatchEvent: function (event) {
-                    rootUtil.each(document.addEventListener.args, function (index, call) {
+                    rootUtil.each(document.addEventListener.args, function (call) {
                         if (call[0] === event.type) {
                             call[1](event);
                         }
@@ -136,7 +136,7 @@ define([
             {keyName: "KEY_DOWN", keyCode: 40, keyIndex: 96},
             {keyName: "KEY_LEFT", keyCode: 37, keyIndex: 97},
             {keyName: "KEY_RIGHT", keyCode: 39, keyIndex: 98}
-        ], function (index, fixture) {
+        ], function (fixture) {
             describe("for key with keyCode " + fixture.keyCode + " (" + fixture.keyName + ")", function () {
                 describe("when a 'keydown' event fires", function () {
                     beforeEach(function () {
