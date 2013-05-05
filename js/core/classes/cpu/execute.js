@@ -35,7 +35,6 @@ define([
         // TODO: how to handle other flags? Intel docs say undefined,
         //       but other sources say should be handled just as for other insns
         "AAA": function (cpu) {
-            debugger;
             var AL = cpu.AL.get();
 
             if (((AL & 0x0F) > 9) || (cpu.AF.get())) {
@@ -50,7 +49,6 @@ define([
             }
         // ASCII adjust AX before Division
         }, "AAD": function (cpu) {
-            debugger;
             // Val1 will almost always be 0Ah (10d), meaning to adjust for base-10 / decimal.
             var val1 = this.operand1.read(),
                 res = cpu.AH.get() * val1 + cpu.AL.get();
@@ -61,7 +59,6 @@ define([
             setFlags_Op1(this, cpu, val1, res);
         // ASCII adjust after Multiplication
         }, "AAM": function (cpu) {
-            debugger;
             // Val1 will almost always be 0Ah (10d), meaning to adjust for base-10 / decimal.
             var val1 = this.operand1.read(),
                 AL = cpu.AL.get(),
@@ -74,7 +71,6 @@ define([
         //    TODO: how to handle other flags? Intel docs say undefined,
         //    but other sources say should be handled just as for other insns
         }, "AAS": function (cpu) {
-            debugger;
             var AL = cpu.AL.get();
 
             if (((AL & 0x0F) > 9) || (cpu.AF.get())) {
@@ -231,14 +227,9 @@ define([
                 operandSize = IP.size,
                 cs_eip = this.operand1.read();
 
-            //if (cs_eip !== 0x1000FCFC && cs_eip !== 0x1000FD22) { debugger; }
-            //if (cs_eip === 0x1F820200) { debugger; }
-
             // Push CS:IP so return can come back
             cpu.pushStack(cpu.CS.get(), 2);
             cpu.pushStack(IP.get(), operandSize);
-
-            //if ((cs_eip >> 16) === 0x0265) { debugger; }
 
             // 32-bit pointer
             if (operandSize === 2) {
@@ -389,7 +380,6 @@ define([
             setFlags(this, cpu, val1, val2, (val1 - val2) & this.operand1.mask);
         // Compare and Exchange (486+)
         }, "CMPXCHG": function (cpu) {
-            debugger;
             util.panic("CMPXCHG :: This needs to be more efficient");
 
             var reg_acc = cpu.accumulator[ this.operand1.size ]
@@ -414,7 +404,6 @@ define([
                 val2 = (cpu.EDX.get() << 32) | cpu.EAX.get(),
                 res = (val1 - val2) & this.operand1.mask;
 
-            debugger;
             jemul8.panic("CMPXCHG8 - Needs testing");
 
             // NB: the Intel specs say just copy src -> dest or dest -> src;
@@ -445,7 +434,6 @@ define([
             util.panic("Execute (DAA) :: unsupported");
         // Decimal Adjust for Subtraction
         }, "DAS": function (cpu) {
-            debugger;
             util.panic("Execute (DAS) :: unsupported");
         // Decrement
         }, "DEC": function (cpu) {
@@ -607,7 +595,6 @@ define([
                 cpu.DX.set(dividend % divisor); // Remainder
             // Dividend is EDX:EAX
             } else if (operandSize == 4) {
-                //debugger;
                 util.warning("IDIV :: 64-bit SIGNED divide needs testing");
                 dividend = Int64.fromBits(cpu.EAX.get(), cpu.EDX.get());
                 divisor = Int64.fromNumber(divisor);
@@ -774,7 +761,6 @@ define([
             // Should this ever support 32-bit?
             if (this.operandSizeAttr) {
                 jemul8.warning("32-bit interrupt handling not tested yet");
-                debugger;
             }
 
             cpu.interrupt(
@@ -979,7 +965,7 @@ define([
         }, "LGDT": function (cpu) {
             //util.panic("Execute (LGDT) :: unsupported");
             util.warning("LGDT :: Protected mode support incomplete");
-            //debugger;
+
             //cpu.GDTR.set(this.operand1.read());
 
             var base;
@@ -997,7 +983,7 @@ define([
         }, "LIDT": function (cpu) {
             //util.panic("Execute (LIDT) :: unsupported");
             util.warning("LIDT :: Protected mode support incomplete");
-            //debugger;
+
             //cpu.IDTR.set(this.operand1.read());
 
             var base;
@@ -1031,7 +1017,7 @@ define([
 
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
-            } else {debugger;
+            } else {
                 this.operand1.write(this.operand2.read());
                 util.panic("LDS :: Not implemented");
                 // In Protected Mode, load the descriptor into the segment register
@@ -1056,7 +1042,7 @@ define([
 
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
-            } else {debugger;
+            } else {
                 this.operand1.write(this.operand2.read());
                 util.panic("LES :: Not implemented");
                 // In Protected Mode, load the descriptor into the segment register
@@ -1081,7 +1067,7 @@ define([
 
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
-            } else {debugger;
+            } else {
                 this.operand1.write(this.operand2.read());
                 util.panic("LFS :: Not implemented");
                 // In Protected Mode, load the descriptor into the segment register
@@ -1106,7 +1092,7 @@ define([
 
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
-            } else {debugger;
+            } else {
                 this.operand1.write(this.operand2.read());
                 util.panic("LGS :: Not implemented");
                 // In Protected Mode, load the descriptor into the segment register
@@ -1131,7 +1117,7 @@ define([
 
                 // In Protected Mode, load the descriptor into the segment register
             // 32-bit
-            } else {debugger;
+            } else {
                 this.operand1.write(this.operand2.read());
                 util.panic("LSS :: Not implemented");
                 // In Protected Mode, load the descriptor into the segment register
@@ -1175,7 +1161,6 @@ define([
             // Repeat CX times
             } else if (this.repeat === "#REP/REPE") {
                 util.warning("REP LODS - Pointless instruction?");
-                debugger;
 
                 len = CX.get() + 1;
 
@@ -1421,9 +1406,8 @@ define([
             // ...
         // One's Complement negation (Logical NOT)
         }, "NOT": function (cpu) {
-            // TEMP: There is a NOT in the extensions table
-            //    that has no operands... ???? :S ???? AX??
-            if (!this.operand1) { debugger; }
+            // NB: There is a NOT in the extensions table
+            //     that has no operands... ???? :S ???? AX??
 
             // Note use of bitwise inversion operator tilde "~"
             this.operand1.write(~this.operand1.read());
@@ -1448,8 +1432,6 @@ define([
             );
         // Output String to Port
         }, "OUTS": function (cpu) {
-            debugger;
-
             util.panic("Execute (OUTS) :: Not implemented yet");
         // Pop a value from the Stack (SS:SP)
         }, "POP": function (cpu) {
@@ -1467,7 +1449,7 @@ define([
                 cpu.CX.set(cpu.popStack(2));
                 cpu.AX.set(cpu.popStack(2));
             // POPAD
-            } else {debugger;
+            } else {
                 cpu.EDI.set(cpu.popStack(4));
                 cpu.ESI.set(cpu.popStack(4));
                 cpu.EBP.set(cpu.popStack(4));
@@ -1483,15 +1465,12 @@ define([
         }, "POPF": function (cpu) {
             // NB: bits 16 and 17 (VM & RF) should not be affected by this
             //    (TODO: mask... ^!)
-            //debugger,
             var operandSize = this.operandSizeAttr ? 4 : 2;
 
             // Always set all of EFLAGS (zero out high word if POPF)
             cpu.EFLAGS.set(cpu.popStack(operandSize));
         // Push data onto stack top (SS:SP)
         }, "PUSH": function (cpu) {
-            if (this.operand1.addressSizeAttr) { debugger; }
-
             cpu.pushStack(this.operand1.read(), this.operand1.size);
         // Push all General Registers
         }, "PUSHA": function (cpu) {
@@ -1510,7 +1489,7 @@ define([
                 cpu.pushStack(cpu.SI.get(), 2);
                 cpu.pushStack(cpu.DI.get(), 2);
             // PUSHAD
-            } else {debugger;
+            } else {
                 // Remember to save Stack Pointer, push()es will modify it
                 ptrStack = cpu.ESP.get();
                 cpu.pushStack(cpu.EAX.get(), 4);
@@ -1524,17 +1503,16 @@ define([
             }
         // Push Flags Register onto Stack
         }, "PUSHF": function (cpu) {
-            //debugger;
 
             // PUSHF
             if (!this.operandSizeAttr) {
                 cpu.pushStack(cpu.FLAGS.get(), 2);
             // PUSHFD
-            } else {debugger;
+            } else {
                 cpu.pushStack(cpu.EFLAGS.get(), 4);
             }
         // Rotate Bits Left
-        }, "ROL": function (cpu) {//debugger;
+        }, "ROL": function (cpu) {
             // Fast left-rotation using masks instead of a loop
             var bits = this.operand1.read(),
                 numBitsIn = this.operand1.size * 8,
@@ -1552,25 +1530,8 @@ define([
             //    the last bit shifted off the left and onto the right would be this one)
             cf = bitsShiftedOut & 0x01;
             cpu.CF.setBin(cf);
-
-
-
-            // Perform same op as a string to verify
-            var str = bits.toString(2),
-                out,
-                res2;
-            while (str.length < numBitsIn) { str = "0" + str; }
-            out = str.substr(0, numBitsShift);
-            res2 = str.substr(numBitsShift) + out;
-
-            if (res2.length !== numBitsIn || res !== parseInt(res2, 2)) {
-                debugger;
-                util.panic("ROR :: Result mismatch");
-            }
         // Rotate Bits Right
         }, "ROR": function (cpu) {
-            //debugger;
-
             // Fast right-rotation using masks instead of a loop
             var bits = this.operand1.read(),
                 numBitsIn = this.operand1.size * 8;
@@ -1600,7 +1561,6 @@ define([
             res2 = out + str.substr(0, str.length - numBitsShift);
 
             if (res2.length !== numBitsIn || res !== parseInt(res2, 2)) {
-                debugger;
                 util.panic("ROR :: Result mismatch");
             }
         // Rotate Bits Left with Carry Flag
@@ -1611,8 +1571,6 @@ define([
                 res,
                 cf,
                 of;
-
-            //debugger;
 
             if (operandSize === 4) {
                 count &= 0x1f;
@@ -1711,15 +1669,12 @@ define([
             if (!this.operandSizeAttr) {
                 // (NB: Will clear high word of EIP)
                 cpu.EIP.set(cpu.popStack(2));
-            } else {debugger;
+            } else {
                 cpu.EIP.set(cpu.popStack(4));
             }
-
-            //if (cpu.IP.get() === 0xFFF6) { debugger; }
         // Return (Far) from Procedure
         }, "RETF": function (cpu) {
             // Needs testing!!!!!!!!!
-            //debugger;
 
             //var sizeOperand = this.sizeOperand;
             //var PE = cpu.PE.get();
@@ -1734,7 +1689,7 @@ define([
                     // Pop CS
                     cpu.CS.set(cpu.popStack(2));
                 // 32-bit
-                } else {debugger;
+                } else {
                     // Pop only IP - save another get by just masking out high word
                     // - NB: Will clear high word of EIP
                     cpu.EIP.set(cpu.popStack(4));
@@ -1759,7 +1714,6 @@ define([
         // Return (Far) from Procedure and pop imm16 bytes of parameters
         }, "RETF_P": function (cpu) {
             // Needs testing!!!!!!!!!
-            //debugger;
 
             var stackSizeAttr = cpu.SS.cache.default32BitSize,
                 SP = (stackSizeAttr ? cpu.ESP : cpu.SP),
@@ -2146,11 +2100,9 @@ define([
             util.panic("Execute (SIDT) :: unsupported");
         // Shift Left - Double Precision
         }, "SHLD": function (cpu) {
-            debugger;
             util.panic("Execute (SHLD) :: unsupported");
         // Shift Right - Double Precision
         }, "SHRD": function (cpu) {
-            debugger;
             util.panic("Execute (SHRD) :: unsupported");
         // Store Local Descriptor Table Register
         }, "SLDT": function (cpu) {
