@@ -42,7 +42,7 @@ define([
 
 				// Simple translation to KEY_* values (needs a keymap)
 				emu.machine.keyboard.keyboard.generateScancode(key, "break");
-			})
+			});
 			util.global.document.addEventListener("keypress", function (evt) {
 				if ( cancelKeypress ) {
 					cancelKeypress = false; // Only this keypress

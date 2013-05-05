@@ -23,18 +23,18 @@ define([
 ) {
     "use strict";
 
-     function createEvent(eventName, keyCode){
+    function createEvent(eventName, keyCode){
         var event = document.createEvent('Event');
-        
+
         event.initEvent(eventName, true, true);
         event.keyCode = keyCode;
         event.isDefaultPrevented = function(){
             return this.defaultPrevented;
         };
-        
+
         return event;
     }
-    
+
     describe("Standard Keyboard plugin", function () {
         var emu,
             event,
@@ -128,7 +128,7 @@ define([
                 describe("when a 'keydown' event fires", function () {
                     beforeEach(function () {
                         event = createEvent("keydown", fixture.keyCode);
-                        
+
                         document.dispatchEvent(event);
                     });
 
@@ -148,7 +148,7 @@ define([
                 describe("when a 'keyup' event fires", function () {
                     beforeEach(function () {
                         event = createEvent("keyup", fixture.keyCode);
-                        
+
                         document.dispatchEvent(event);
                     });
 
