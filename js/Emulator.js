@@ -34,55 +34,51 @@ define([
     util.inherit(Emulator).from(EventEmitter);
 
     util.extend(Emulator.prototype, {
-        getCPU: function () {
+        getCPUState: function () {
             var legacyCPU = this.legacyJemul8.machine.cpu;
 
             return {
-                getRegisters: function () {
-                    return {
-                        eax: legacyCPU.EAX,
-                        ax: legacyCPU.AX,
-                        al: legacyCPU.AL,
-                        ah: legacyCPU.AH,
+                eax: legacyCPU.EAX,
+                ax: legacyCPU.AX,
+                al: legacyCPU.AL,
+                ah: legacyCPU.AH,
 
-                        ecx: legacyCPU.ECX,
-                        cx: legacyCPU.CX,
-                        cl: legacyCPU.CL,
-                        ch: legacyCPU.CH,
+                ecx: legacyCPU.ECX,
+                cx: legacyCPU.CX,
+                cl: legacyCPU.CL,
+                ch: legacyCPU.CH,
 
-                        ebx: legacyCPU.EBX,
-                        bx: legacyCPU.BX,
-                        bl: legacyCPU.BL,
-                        bh: legacyCPU.BH,
+                ebx: legacyCPU.EBX,
+                bx: legacyCPU.BX,
+                bl: legacyCPU.BL,
+                bh: legacyCPU.BH,
 
-                        edx: legacyCPU.EDX,
-                        dx: legacyCPU.DX,
-                        dl: legacyCPU.DL,
-                        dh: legacyCPU.DH,
+                edx: legacyCPU.EDX,
+                dx: legacyCPU.DX,
+                dl: legacyCPU.DL,
+                dh: legacyCPU.DH,
 
-                        ebp: legacyCPU.EBP,
-                        bp: legacyCPU.BP,
+                ebp: legacyCPU.EBP,
+                bp: legacyCPU.BP,
 
-                        edi: legacyCPU.EDI,
-                        di: legacyCPU.DI,
+                edi: legacyCPU.EDI,
+                di: legacyCPU.DI,
 
-                        esi: legacyCPU.ESI,
-                        si: legacyCPU.SI,
+                esi: legacyCPU.ESI,
+                si: legacyCPU.SI,
 
-                        esp: legacyCPU.ESP,
-                        sp: legacyCPU.SP,
+                esp: legacyCPU.ESP,
+                sp: legacyCPU.SP,
 
-                        eip: legacyCPU.EIP,
-                        ip: legacyCPU.IP,
+                eip: legacyCPU.EIP,
+                ip: legacyCPU.IP,
 
-                        cs: legacyCPU.CS,
-                        ds: legacyCPU.DS,
-                        es: legacyCPU.ES,
-                        fs: legacyCPU.FS,
-                        gs: legacyCPU.GS,
-                        ss: legacyCPU.SS
-                    };
-                }
+                cs: legacyCPU.CS,
+                ds: legacyCPU.DS,
+                es: legacyCPU.ES,
+                fs: legacyCPU.FS,
+                gs: legacyCPU.GS,
+                ss: legacyCPU.SS
             };
         },
 
