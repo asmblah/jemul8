@@ -47,7 +47,7 @@ define([
 
             it("should complete the POST by executing INT 0x19", function (done) {
                 // Run the emulator, wait for INT 0x19 "Boot Load Service Entry Point"
-                emulator.on("interrupt", 0x19, function () {
+                emulator.on("interrupt", [0x19], function () {
                     emulator.pause();
                     done();
                 }).run();
