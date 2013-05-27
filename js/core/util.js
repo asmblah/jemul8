@@ -15,23 +15,45 @@
 /*global define, require */
 
 define([
-    "jquery",
     "modular"
 ], function (
-    $,
     modular
 ) {
     "use strict";
 
     var util = {};
 
-    // Borrow some of jQuery's methods
-    //  (TODO: Get rid of this - implement our own, to remove
-    //  dependency on jQuery)
-    util.extend = $.extend;
-    util.each = $.each;
+    util.extend = function(target){
+        var obj, i, name, n = arguments.length;
+        if (target)
+            for (i = 1; i < n; i++){
+                obj =  arguments[i];
+                for (name in obj)
+                    target[name] = obj[name];
+            }
+        return target;
+    };
+    
+    util.each = function(obj, cb){
+        var i, n;
+        if(obj){
+            if( obj instanceof Array) {
+                n = obj.length;
+                for (i = 0; i < n; i++)
+                    cb(i, obj[i]);
+            }
+            else if (typeof obj === 'object')
+                for (var name in obj)
+                    cb(name, obj[name]);
+        }
+        return obj;
+    };
+    
     util.global = modular.util.global;
-    util.isFunction = $.isFunction;
+    
+    util.isFunction = function(func){
+        return typeof func == "function";
+    };
 
     util.extend(util, {
     // Mask applied to addresses presented at the address bus, depending
@@ -342,11 +364,11 @@ define([
 
     // For properly creating a subclass in JavaScript
     util.inherit = function (cls1, cls2, arg) {
-        if (!$.isFunction(cls1)) {
-            $.error("$.inherit() :: 'cls1' is not a valid JavaScript class/function");
+        if (!util.isFunction(cls1)) {
+            throw new Error("$.inherit() :: 'cls1' is not a valid JavaScript class/function");
         }
-        if (!$.isFunction(cls2)) {
-            $.error("$.inherit() :: 'cls2' is not a valid JavaScript class/function");
+        if (!util.isFunction(cls2)) {
+            throw new Error("$.inherit() :: 'cls2' is not a valid JavaScript class/function");
         }
         // Unfortunately no way to perform "new" & call .apply,
         //    see [http://stackoverflow.com/questions/181348/instantiating-a-javascript-object-by-calling-prototype-constructor-apply]
