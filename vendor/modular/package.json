@@ -24,7 +24,7 @@
         "email": "dan@ovms.co",
         "url": "http://github.com/asmblah/modular/issues"
     },
-    "main": "./modular.js",
+    "main": "index",
     "engines": {
         "node": ">=0.6",
         "npm": "1"

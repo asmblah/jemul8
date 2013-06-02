@@ -16,7 +16,7 @@ vendor/mocha:
 vendor/modular: 
   branch: master
   remote: master/braid/vendor/modular
-  revision: ba05a53ed829ed78bc3d8f5771540daeba50039d
+  revision: 297bf7403e5ad23314504d1fe4e925ce656b027f
   squashed: true
   type: git
   url: git://github.com/asmblah/modular.git

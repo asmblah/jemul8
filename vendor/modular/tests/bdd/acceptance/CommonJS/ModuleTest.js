@@ -12,10 +12,10 @@
 /*global beforeEach, define, describe, it */
 define([
     "vendor/chai/chai",
-    "root/modular"
+    "Modular"
 ], function (
     chai,
-    modular
+    Modular
 ) {
     "use strict";
 
@@ -24,15 +24,8 @@ define([
     describe("CommonJS module", function () {
         var loader;
 
-        beforeEach(function (done) {
-            modular.require([
-                "Modular"
-            ], function (
-                Modular
-            ) {
-                loader = new Modular();
-                done();
-            });
+        beforeEach(function () {
+            loader = new Modular();
         });
 
         it("should make a 'module' object available via the 'module' named dependency", function (done) {

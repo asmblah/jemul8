@@ -12,10 +12,10 @@
 /*global define */
 define([
     "vendor/chai/chai",
-    "root/modular"
+    "Modular"
 ], function (
     chai,
-    modular
+    Modular
 ) {
     "use strict";
 
@@ -24,15 +24,8 @@ define([
     describe("CommonJS scoped require()", function () {
         var loader;
 
-        beforeEach(function (done) {
-            modular.require([
-                "Modular"
-            ], function (
-                Modular
-            ) {
-                loader = new Modular();
-                done();
-            });
+        beforeEach(function () {
+            loader = new Modular();
         });
 
         it("should inherit mappings from its parent", function (done) {
@@ -80,6 +73,23 @@ define([
                     expect(importedMystic).to.equal(theMystic);
                     done();
                 });
+            });
+        });
+
+        it("should return the result from a scoped synchronous require()", function (done) {
+            var fun = {};
+
+            loader.define("/on/the/wild/side", function () {
+                return fun;
+            });
+
+            loader.require([
+                "require"
+            ], function (
+                require
+            ) {
+                expect(require("/on/the/wild/side")).to.equal(fun);
+                done();
             });
         });
     });

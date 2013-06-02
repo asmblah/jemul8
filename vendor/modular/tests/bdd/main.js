@@ -9,19 +9,23 @@
  * https://github.com/asmblah/modular/raw/master/MIT-LICENSE.txt
  */
 
-/*global require */
+/*global require, mocha */
 require({
     paths: {
-        "root": "../..",
-        "vendor": "../../vendor"
+        "js": "/../../js",
+        "vendor": "/../../vendor"
     }
 }, [
     "require",
     "vendor/chai/chai",
+    "modular",
+    "vendor/sinon/sinon",
     "vendor/sinon-chai/lib/sinon-chai"
 ], function (
     require,
     chai,
+    modular,
+    sinon,
     sinonChai
 ) {
     "use strict";
@@ -34,18 +38,27 @@ require({
 
     chai.use(sinonChai);
 
+    sinon.match.contains = function (element) {
+        return sinon.match(function (array) {
+            return modular.util.isArray(array) && array.indexOf(element) > -1;
+        }, "\"" + element + "\" in array");
+    };
+
     require({
         cache: false
     }, [
         "./acceptance/CommonJS/ExportsTest",
         "./acceptance/CommonJS/ModuleTest",
         "./acceptance/CommonJS/RequireTest",
-        "./acceptance/BrowserTest",
         "./acceptance/DefineRequireTest",
         "./acceptance/SampleProgramTest",
         "./integration/NamedModuleTest",
-        "./unit/ModularTest",
-        "./unit/UtilTest"
+        "./unit/js/Modular/UtilTest",
+        "./unit/js/ModularTest",
+        "./unit/js/PromiseTest",
+        "./unit/js/UtilTest",
+        "./unit/indexTest",
+        "./unit/modularTest"
     ], function () {
         mocha.run();
     });

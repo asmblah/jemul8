@@ -12,10 +12,10 @@
 /*global define */
 define([
     "vendor/chai/chai",
-    "root/modular"
+    "Modular"
 ], function (
     chai,
-    modular
+    Modular
 ) {
     "use strict";
 
@@ -24,41 +24,33 @@ define([
     describe("Named modules", function () {
         var loader;
 
-        beforeEach(function (done) {
-            modular.require([
-                "Modular"
+        beforeEach(function () {
+            loader = new Modular();
+
+            loader.define("classes/Animal", function () {
+                function Animal(species) {
+                    this.species = species || null;
+                }
+
+                Animal.prototype.getSpecies = function () {
+                    return this.species;
+                };
+
+                return Animal;
+            });
+
+            loader.define("classes/Human", [
+                "classes/Animal"
             ], function (
-                Modular
+                Animal
             ) {
-                loader = new Modular();
+                function Human() {
+                    Animal.call(this, "Human");
+                }
 
-                loader.define("classes/Animal", function () {
-                    function Animal(species) {
-                        this.species = species || null;
-                    }
+                Human.prototype = Object.create(Animal.prototype);
 
-                    Animal.prototype.getSpecies = function () {
-                        return this.species;
-                    };
-
-                    return Animal;
-                });
-
-                loader.define("classes/Human", [
-                    "classes/Animal"
-                ], function (
-                    Animal
-                ) {
-                    function Human() {
-                        Animal.call(this, "Human");
-                    }
-
-                    Human.prototype = Object.create(Animal.prototype);
-
-                    return Human;
-                });
-
-                done();
+                return Human;
             });
         });
 
