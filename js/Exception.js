@@ -1,5 +1,5 @@
 /**
- * jemul8 - JavaScript x86 Emulator v0.0.1
+ * jemul8 - JavaScript x86 Emulator
  * http://jemul8.com/
  *
  * Copyright 2013 jemul8.com (http://github.com/asmblah/jemul8)
