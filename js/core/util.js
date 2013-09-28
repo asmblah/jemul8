@@ -15,23 +15,18 @@
 /*global define, require */
 
 define([
-    "jquery",
     "modular"
 ], function (
-    $,
     modular
 ) {
     "use strict";
 
     var util = {};
 
-    // Borrow some of jQuery's methods
-    //  (TODO: Get rid of this - implement our own, to remove
-    //  dependency on jQuery)
-    util.extend = $.extend;
-    util.each = $.each;
+    util.extend = modular.util.extend;
+    util.each = modular.util.each;
     util.global = modular.util.global;
-    util.isFunction = $.isFunction;
+    util.isFunction = modular.util.isFunction;
 
     util.extend(util, {
     // Mask applied to addresses presented at the address bus, depending
@@ -342,11 +337,11 @@ define([
 
     // For properly creating a subclass in JavaScript
     util.inherit = function (cls1, cls2, arg) {
-        if (!$.isFunction(cls1)) {
-            $.error("$.inherit() :: 'cls1' is not a valid JavaScript class/function");
+        if (!util.isFunction(cls1)) {
+            throw new Error("util.inherit() :: 'cls1' is not a valid JavaScript class/function");
         }
-        if (!$.isFunction(cls2)) {
-            $.error("$.inherit() :: 'cls2' is not a valid JavaScript class/function");
+        if (!util.isFunction(cls2)) {
+            throw new Error("util.inherit() :: 'cls2' is not a valid JavaScript class/function");
         }
         // Unfortunately no way to perform "new" & call .apply,
         //    see [http://stackoverflow.com/questions/181348/instantiating-a-javascript-object-by-calling-prototype-constructor-apply]

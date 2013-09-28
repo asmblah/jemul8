@@ -13,13 +13,11 @@
 
 /*global afterEach, beforeEach, define, describe, expect, it, sinon */
 define([
-    "jquery",
     "modular",
     "require",
     "js/util",
     "js/core/classes/register"
 ], function (
-    $,
     modular,
     require,
     util,

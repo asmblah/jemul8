@@ -230,7 +230,7 @@ define([
 
 		// VGA output
 		//	TODO: Separate DOM access out into plugins for eg. jQuery
-		this.screenVGA = $("#screenVGA")[ 0 ];
+		this.screenVGA = document.getElementById("screenVGA");
 		if (this.screenVGA && this.screenVGA.getContext) {
 			this.ctx_screenVGA = this.screenVGA.getContext("2d");
 			this.imageData = this.ctx_screenVGA.createImageData(
