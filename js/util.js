@@ -7,11 +7,13 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global define */
+/*global define, DataView, Uint8Array */
 define([
-    "modular"
+    "modular",
+    "require"
 ], function (
-    modular
+    modular,
+    require
 ) {
     "use strict";
 
@@ -20,9 +22,35 @@ define([
         F.prototype = from;
         return new F();
     },
-        util = create(modular.util);
+        util = create(modular.util),
+        console = util.global.console,
+        Promise;
 
-    return util.extend(util, {
+    util.extend(util, {
+        copyBuffer: function (options) {
+            var from = options.from,
+                fromBuffer = from.buffer,
+                fromAddress = from.at,
+                to = options.to,
+                toBuffer = to.buffer,
+                toAddress = to.at,
+                length = options.length;
+
+            new Uint8Array(toBuffer).set(new Uint8Array(fromBuffer, fromAddress, length), toAddress);
+        },
+
+        from: function (from) {
+            return {
+                to: function (to, callback) {
+                    var number;
+
+                    for (number = from; number < to; number += 1) {
+                        callback(number, number - from);
+                    }
+                }
+            };
+        },
+
         // Create a bitmask for the specified value size in bytes
         // - eg. for masking off higher bits of a value to fit it into a CPU register
         generateMask: function (size) {
@@ -36,6 +64,30 @@ define([
             } else {
                 return 0xFFFFFFFF;
             }
+        },
+
+        get: function (uri) {
+            var promise = new Promise(),
+                xhr = new util.global.XMLHttpRequest();
+
+            xhr.open("GET", uri + "?__r=" + Math.random(), true);
+            xhr.responseType = "arraybuffer";
+            xhr.onreadystatechange = function () {
+                var buffer;
+
+                if (this.readyState === 4) {
+                    if (this.status === 200) {
+                        buffer = new DataView(this.response);
+
+                        promise.resolve(buffer, uri);
+                    } else {
+                        promise.reject(uri);
+                    }
+                }
+            };
+            xhr.send("");
+
+            return promise;
         },
 
         hexify: function (number, byteSize) {
@@ -56,10 +108,54 @@ define([
             };
         },
 
+        // Breaks the circular dependency between js/Jemul8.js<->js/util.js
+        init: function (callback) {
+            require([
+                "js/Promise"
+            ], function (
+                PromiseClass
+            ) {
+                Promise = PromiseClass;
+                callback();
+            });
+        },
+
         mask: function (number, mask) {
             /*jslint bitwise: true */
 
             return (number & mask) >>> 0;
         }
     });
+
+    // Check, because IE10 preview errors on .bind()
+    if ((function () {
+        try {
+            return console && console.assert && console.assert.bind && console.assert.bind(console);
+        } catch (e) {}
+
+        return false;
+    }())) {
+        util.extend(util, {
+            assert: console.assert.bind(console),
+            info: console.info.bind(console),
+            debug: console.debug.bind(console),
+            warning: console.warn.bind(console),
+            problem: console.error.bind(console),
+            panic: function (msg) {
+                throw new Error(msg);
+            }
+        });
+    } else {
+        // Stub functions as console logging unavailable
+        util.extend(util, {
+            assert: function () {},
+            info: function () {},
+            debug: function () {},
+            warning: function () {},
+            problem: function () {},
+            panic: function () {}
+        });
+    }
+
+    return util;
 });

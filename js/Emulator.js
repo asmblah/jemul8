@@ -9,11 +9,15 @@
 
 /*global define */
 define([
+    "js/plugins",
+    "require",
     "js/util",
     "js/EventEmitter",
     "js/Exception",
     "js/Promise"
 ], function (
+    plugins,
+    require,
     util,
     EventEmitter,
     Exception,
@@ -23,150 +27,162 @@ define([
 
     var hasOwn = {}.hasOwnProperty;
 
-    function Emulator(legacyJemul8) {
+    function Emulator(system, io, memory, cpu) {
         EventEmitter.call(this);
 
+        this.cpu = cpu;
         this.inited = false;
-        this.legacyJemul8 = legacyJemul8;
+        this.io = io;
+        this.memory = memory;
+        this.pluginsToLoad = [];
         this.running = false;
+        this.system = system;
     }
 
     util.inherit(Emulator).from(EventEmitter);
 
     util.extend(Emulator.prototype, {
-        getCPUState: function () {
-            var legacyCPU = this.legacyJemul8.machine.cpu;
-
-            return {
-                eax: legacyCPU.EAX,
-                ax: legacyCPU.AX,
-                al: legacyCPU.AL,
-                ah: legacyCPU.AH,
-
-                ecx: legacyCPU.ECX,
-                cx: legacyCPU.CX,
-                cl: legacyCPU.CL,
-                ch: legacyCPU.CH,
-
-                ebx: legacyCPU.EBX,
-                bx: legacyCPU.BX,
-                bl: legacyCPU.BL,
-                bh: legacyCPU.BH,
-
-                edx: legacyCPU.EDX,
-                dx: legacyCPU.DX,
-                dl: legacyCPU.DL,
-                dh: legacyCPU.DH,
-
-                ebp: legacyCPU.EBP,
-                bp: legacyCPU.BP,
-
-                edi: legacyCPU.EDI,
-                di: legacyCPU.DI,
-
-                esi: legacyCPU.ESI,
-                si: legacyCPU.SI,
-
-                esp: legacyCPU.ESP,
-                sp: legacyCPU.SP,
-
-                eip: legacyCPU.EIP,
-                ip: legacyCPU.IP,
-
-                cs: legacyCPU.CS,
-                ds: legacyCPU.DS,
-                es: legacyCPU.ES,
-                fs: legacyCPU.FS,
-                gs: legacyCPU.GS,
-                ss: legacyCPU.SS
-            };
+        getCPURegisters: function () {
+            return this.cpu.getRegisters();
         },
 
         init: function () {
             var emulator = this,
-                legacyJemul8 = emulator.legacyJemul8,
-                cpu = legacyJemul8.machine.cpu,
                 promise = new Promise();
 
-            legacyJemul8.init(function () {
-                // Monkey-patch a trap for interrupts
-                cpu.interrupt = (function (interrupt) {
-                    return function (vector) {
-                        emulator.emit("interrupt", vector);
-                        interrupt.apply(this, arguments);
-                    };
-                }(cpu.interrupt));
+            function loadPlugins() {
+                var loadsRemaining = 0,
+                    promise = new Promise();
 
-                emulator.inited = true;
-                promise.resolve();
+                function checkLoaded() {
+                    if (loadsRemaining === 0) {
+                        promise.resolve();
+                    }
+                }
+
+                function markLoading() {
+                    loadsRemaining++;
+                }
+
+                function markLoaded() {
+                    loadsRemaining--;
+
+                    checkLoaded();
+                }
+
+                util.each(emulator.pluginsToLoad, function (identifier) {
+                    markLoading();
+
+                    if (util.isString(identifier)) {
+                        require(["./Plugin/" + plugins[identifier]], function (Plugin) {
+                            var plugin = new Plugin();
+
+                            util.each(plugin.setupIODevices(), function (fn, ioDeviceIdentifier) {
+                                var ioDevice = emulator.io.getRegisteredDevice(ioDeviceIdentifier),
+                                    result;
+
+                                if (!ioDevice) {
+                                    throw new Exception("Emulator.init() :: No I/O device registered with identifier '" + ioDeviceIdentifier + "'");
+                                }
+
+                                markLoading();
+
+                                result = fn(ioDevice.getPluginData());
+
+                                if (result instanceof Promise) {
+                                    result.done(function () {
+                                        markLoaded();
+                                    }).fail(function (exception) {
+                                        promise.reject(exception);
+                                    });
+                                } else {
+                                    markLoaded();
+                                }
+                            });
+
+                            markLoaded();
+                        });
+                    }
+                });
+
+                checkLoaded();
+
+                return promise;
+            }
+
+            loadPlugins().done(function () {
+                emulator.cpu.on("interrupt", function (vector) {
+                    emulator.emit("interrupt", vector);
+                });
+
+                emulator.io.on("io read", function (port, length) {
+                    emulator.emit("io read", port, length);
+                });
+
+                emulator.io.on("io write", function (port, value, length) {
+                    emulator.emit("io write", port, value, length);
+                });
+
+                emulator.cpu.init().done(function () {
+                    emulator.io.init().done(function () {
+                        emulator.cpu.reset();
+                        emulator.io.reset();
+
+                        emulator.inited = true;
+                        promise.resolve();
+                    }).fail(function (exception) {
+                        promise.reject(exception);
+                    });
+                }).fail(function (exception) {
+                    promise.reject(exception);
+                });
+            }).fail(function (exception) {
+                promise.reject(exception);
             });
 
             return promise;
+        },
+
+        loadPlugin: function (identifier) {
+            if (util.isString(identifier)) {
+                if (!hasOwn.call(plugins, identifier)) {
+                    throw new Exception("Emulator.loadPlugin() :: Unrecognised standard plugin identifier '" + identifier + "'");
+                }
+            } else {
+                throw new Exception("Emulator.init() :: Unsupported plugin");
+            }
+
+            this.pluginsToLoad.push(identifier);
         },
 
         pause: function () {
             var emulator = this;
 
             emulator.running = false;
-            emulator.legacyJemul8.machine.cpu.halt();
+            emulator.cpu.halt();
             emulator.emit("pause");
 
             return emulator;
         },
 
+        reset: function (options) {
+            this.system.reset(options);
+        },
+
         run: function () {
-            var emulator = this,
-                legacyJemul8 = emulator.legacyJemul8,
-                legacyCPU = legacyJemul8.machine.cpu,
-                promise = new Promise();
+            var emulator = this;
 
             if (!emulator.inited) {
                 throw new Exception("Emulator.run() :: Not yet initialized");
             }
 
             emulator.running = true;
-            // Monkey-patch a trap for CPU halt
-            legacyCPU.halt = (function (halt) {
-                return function haltSpy() {
-                    promise.resolve();
-                    halt.call(legacyCPU);
-                };
-            }(legacyCPU.halt));
-            legacyJemul8.run();
 
-            return promise;
+            return emulator.cpu.run();
         },
 
         write: function (options) {
-            var data,
-                emulator = this,
-                offset,
-                size,
-                to;
-
-            options = options || {};
-
-            if (!hasOwn.call(options, "data")) {
-                throw new Exception("Emulator.write() :: 'data' not specified");
-            }
-
-            if (!util.isArray(options.data)) {
-                throw new Exception("Emulator.write() :: 'data' must be an array");
-            }
-
-            if (!hasOwn.call(options, "to")) {
-                throw new Exception("Emulator.write() :: 'to' not specified");
-            }
-
-            data = options.data;
-            size = data.length;
-            to = options.to;
-
-            for (offset = 0; offset < size; offset += 1) {
-                emulator.legacyJemul8.machine.mem.writePhysical(to + offset, data[offset], 1);
-            }
-
-            return emulator;
+            this.system.write(options);
         }
     });
 

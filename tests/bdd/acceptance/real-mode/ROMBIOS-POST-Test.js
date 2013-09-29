@@ -18,27 +18,18 @@ define([
     "use strict";
 
     describe("ROMBIOS POST acceptance tests", function () {
-        beforeEach(function () {
-            // Allow extra time, as we are running a full ROMBIOS POST
-            describe.setSlowTimeout(4000);
-        });
-
-        afterEach(function () {
-            describe.restoreSlowTimeout();
-        });
-
         describe("when the boot uses the default setup, handled by emulator.init()", function () {
-            var cpuState,
-                emulator;
+            var emulator;
 
             beforeEach(function (done) {
-                var jemul8 = new Jemul8();
-
-                emulator = jemul8.createEmulator({
-                    rombios: "../../docs/bochs-20100605/bios/BIOS-bochs-legacy",
-                    vgabios: "../../docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+                emulator = new Jemul8().createEmulator({
+                    "cmos": {
+                        "bios": "../../docs/bochs-20100605/bios/BIOS-bochs-legacy"
+                    },
+                    "vga": {
+                        "bios": "../../docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+                    }
                 });
-                cpuState = emulator.getCPUState();
 
                 emulator.init().done(function () {
                     done();
@@ -46,9 +37,14 @@ define([
             });
 
             it("should complete the POST by executing INT 0x19", function (done) {
+                // Allow extra time, as we are running a full ROMBIOS POST
+                describe.setSlowTimeout(10000);
+                this.timeout(10000);
+
                 // Run the emulator, wait for INT 0x19 "Boot Load Service Entry Point"
                 emulator.on("interrupt", [0x19], function () {
                     emulator.pause();
+                    describe.restoreSlowTimeout();
                     done();
                 }).run();
             });

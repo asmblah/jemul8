@@ -99,7 +99,7 @@ define([
     ];
 
     // Constructor / pre-init
-    function FDC(machine) {
+    function FDC(machine, jumperConfiguration) {
         util.assert(this && (this instanceof FDC), "FDC ctor ::"
             + " error - constructor not called properly");
 
@@ -109,6 +109,7 @@ define([
 
         util.info("FDC (Intel 82077A/82078) PreInit");
 
+        this.jumperConfiguration = jumperConfiguration;
         this.machine = machine;
 
         this.state = {
@@ -331,16 +332,8 @@ define([
 
         setupFloppies();
 
-        // CMOS Floppy Type and Equipment Byte register
-        machine.cmos.setReg(0x10, cmosValue);
-        if (state.num_supported_floppies > 0) {
-            machine.cmos.setReg(0x14
-                , (machine.cmos.getReg(0x14) & 0x3e)
-                | ((state.num_supported_floppies - 1) << 6) | 1
-            );
-        } else {
-            machine.cmos.setReg(0x14, (machine.cmos.getReg(0x14) & 0x3e));
-        }
+        device.jumperConfiguration.setFloppyDriveType(cmosValue);
+        device.jumperConfiguration.setNumberOfSupportedFloppies(state.num_supported_floppies);
 
         if (state.floppy_timer_index === null) {
             state.floppy_timer_index = machine.registerTimer(
@@ -352,15 +345,6 @@ define([
         state.SRT = 0x00;
         state.HUT = 0x00;
         state.HLT = 0x00;
-
-        // TEMP - Taken from Bochs' /iodev/harddrv.cc
-        // System boot sequence A:, C:
-        //  (will only have effect if ElTorito boot disabled)
-        machine.cmos.setReg(0x2d, machine.cmos.getReg(0x2d) | 0x20);
-
-        var drive1 = 1, drive2 = 2, drive3 = 3, floppySignatureCheck = false;
-        machine.cmos.setReg(0x3D, drive1 | (drive2 << 4));
-        machine.cmos.setReg(0x38, (!floppySignatureCheck) | (drive3 << 4));
     };
     // Based on [bx_floppy_c::reset]
     FDC.prototype.reset = function (type) {

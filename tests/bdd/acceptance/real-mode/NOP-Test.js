@@ -19,17 +19,12 @@ define([
 
     describe("NOP acceptance tests", function () {
         describe("when the program is NOP, NOP, NOP, HLT", function () {
-            var cpuState,
-                emulator;
+            var emulator,
+                registers;
 
             beforeEach(function (done) {
-                var jemul8 = new Jemul8();
-
-                emulator = jemul8.createEmulator({
-                    rombios: "../../docs/bochs-20100605/bios/BIOS-bochs-legacy",
-                    vgabios: "../../docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
-                });
-                cpuState = emulator.getCPUState();
+                emulator = new Jemul8().createEmulator();
+                registers = emulator.getCPURegisters();
 
                 emulator.init().done(function () {
                     // Write machine code for NOP, NOP, NOP, HLT to memory @ 0x0
@@ -39,8 +34,8 @@ define([
                     });
 
                     // Get ready to execute these 4 instructions
-                    cpuState.cs.set(0x00000000);
-                    cpuState.eip.set(0x00000000);
+                    registers.cs.set(0x0000);
+                    registers.eip.set(0x00000000);
 
                     done();
                 });
@@ -51,10 +46,10 @@ define([
             ], function (fixture) {
                 describe("when EAX is " + util.hexify(fixture.eax, 4) + ", ECX is " + util.hexify(fixture.ecx, 4) + ", EBX is " + util.hexify(fixture.ebx, 4) + " and EDX is " + util.hexify(fixture.edx, 4), function () {
                     beforeEach(function (done) {
-                        cpuState.eax.set(fixture.eax);
-                        cpuState.ecx.set(fixture.ecx);
-                        cpuState.ebx.set(fixture.ebx);
-                        cpuState.edx.set(fixture.edx);
+                        registers.eax.set(fixture.eax);
+                        registers.ecx.set(fixture.ecx);
+                        registers.ebx.set(fixture.ebx);
+                        registers.edx.set(fixture.edx);
 
                         // Run the emulator, wait for HLT
                         emulator.run().done(function () {
@@ -63,19 +58,19 @@ define([
                     });
 
                     it("should not modify EAX", function () {
-                        expect(cpuState.eax.get()).to.equal(fixture.eax);
+                        expect(registers.eax.get()).to.equal(fixture.eax);
                     });
 
                     it("should not modify ECX", function () {
-                        expect(cpuState.ecx.get()).to.equal(fixture.ecx);
+                        expect(registers.ecx.get()).to.equal(fixture.ecx);
                     });
 
                     it("should not modify EBX", function () {
-                        expect(cpuState.ebx.get()).to.equal(fixture.ebx);
+                        expect(registers.ebx.get()).to.equal(fixture.ebx);
                     });
 
                     it("should not modify EDX", function () {
-                        expect(cpuState.edx.get()).to.equal(fixture.edx);
+                        expect(registers.edx.get()).to.equal(fixture.edx);
                     });
                 });
             });

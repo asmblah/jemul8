@@ -19,15 +19,15 @@ define({
 }, [
     "vendor/chai/chai",
     "modular",
+    "module",
     "require",
     "vendor/sinon/sinon",
     "vendor/sinon-chai/lib/sinon-chai",
-    "vendor/mocha/mocha",
-
-    "js/jquery/jquery-1.7.1"
+    "vendor/mocha/mocha"
 ], function (
     chai,
     modular,
+    module,
     require,
     sinon,
     sinonChai
@@ -61,10 +61,12 @@ define({
     }(mocha.reporters.Base));
 
     require([
+        "bdd/acceptance/real-mode/IODevice/CMOS-Test",
         "bdd/acceptance/real-mode/NOP-Test",
         "bdd/acceptance/real-mode/ROMBIOS-POST-Test",
         "bdd/unit/js/core/classes/registerTest",
         "bdd/unit/js/plugins/std.keyboardTest",
+        "bdd/unit/js/EmulatorTest",
         "bdd/unit/js/Jemul8Test",
         "bdd/unit/js/RegisterTest",
         "bdd/unit/js/utilTest"

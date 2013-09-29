@@ -1432,7 +1432,53 @@ define([
             );
         // Output String to Port
         }, "OUTS": function (cpu) {
-            util.panic("Execute (OUTS) :: Not implemented yet");
+            var operandSize = this.operand2.size,
+                CX = this.addressSizeAttr ? cpu.ECX : cpu.CX,
+                SI = this.addressSizeAttr ? cpu.ESI : cpu.SI,
+                esi = SI.get(),
+                len,
+                delta,
+                linear,
+                physical,
+                accessor1,
+                accessor2,
+                // When DF set, decrement (scan in reverse direction)
+                //  otherwise increment
+                delta = cpu.DF.get() ? -operandSize : operandSize;
+
+            // Common case; no repeat prefix
+            if (!this.repeat) {
+                cpu.machine.io.write(
+                    this.operand1.read()   // Port
+                    , this.operand2.read() // Value
+                    , this.operand2.size   // I/O length
+                );
+
+                SI.set(esi + delta);
+            // Repeat CX times
+            } else if (this.repeat === "#REP/REPE") {
+                esi = SI.get();
+                len = CX.get() + 1;
+
+                while (--len) {
+                    cpu.machine.io.write(
+                        this.operand1.read()   // Port
+                        , this.operand2.read() // Value
+                        , this.operand2.size   // I/O length
+                    );
+
+                    esi += delta;
+                    SI.set(esi);
+                }
+
+                // TODO: Almost always "len === 0", however if hits eg. segment limit
+                //       during copy, only some data would be copied leaving CX
+                //       set to > 0, so need to trap this above
+                CX.set(len);
+            } else {
+                // Otherwise must have been #REPNE (#REPNZ)
+                util.problem("Instruction.execute() :: OUTS - #REPNE invalid");
+            }
         // Pop a value from the Stack (SS:SP)
         }, "POP": function (cpu) {
             this.operand1.write(cpu.popStack(this.operand1.size));
