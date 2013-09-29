@@ -331,7 +331,7 @@ define([
         case "bool":
             return data ? "true" : "false";
         default:
-            throw new Error( "jQuery.format() :: Error - invalid 'type'" );
+            throw new Error( "util.format() :: Error - invalid 'type'" );
         }
     };
 
