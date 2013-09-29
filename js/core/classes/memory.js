@@ -112,8 +112,8 @@ define([
         util.assert(util.isFunction(fnWrite),
             "Memory.registerMemoryHandlers() :: 'fnWrite' must be a valid callback (function)");
         // 'arg' may not be a device in future...!
-        util.assert(arg && (arg instanceof IODevice),
-            "Memory.registerMemoryHandlers() :: 'arg' must be an IODevice");
+        //util.assert(arg && (arg instanceof IODevice),
+        //    "Memory.registerMemoryHandlers() :: 'arg' must be an IODevice");
 
         var machine = arg.machine;
 
