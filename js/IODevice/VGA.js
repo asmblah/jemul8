@@ -37,6 +37,9 @@ define([
 
         this.legacyVGA = new LegacyVGA((function (vga) {
             return {
+                cmos: {
+                    installEquipment: function () {}
+                },
                 emu: {
                     getSetting: function (name) {
                         if (name === "vga.bios") {

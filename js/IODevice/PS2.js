@@ -33,6 +33,9 @@ define([
 
         this.legacyPS2 = new LegacyPS2((function (ps2) {
             return {
+                cmos: {
+                    installEquipment: function () {}
+                },
                 io: {
                     registerIO_Read: function (device, addr, name, fn) {
                         ps2.legacyReadHandler = fn;
