@@ -1,10 +1,10 @@
 /**
- * Plateau library v0.0.1
- * http://?.com/
+ * jemul8 - JavaScript x86 Emulator
+ * http://jemul8.com/
  *
- * Copyright 2012 ?.com
+ * Copyright 2013 jemul8.com (http://github.com/asmblah/jemul8)
  * Released under the MIT license
- * http://?.com/license
+ * http://jemul8.com/MIT-LICENSE.txt
  */
 
 /*global define */
