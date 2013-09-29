@@ -784,11 +784,10 @@ define([
             ++yps;
             ips += insns;
             if (ticksNow > (ticksLastUpdate + 1000) || this.isHalted) {
-                $("#performance").text(
+                (document.getElementById("performance") || {}).textContent =
                     "insns/sec: " + ips
                     + ", yields/sec: " + yps
-                    + " :: " + (this.isHalted ? "HALTED" : "RUNNING")
-                );
+                    + " :: " + (this.isHalted ? "HALTED" : "RUNNING");
 
                 ips = yps = 0;
                 ticksLastUpdate = ticksNow;
