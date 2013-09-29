@@ -10,98 +10,14 @@
 /*global define */
 define([
     "module",
-    "js/util",
-    "js/Jemul8"
+    "./tools"
 ], function (
     module,
-    util,
-    Jemul8
+    tools
 ) {
     "use strict";
 
-    var FAILED = 1,
-        FINISHED = 2,
-        PASSED = 0,
-        TEST_PORT = 0x404,
-        callback = module.defer();
+    var callback = module.defer();
 
-    (function () {
-        var emulator,
-            registers;
-
-        function init(done) {
-            emulator = new Jemul8().createEmulator();
-            registers = emulator.getCPURegisters();
-
-            util.get("../../asm/tests/bdd/acceptance/real-mode/IODevice/CMOS.bin").done(function (buffer) {
-                emulator.init().done(function () {
-                    // Write harness machine code to memory @ 0x100
-                    emulator.write({
-                        data: buffer,
-                        to:   0x00000100
-                    });
-
-                    // Point CPU at first loaded instruction
-                    registers.cs.set(0x0000);
-                    registers.eip.set(0x00000100);
-
-                    done();
-                });
-            });
-        }
-
-        (function () {
-            var index = -1,
-                tests = [];
-
-            (function nextTest() {
-                var description = "";
-                index += 1;
-
-                init(function () {
-                    registers.ax.set(index);
-
-                    emulator.on("io write", [TEST_PORT], function (value, length) {
-                        if (length !== 1) {
-                            throw new Error("Unsupported IO length " + length);
-                        }
-
-                        description += String.fromCharCode(value);
-                    });
-
-                    // Run the emulator, wait for HLT
-                    emulator.run().done(function () {
-                        var result = registers.ax.get();
-
-                        if (result === FINISHED) {
-                            describe("CMOS I/O device acceptance tests", function () {
-                                util.each(tests, function (test) {
-                                    var description = test.description,
-                                        result = test.result;
-
-                                    it(description, function (done) {
-                                        if (result === PASSED) {
-                                            done();
-                                        } else if (result === FAILED) {
-                                            done(new Error("Assertion in VM failed"));
-                                        } else {
-                                            done(new Error("Invalid result in AX from test runner: " + result));
-                                        }
-                                    });
-                                });
-                            });
-
-                            callback();
-                        } else {
-                            tests.push({
-                                description: description,
-                                result: result
-                            });
-                            nextTest();
-                        }
-                    });
-                });
-            }());
-        }());
-    }());
+    tools.defineTest("CMOS", callback);
 });
