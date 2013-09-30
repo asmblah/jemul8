@@ -25,11 +25,13 @@ define([
         TEST_PORT = 0x404;
 
     return {
-        defineTest: function (name, callback, tools) {
-            var emulator,
+        defineTest: function (name, callback, options) {
+            var beforeEach,
+                emulator,
                 registers;
 
-            tools = tools || {};
+            options = options || {};
+            beforeEach = options.beforeEach || function () {};
 
             function init(done) {
                 emulator = new Jemul8().createEmulator();
@@ -61,6 +63,9 @@ define([
                     index += 1;
 
                     init(function () {
+                        var options = beforeEach(emulator) || {},
+                            helpers = options.helpers || {};
+
                         registers.ax.set(index);
 
                         emulator.on("io write", [TEST_PORT], function (value, length) {
@@ -73,8 +78,8 @@ define([
 
                                 description += String.fromCharCode(value);
                             } else {
-                                if (tools[toolIndex]) {
-                                    tools[toolIndex](emulator);
+                                if (helpers[toolIndex]) {
+                                    helpers[toolIndex]();
                                 } else {
                                     throw new Error("Unsupported test tool index: " + toolIndex);
                                 }
