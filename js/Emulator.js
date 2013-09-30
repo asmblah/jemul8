@@ -181,6 +181,10 @@ define([
             return emulator.cpu.run();
         },
 
+        tick: function (microseconds) {
+
+        },
+
         write: function (options) {
             this.system.write(options);
         }

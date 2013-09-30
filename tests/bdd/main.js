@@ -62,6 +62,7 @@ define({
 
     require([
         "bdd/acceptance/real-mode/IODevice/CMOS-Test",
+        "bdd/acceptance/real-mode/IODevice/PIT-Test",
         "bdd/acceptance/real-mode/NOP-Test",
         "bdd/acceptance/real-mode/ROMBIOS-POST-Test",
         "bdd/unit/js/core/classes/registerTest",
