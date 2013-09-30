@@ -9,25 +9,15 @@ TEST_PORT equ 0x404
 
 org 0x0100
 
-section .data
+; Jump over data
+jmp bootstrap
+
+; --- Data ---
 
 axBackup dw 0x0000
 
-section .code
+; --- Macros ---
 
-cli
-
-; Create stack
-mov [axBackup], ax
-mov ax, 0x0000
-mov ss, ax
-mov sp, 0xFFFD
-mov ax, [axBackup]
-
-; Jump over functions
-jmp __end__
-
-; ======== Block macros ========
 ; From http://www.nasm.us/doc/nasmdoc4.html
 %macro if 1
     %push if
@@ -53,7 +43,8 @@ jmp __end__
         %error "expected `if' or `else' before `endif'"
     %endif
 %endmacro
-; ======== /Block macros ========
+
+; --- Functions ---
 
 ; Passed a test
 pass:
@@ -97,4 +88,15 @@ repe outsb
 pop ax
 ret
 
-__end__:
+; --- Bootstrap ---
+
+bootstrap:
+
+cli
+
+; Create stack
+mov [axBackup], ax
+mov ax, 0x0000
+mov ss, ax
+mov sp, 0xFFFD
+mov ax, [axBackup]

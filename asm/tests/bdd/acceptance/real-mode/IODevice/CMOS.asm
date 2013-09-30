@@ -7,13 +7,18 @@
 
 %include 'tools.inc'
 
-section .data:
+; Jump over data
+jmp main
+
+; --- Data ---
 
 ; Test descriptions
 test1 db "should return 0xFF when reading index port 0x70",0
 test2 db "should return 0x04 when reading minute register when minute is 4",0
 
-section .code:
+; --- Tests ---
+
+main:
 
 ; Ready to begin testing
 cmp ax, 0
