@@ -2,7 +2,7 @@
 ; jemul8 - JavaScript x86 Emulator
 ; Copyright (c) 2013 http://jemul8.com. All Rights Reserved.
 ;
-; MODULE: Tests for CPU stack handling
+; MODULE: Tests for CPU stack handling - x86 PUSH instruction
 ;
 
 %include '../../tools.inc'
