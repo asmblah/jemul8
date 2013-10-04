@@ -22,6 +22,12 @@ define([
 ) {
     "use strict";
 
+    var MASKS = {
+        1: util.generateMask(1),
+        2: util.generateMask(2),
+        4: util.generateMask(4)
+    };
+
 	// x86 Instruction Operand (eg. dest or src) class constructor
 	function Operand(insn, offset) {
 		//util.assert(this && (this instanceof Operand)
@@ -80,9 +86,9 @@ define([
 
 			// Defaults
 			operand.addressSize = addressSize;
-			operand.addressMask = util.generateMask(addressSize);
+			operand.addressMask = MASKS[addressSize];
 			operand.size = size;
-			operand.mask = util.generateMask(size);
+			operand.mask = MASKS[size];
 
 			// Normal operand descriptor
 			if (typeof attrs === "number") {
@@ -104,7 +110,7 @@ define([
 
 					// Size has been recalculated; update
 					operand.size = size;
-					operand.mask = util.generateMask(size);
+					operand.mask = MASKS[size];
 
 					// AddressingMethod stored in high byte (for speed we leave the AddressingMethod shifted
 					//	left by 8 bits, so that we do not need to shift right here before doing a table lookup)
@@ -326,17 +332,17 @@ define([
 			} else if (operand.reg = decoder[ attrs ]) {
 				operand.type = "GENERAL";
 				operand.size = operand.reg.size;
-				operand.mask = util.generateMask(operand.size);
+				operand.mask = MASKS[operand.size];
 			// Flag indicates a 16-bit general purpose register (eg. AX, SI)
 			} else if (size === 2 && (operand.reg = decoder[ attrs.substr(1) ])) {
 				operand.type = "GENERAL";
 				operand.size = operand.reg.size;
-				operand.mask = util.generateMask(operand.size);
+				operand.mask = MASKS[operand.size];
 			// Flag indicates a 32-bit general purpose register (eg. EAX, ESI)
 			} else if (size === 4 && (operand.reg = decoder[ attrs.toUpperCase() ])) {
 				operand.type = "GENERAL";
 				operand.size = operand.reg.size;
-				operand.mask = util.generateMask(operand.size);
+				operand.mask = MASKS[operand.size];
 			}
 
 			return operand;
