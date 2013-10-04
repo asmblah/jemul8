@@ -61,6 +61,7 @@ define({
     }(mocha.reporters.Base));
 
     require([
+        "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
         "bdd/acceptance/real-mode/IODevice/CMOS-Test",
         "bdd/acceptance/real-mode/IODevice/PIT-Test",
         "bdd/acceptance/real-mode/NOP-Test",
