@@ -54,7 +54,7 @@ if e
     xchg ah, al
     out 0x40, al   ; MSB
 
-    mov bx, 10000
+    mov cx, 10000
     call tick_pit
     call get_irq0_calls
     cmp ax, 1
@@ -71,13 +71,15 @@ jmp done
 ; --- Functions ---
 
 tick_pit:
-mov ax, 1
+mov bx, 1
 mov dx, TEST_PORT
-out dx, al
+; Number of milliseconds to tick is specified in CX
+mov ax, cx
+out dx, ax
 ret
 
 get_irq0_calls:
-mov ax, 2
+mov bx, 2
 mov dx, TEST_PORT
 out dx, al
 ret

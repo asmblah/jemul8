@@ -69,7 +69,7 @@ define([
                         registers.ax.set(index);
 
                         emulator.on("io write", [TEST_PORT], function (value, length) {
-                            var toolIndex = registers.ax.get();
+                            var toolIndex = registers.bx.get();
 
                             if (toolIndex === 0) {
                                 if (length !== 1) {

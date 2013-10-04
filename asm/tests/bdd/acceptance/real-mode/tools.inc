@@ -81,11 +81,11 @@ ret
 
 print_description:
 call get_length
-push ax
-mov ax, 0
+push bx
+mov bx, 0
 mov dx, TEST_PORT
 repe outsb
-pop ax
+pop bx
 ret
 
 ; --- Bootstrap ---
