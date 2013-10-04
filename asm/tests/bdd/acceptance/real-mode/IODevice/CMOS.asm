@@ -5,7 +5,7 @@
 ; MODULE: Tests for CMOS I/O device
 ;
 
-%include 'tools.inc'
+%include '../tools.inc'
 
 ; Jump over data
 jmp main
