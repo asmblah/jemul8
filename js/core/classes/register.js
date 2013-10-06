@@ -41,7 +41,7 @@ define([
         },
 
         get: function () {
-            return this.value;
+            return this.value >>> 0;
         },
 
         // Returns a nicely formatted hex string, with register value, padded to its size
@@ -61,7 +61,7 @@ define([
             /*jslint bitwise: true */
 
             // Mask out bits of value outside Register's bit-width
-            this.value = (val & this.mask) >>> 0;
+            this.value = (val & this.mask);
         }
     });
 
