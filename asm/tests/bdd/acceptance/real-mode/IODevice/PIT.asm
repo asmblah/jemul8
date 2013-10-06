@@ -26,7 +26,7 @@ if e
     mov si, test1
     call print_description
 
-    mov bx, 10000
+    mov cx, 10000
     call tick_pit
     call get_irq0_calls
     cmp ax, 0
