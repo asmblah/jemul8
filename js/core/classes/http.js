@@ -19,7 +19,8 @@ define([
 ], function (util, Buffer) {
     "use strict";
 
-	var isIE = self.ActiveXObject && !self.opera;
+	var global = util.global;
+	var isIE = global.ActiveXObject && !global.opera;
 	var useProxy = isIE;
 
 	// HTTP static class
@@ -39,9 +40,9 @@ define([
 	}
 
 	function createXHR() {
-		return self.XMLHttpRequest
-			? new self.XMLHttpRequest()
-			: new self.ActiveXObject("MSXML2.XMLHTTP");
+		return global.XMLHttpRequest
+			? new global.XMLHttpRequest()
+			: new global.ActiveXObject("MSXML2.XMLHTTP");
 	}
 
 	// Synchronously download a file over HTTP

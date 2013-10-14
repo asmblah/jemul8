@@ -47,7 +47,8 @@ define([
 ) {
     "use strict";
 
-    var ticksLastUpdate = Date.now(),
+    var global = util.global,
+        ticksLastUpdate = Date.now(),
         ips = 0,
         yps = 0;
 
@@ -625,11 +626,11 @@ define([
                 }
 
                 // Run next time-slice as soon as possible
-                self.setTimeout(yieldManager, 0);
+                global.setTimeout(yieldManager, 0);
             }
 
             // Don't start yield manager immediately; finish setup first
-            self.setTimeout(yieldManager, 0);
+            global.setTimeout(yieldManager, 0);
         },
         // Decode one page of instructions (23)
         decodePage: function (offset) {

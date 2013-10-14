@@ -293,11 +293,11 @@ define([
 	// Feature detection
 	jemul8.support = (function () {
 		// ArrayBuffers are used for efficient memory storage
-		var typedArrays = ("ArrayBuffer" in self) && ("Uint8Array" in self);
+		var typedArrays = ("ArrayBuffer" in util.global) && ("Uint8Array" in util.global);
 
 		return {
 			typedArrays: typedArrays
-			, typedDataView: typedArrays && ("DataView" in self)
+			, typedDataView: typedArrays && ("DataView" in util.global)
 		};
 	})();
 

@@ -352,11 +352,11 @@ define([
     // Feature detection
     util.support = (function () {
         // ArrayBuffers are used for efficient memory storage
-        var typedArrays = ("ArrayBuffer" in self) && ("Uint8Array" in self);
+        var typedArrays = ("ArrayBuffer" in util.global) && ("Uint8Array" in util.global);
 
         return {
             typedArrays: typedArrays
-            , typedDataView: typedArrays && ("DataView" in self)
+            , typedDataView: typedArrays && ("DataView" in util.global)
         };
     })();
 
@@ -417,15 +417,15 @@ define([
     // Check, because IE10 preview errors on .bind()
     var useBind = false;
     try {
-        useBind = self.console && console.assert
+        useBind = util.global.console && console.assert
         && console.assert.bind && console.assert.bind(console);
     } catch (e) {}
 
-    if (useBind) {
+    if (0 && useBind) {
         util.extend(util, {
             assert: console.assert.bind(console)
             , info: console.info.bind(console)
-            , debug: console.debug.bind(console)
+            , debug: (console.debug || console.info).bind(console)
             , warning: console.warn.bind(console)
             , problem: console.error.bind(console)
             , panic: function (msg) {

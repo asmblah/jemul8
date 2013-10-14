@@ -27,7 +27,7 @@ define([
 	// CPU Sub-register (eg AX, AL, AH) class constructor
 	function SubRegister( name, size, regMaster
 						, mask, bytesInLeft ) {
-		util.assert(this != self, "SubRegister constructor ::"
+		util.assert(this != util.global, "SubRegister constructor ::"
 			+ " not called as constructor.");
 		util.assert(regMaster && (regMaster instanceof Register
 			|| regMaster instanceof LazyFlagRegister)
