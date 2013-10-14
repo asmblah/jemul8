@@ -7,73 +7,41 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
+// FIXME!! (In Modular)
+require.config({
+    paths: {
+        "Modular": "/../../modular"
+    }
+});
+
 /*global define */
 define({
-    cache: false,
-    paths: {
-        "bdd": ".",
-        "js": "/../../js",
-        "plugins": "/../../js/plugins",
-        "vendor": "/../../vendor"
-    }
+    cache: false
 }, [
-    "vendor/chai/chai",
     "modular",
-    "module",
     "require",
-    "vendor/sinon/sinon",
-    "vendor/sinon-chai/lib/sinon-chai",
-    "vendor/mocha/mocha"
+
+    // Mocha has to be handled specially as it is not an AMD module
+    "mocha/mocha"
 ], function (
-    chai,
     modular,
-    module,
-    require,
-    sinon,
-    sinonChai
+    require
 ) {
     "use strict";
 
-    var global = modular.util.global,
-        mocha = global.mocha;
+    var global = modular.util.global;
 
-    chai.use(sinonChai);
-
-    mocha.setup({
-        "ui": "bdd",
-        "reporter": mocha.reporters.HTML,
-        "globals": ["setTimeout", "setInterval", "clearTimeout", "clearInterval"]
+    define("Mocha", function () {
+        return global.Mocha;
     });
 
-    global.expect = chai.expect;
-    global.sinon = sinon;
-
-    describe.setSlowTimeout = (function (BaseReporter) {
-        return function (slowTimeout) {
-            var oldSlow = BaseReporter.slow;
-
-            BaseReporter.slow = slowTimeout;
-
-            describe.restoreSlowTimeout = function () {
-                BaseReporter.slow = oldSlow;
-            };
-        };
-    }(mocha.reporters.Base));
-
     require([
-        "bdd/acceptance/real-mode/CPU/Instruction/pop-Test",
-        "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
-        "bdd/acceptance/real-mode/IODevice/CMOS-Test",
-        "bdd/acceptance/real-mode/IODevice/PIT-Test",
-        "bdd/acceptance/real-mode/NOP-Test",
-        "bdd/acceptance/real-mode/ROMBIOS-POST-Test",
-        "bdd/unit/js/core/classes/registerTest",
-        "bdd/unit/js/plugins/std.keyboardTest",
-        "bdd/unit/js/EmulatorTest",
-        "bdd/unit/js/Jemul8Test",
-        "bdd/unit/js/RegisterTest",
-        "bdd/unit/js/utilTest"
-    ], function () {
-        mocha.run();
+        "./runner"
+    ], function (
+        runner
+    ) {
+        runner({
+            reporter: "html"
+        });
     });
 });
