@@ -1,0 +1,53 @@
+{
+    "version": "0.1.0",
+    "name": "jemul8",
+    "publishConfig": {
+        "proprietary-attribs": false
+    },
+    "description": "An object-oriented JavaScript x86 Emulator",
+    "keywords": [
+        "emulator",
+        "x86",
+        "intel",
+        "amd"
+    ],
+    "config": {
+        "publishtest": false
+    },
+    "homepage": "http://jemul8.com/",
+    "author": "Daniel Phillimore <dan@ovms.co> (http://ovms.co)",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/asmblah/jemul8"
+    },
+    "bugs": {
+        "email": "dan@ovms.co",
+        "url": "http://github.com/asmblah/jemul8/issues"
+    },
+    "main": "index",
+    "bin": "bin/jemul8",
+    "scripts": {
+        "test": "node tests/bdd/index.js",
+        "webtest": "node tests/bdd/webtest.js"
+    },
+    "dependencies": {
+        "modular-amd": "0.1.x",
+        "node-getopt": "0.2.x"
+    },
+    "devDependencies": {
+        "chai": "1.7.x",
+        "express": "3.2.x",
+        "mocha": "1.12.x",
+        "sinon-chai": "2.4.x"
+    },
+    "engines": {
+        "node": ">=0.6",
+        "npm": "1"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "https://github.com/asmblah/jemul8/raw/master/MIT-LICENSE.txt"
+        }
+    ]
+}
