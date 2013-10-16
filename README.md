@@ -55,7 +55,7 @@ define({
             "floppy": [{
                 "driveType": "FDD_350HD",
                 "diskType": "FLOPPY_1_44",
-                "path": "../../boot/" + environment.getOption("flp"),
+                "path": "boot/" + environment.getOption("flp"),
                 "loaded": true
             }]
         });
