@@ -1,7 +1,7 @@
 jemul8
 ======
 
-An object-oriented JavaScript x86 Emulator
+An object-oriented JavaScript x86 Emulator for Node.js and the browser.
 
 jemul8 takes an object-oriented approach to emulation. Primarily an educational tool, it aims to provide
 a detailed description of the internal workings of an IBM-compatible PC.
