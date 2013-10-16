@@ -11,14 +11,21 @@
 define({
     "paths": {
         "js": "./js",
-        "vendor": "./vendor"
+        "vendor": "./vendor",
+
+        // FIXME!! (In Modular)
+        "Modular": require.config().paths.Modular
     }
 }, [
-    "js/Jemul8"
+    "js/Jemul8",
+    "js/Factory/System"
 ], function (
-    Jemul8
+    Jemul8,
+    SystemFactory
 ) {
     "use strict";
 
-    return new Jemul8();
+    var systemFactory = new SystemFactory();
+
+    return new Jemul8(systemFactory);
 });
