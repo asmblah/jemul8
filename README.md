@@ -30,15 +30,15 @@ Node that you will need `nasm` available in your PATH for the tests to execute.
 
     From the project root, run `npm run-script webtest` and visit the URL provided in the output.
 
-A simple example of instantiating the emulator (AMD)
-----------------------------------------------------
+Simple example (AMD)
+--------------------
 
 ```javascript
 /*global define */
 define({
     cache: false
 }, [
-    "../../jemul8"
+    "jemul8"
 ], function (
     jemul8
 ) {
