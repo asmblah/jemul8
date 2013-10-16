@@ -20,8 +20,15 @@ Live demo
 Run the tests
 -------------
 
-To run the tests, visit /tests/bdd/ in the browser. For example, to run the tests from the demo environment on jemul8.com,
-visit http://jemul8.com/tests/bdd/ to run the Mocha tests (warning: this is slow - it is recommended to run the tests locally.)
+Node that you will need NASM available in your PATH for the tests to execute.
+
+- Under Node.js
+
+    From the project root, simply run "npm test".
+
+- In the browser
+
+    From the project root, run "npm run-script webtest" and visit the URL provided in the output.
 
 A simple example of instantiating the emulator:
 -----------------------------------------------
