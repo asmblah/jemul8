@@ -9,24 +9,33 @@
 
 /*global define */
 define([
+    "js/plugins",
+    "require",
     "js/util",
     "js/EventEmitter",
     "js/Exception",
-    "js/Pin"
+    "js/Pin",
+    "js/Promise",
+    "js/Timer"
 ], function (
+    plugins,
+    require,
     util,
     EventEmitter,
     Exception,
-    Pin
+    Pin,
+    Promise,
+    Timer
 ) {
     "use strict";
 
     var EQUIPMENT_CHANGE = "equipment change",
         hasOwn = {}.hasOwnProperty;
 
-    function System(io, memory) {
+    function System(clock, io, memory) {
         EventEmitter.call(this);
 
+        this.clock = clock;
         this.floppyDriveType = 0;
 
         // (H)old (R)e(Q)uest
@@ -34,11 +43,15 @@ define([
 
         this.cpu = null;
         this.dma = null;
+        this.inited = false;
         this.io = io;
         this.irqHandlers = {};
         this.memory = memory;
         this.numberOfSupportedFloppies = 0;
         this.pic = null;
+        this.pluginsToLoad = [];
+        this.running = false;
+        this.timers = [];
     }
 
     util.inherit(System).from(EventEmitter);
@@ -46,6 +59,15 @@ define([
     util.extend(System.prototype, {
         acknowledgeInterrupt: function () {
             return this.pic.acknowledgeInterrupt();
+        },
+
+        createTimer: function () {
+            var system = this,
+                timer = new Timer(system);
+
+            system.timers.push(timer);
+
+            return timer;
         },
 
         debug: function (message) {
@@ -56,16 +78,158 @@ define([
             return 0xFFFFFFFF;
         },
 
+        getClock: function () {
+            return this.clock;
+        },
+
+        getCPURegisters: function () {
+            return this.cpu.getRegisters();
+        },
+
         getFloppyDriveType: function () {
             return this.floppyDriveType;
+        },
+
+        getMicrosecondsNow: function () {
+            return this.clock.getMicrosecondsNow();
         },
 
         getNumberOfSupportedFloppies: function () {
             return this.numberOfSupportedFloppies;
         },
 
+        getTicksNow: function () {
+            return this.clock.getTicksNow();
+        },
+
+        handleAsynchronousEvents: function () {
+            var system = this,
+                ticksNow = system.getTicksNow();
+
+            util.each(system.timers, function (timer) {
+                timer.tick(ticksNow);
+            });
+
+            system.emit("async events");
+        },
+
+        init: function () {
+            var system = this,
+                promise = new Promise();
+
+            function loadPlugins() {
+                var loadsRemaining = 0,
+                    promise = new Promise();
+
+                function checkLoaded() {
+                    if (loadsRemaining === 0) {
+                        promise.resolve();
+                    }
+                }
+
+                function loadPlugin(plugin) {
+                    util.each(plugin.setupIODevices(), function (fn, ioDeviceIdentifier) {
+                        var ioDevice = system.io.getRegisteredDevice(ioDeviceIdentifier),
+                            result;
+
+                        if (!ioDevice) {
+                            throw new Exception("System.init() :: No I/O device registered with identifier '" + ioDeviceIdentifier + "'");
+                        }
+
+                        markLoading();
+
+                        result = fn(ioDevice.getPluginData());
+
+                        if (result instanceof Promise) {
+                            result.done(function () {
+                                markLoaded();
+                            }).fail(function (exception) {
+                                promise.reject(exception);
+                            });
+                        } else {
+                            markLoaded();
+                        }
+                    });
+
+                    markLoaded();
+                }
+
+                function markLoading() {
+                    loadsRemaining++;
+                }
+
+                function markLoaded() {
+                    loadsRemaining--;
+
+                    checkLoaded();
+                }
+
+                util.each(system.pluginsToLoad, function (identifier) {
+                    markLoading();
+
+                    if (util.isString(identifier)) {
+                        require(["./Plugin/" + plugins[identifier]], function (Plugin) {
+                            var plugin = new Plugin();
+
+                            loadPlugin(plugin);
+                        });
+                    } else {
+                        loadPlugin(identifier);
+                    }
+                });
+
+                checkLoaded();
+
+                return promise;
+            }
+
+            loadPlugins().done(function () {
+                system.cpu.on("interrupt", function (vector) {
+                    system.emit("interrupt", vector);
+                });
+
+                system.io.on("io read", function (port, length) {
+                    system.emit("io read", port, length);
+                });
+
+                system.io.on("io write", function (port, value, length) {
+                    system.emit("io write", port, value, length);
+                });
+
+                system.cpu.init().done(function () {
+                    system.io.init().done(function () {
+                        system.cpu.reset();
+                        system.io.reset();
+
+                        system.inited = true;
+                        promise.resolve();
+                    }).fail(function (exception) {
+                        promise.reject(exception);
+                    });
+                }).fail(function (exception) {
+                    promise.reject(exception);
+                });
+            }).fail(function (exception) {
+                promise.reject(exception);
+            });
+
+            return promise;
+        },
+
         isHRQHigh: function () {
             return this.hrq.isHigh();
+        },
+
+        loadPlugin: function (identifier) {
+            var system = this;
+
+            if (util.isString(identifier)) {
+                if (!hasOwn.call(plugins, identifier)) {
+                    throw new Exception("Emulator.loadPlugin() :: Unrecognised standard plugin identifier '" + identifier + "'");
+                }
+            }
+
+            system.pluginsToLoad.push(identifier);
         },
 
         loadROM: function (buffer, address, type) {
@@ -98,6 +262,16 @@ define([
 
             system.on(EQUIPMENT_CHANGE, callback);
             callback.call(system);
+
+            return system;
+        },
+
+        pause: function () {
+            var system = this;
+
+            system.running = false;
+            system.cpu.halt();
+            system.emit("pause");
 
             return system;
         },
@@ -142,6 +316,18 @@ define([
             system.cpu.reset();
 
             system.io.reset();
+        },
+
+        run: function () {
+            var system = this;
+
+            if (!system.inited) {
+                throw new Exception("System.run() :: Not yet initialized");
+            }
+
+            system.running = true;
+
+            return system.cpu.run();
         },
 
         setCPU: function (cpu) {

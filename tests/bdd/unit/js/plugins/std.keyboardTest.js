@@ -13,11 +13,11 @@
 
 /*global afterEach, beforeEach, define, describe, expect, it, sinon */
 define([
-    "modular",
+    "module",
     "require",
     "js/util"
 ], function (
-    modular,
+    module,
     require,
     rootUtil
 ) {
@@ -83,10 +83,10 @@ define([
 
                 define("../../js/core/util", util);
 
-                mockModular.createRequirer()(rootUtil.extend({}, modular.configure(), {
+                mockModular.createRequirer()(rootUtil.extend({}, module.config, {
                     cache: false
                 }), [
-                    "../../js/plugins/std.keyboard"
+                    "js/plugins/std.keyboard"
                 ], function (
                     keyboardPlugin
                 ) {

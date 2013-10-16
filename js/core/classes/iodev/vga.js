@@ -14,11 +14,13 @@
 /*global define, require */
 
 define([
+	"../../../util",
 	"../../util",
 	"../iodev",
 	"../http",
 	"../memory/buffer"
 ], function (
+	newUtil,
 	util,
 	IODevice,
 	HTTP,
@@ -220,24 +222,19 @@ define([
 
 		if (romPath) {
 			// Download & store VGABIOS firmware image
-			HTTP.get(
-				romPath
-				//"docs/vgabios-0.6c/VGABIOS-lgpl-latest.debug.bin")
-				//"docs/bochs-20100605/bios/VGABIOS-elpin-2.40")
-				, function (path, buffer) {
-					machine.mem.loadROM(buffer, 0xC0000, 1);
-					done();
-				}, function (path) {
-					fail();
-				}
-			);
+			newUtil.get(romPath).done(function (buffer) {
+				machine.mem.loadROM(buffer, 0xC0000, 1);
+				done();
+			}).fail(function () {
+				fail();
+			});
 		} else {
 			done();
 		}
 
 		// VGA output
 		//	TODO: Separate DOM access out into plugins for eg. jQuery
-		this.screenVGA = document.getElementById("screenVGA");
+		this.screenVGA = util.global.document && document.getElementById("screenVGA");
 		if (this.screenVGA && this.screenVGA.getContext) {
 			this.ctx_screenVGA = this.screenVGA.getContext("2d");
 			this.imageData = this.ctx_screenVGA.createImageData(

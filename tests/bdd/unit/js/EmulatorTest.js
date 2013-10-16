@@ -10,52 +10,41 @@
 /*global define */
 define([
     "js/util",
-    "js/CPU",
     "js/Emulator",
-    "js/IO",
-    "js/Memory",
     "js/Promise",
     "js/System"
 ], function (
     util,
-    CPU,
     Emulator,
-    IO,
-    Memory,
     Promise,
     System
 ) {
     "use strict";
 
     describe("Emulator", function () {
-        var cpu,
-            emulator,
-            io,
-            memory,
+        var emulator,
             system;
 
         beforeEach(function () {
-            cpu = new CPU();
-            io = new IO();
-            memory = new Memory();
-            system = new System();
+            system = sinon.createStubInstance(System);
 
-            emulator = new Emulator(system, io, memory, cpu);
+            emulator = new Emulator(system);
         });
 
-        describe("getCPURegisters()", function () {
-            it("should return the CPU's registers", function () {
-                var registers = {};
+        describe("loadPlugin()", function () {
+            it("should call system.loadPlugin() passing the correct arguments", function () {
+                emulator.loadPlugin("keyboard");
 
-                sinon.stub(cpu, "getRegisters").returns(registers);
-
-                expect(emulator.getCPURegisters()).to.equal(registers);
+                expect(system.loadPlugin).to.have.been.calledWith("keyboard");
             });
         });
 
         describe("run()", function () {
-            it("should return a Promise", function () {
-                expect(cpu.run()).to.be.an.instanceOf(Promise);
+            it("should return the result from system.run()", function () {
+                var result = {};
+                system.run.returns(result);
+
+                expect(emulator.run()).to.equal(result);
             });
         });
 

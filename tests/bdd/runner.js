@@ -13,6 +13,7 @@ define({
         "bdd": ".",
         "js": "/../../js",
         "languages": "/../../languages",
+        "tools": "./tools",
 
         // FIXME!! (In Modular)
         "Modular": require.config().paths.Modular,
@@ -87,6 +88,9 @@ define({
         };
 
         require([
+            "bdd/acceptance/real-mode/IODevice/PIT-Test",
+            "bdd/acceptance/real-mode/NOP-Test",
+            "bdd/acceptance/real-mode/ROMBIOS-POST-Test",
             "bdd/unit/js/core/classes/registerTest",
             "bdd/unit/js/IODevice/CMOSTest",
             "bdd/unit/js/plugins/std.keyboardTest",

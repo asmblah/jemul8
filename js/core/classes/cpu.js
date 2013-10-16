@@ -785,13 +785,15 @@ define([
             ++yps;
             ips += insns;
             if (ticksNow > (ticksLastUpdate + 1000) || this.isHalted) {
-                (document.getElementById("performance") || {}).textContent =
-                    "insns/sec: " + ips
-                    + ", yields/sec: " + yps
-                    + " :: " + (this.isHalted ? "HALTED" : "RUNNING");
+                if (global.document) {
+                    (document.getElementById("performance") || {}).textContent =
+                        "insns/sec: " + ips
+                        + ", yields/sec: " + yps
+                        + " :: " + (this.isHalted ? "HALTED" : "RUNNING");
 
-                ips = yps = 0;
-                ticksLastUpdate = ticksNow;
+                    ips = yps = 0;
+                    ticksLastUpdate = ticksNow;
+                }
             }
 
             /** End of CPU loop: yield to host environment/the browser,

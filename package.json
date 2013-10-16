@@ -38,7 +38,8 @@
         "chai": "1.7.x",
         "express": "3.2.x",
         "mocha": "1.12.x",
-        "sinon-chai": "2.4.x"
+        "sinon-chai": "2.4.x",
+        "tmp": "0.0.21"
     },
     "engines": {
         "node": ">=0.6",

@@ -15,20 +15,38 @@ define([
 ) {
     "use strict";
 
-    var global = util.global,
-        getMicrosecondsNow = global.performance ? function () {
+    var TICKS_PER_MICROSECOND = 1193.181,
+        global = util.global,
+        getMicrosecondsNow,
+        getTicksNow;
+
+    if (global.performance) {
+        getMicrosecondsNow = function () {
             /*jshint bitwise: false */
-            return (global.performance.now() * 1000) >> 0;
-        } : function () {
-            return Date.now() * 1000;
+            return (global.performance.now() * 1000) >>> 0;
         };
+        getTicksNow = function () {
+            /*jshint bitwise: false */
+            return (global.performance.now() * TICKS_PER_MICROSECOND) >>> 0;
+        };
+    } else {
+        getMicrosecondsNow = function () {
+            /*jshint bitwise: false */
+            return (Date.now() * 1000) >>> 0;
+        };
+        getTicksNow = function () {
+            /*jshint bitwise: false */
+            return (Date.now() * TICKS_PER_MICROSECOND) >>> 0;
+        };
+    }
 
     function Clock() {
 
     }
 
     util.extend(Clock.prototype, {
-        getMicrosecondsNow: getMicrosecondsNow
+        getMicrosecondsNow: getMicrosecondsNow,
+        getTicksNow: getTicksNow
     });
 
     return Clock;

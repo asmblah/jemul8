@@ -19,9 +19,11 @@
     modular.define("chai/chai", function () {
         return require("chai");
     });
-    modular.define("fs", {
-        basePath: __dirname,
-        fs: require("fs")
+    modular.define("child_process", function () {
+        return require("child_process");
+    });
+    modular.define("fs", function () {
+        return require("fs");
     });
     modular.define("Mocha", function () {
         return require("mocha");
@@ -31,6 +33,9 @@
     });
     modular.define("sinon-chai/sinon-chai", function () {
         return require("sinon-chai");
+    });
+    modular.define("tmp", function () {
+        return require("tmp");
     });
 
     // FIXME!! (In Modular)

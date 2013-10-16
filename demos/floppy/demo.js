@@ -20,10 +20,10 @@ define({
     var environment = jemul8.getEnvironment(),
         emulator = jemul8.createEmulator({
             "cmos": {
-                "bios": "../../docs/bochs-20100605/bios/BIOS-bochs-legacy"
+                "bios": "docs/bochs-20100605/bios/BIOS-bochs-legacy"
             },
             "vga": {
-                "bios": "../../docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+                "bios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
             },
             "floppy": [{
                 "driveType": "FDD_350HD",

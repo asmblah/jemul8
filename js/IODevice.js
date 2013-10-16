@@ -10,20 +10,26 @@
 /*global define */
 define([
     "js/util",
+    "js/EventEmitter",
     "js/Exception"
 ], function (
     util,
+    EventEmitter,
     Exception
 ) {
     "use strict";
 
     function IODevice(identifier, system, io, memory, options) {
+        EventEmitter.call(this);
+
         this.identifier = identifier;
         this.io = io;
         this.memory = memory;
         this.options = options || {};
         this.system = system;
     }
+
+    util.inherit(IODevice).from(EventEmitter);
 
     util.extend(IODevice.prototype, {
         getIdentifier: function () {

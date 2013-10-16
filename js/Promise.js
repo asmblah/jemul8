@@ -40,13 +40,13 @@ define([
             if (promise.mode === PENDING) {
                 promise.mode = REJECTED;
                 promise.value = exception;
-            }
 
-            util.each(promise.thens, function (callbacks) {
-                if (callbacks.onReject) {
-                    callbacks.onReject(exception);
-                }
-            });
+                util.each(promise.thens, function (callbacks) {
+                    if (callbacks.onReject) {
+                        callbacks.onReject(exception);
+                    }
+                });
+            }
 
             return promise;
         },
@@ -57,13 +57,14 @@ define([
             if (promise.mode === PENDING) {
                 promise.mode = RESOLVED;
                 promise.value = result;
-            }
 
-            util.each(promise.thens, function (callbacks) {
-                if (callbacks.onResolve) {
-                    callbacks.onResolve(result);
-                }
-            });
+                util.each(promise.thens, function (callbacks) {
+                    if (callbacks.onResolve) {
+                        callbacks.onResolve(result);
+                    }
+                });
+
+            }
 
             return promise;
         },

@@ -119,6 +119,18 @@ define([
                     halt.apply(this, arguments);
                 };
             }(legacyCPU.halt));
+
+            (function () {
+                var originalHandleAsynchronousEvents = legacyCPU.handleAsynchronousEvents;
+
+                system.on("async events", function () {
+                    originalHandleAsynchronousEvents.call(legacyCPU);
+                });
+
+                legacyCPU.handleAsynchronousEvents =  function () {
+                    system.handleAsynchronousEvents();
+                };
+            }());
         }(this, this.legacyCPU));
     }
 

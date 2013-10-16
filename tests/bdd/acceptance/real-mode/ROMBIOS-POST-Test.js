@@ -10,26 +10,30 @@
 /*global define */
 define([
     "js/util",
-    "js/Jemul8"
+    "js/Emulator",
+    "js/Factory/System"
 ], function (
     util,
-    Jemul8
+    Emulator,
+    SystemFactory
 ) {
     "use strict";
 
     describe("ROMBIOS POST acceptance tests", function () {
         describe("when the boot uses the default setup, handled by emulator.init()", function () {
-            var emulator;
+            var emulator,
+                system;
 
             beforeEach(function (done) {
-                emulator = new Jemul8().createEmulator({
+                system = new SystemFactory().create({
                     "cmos": {
-                        "bios": "../../docs/bochs-20100605/bios/BIOS-bochs-legacy"
+                        "bios": "docs/bochs-20100605/bios/BIOS-bochs-legacy"
                     },
                     "vga": {
-                        "bios": "../../docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+                        "bios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
                     }
                 });
+                emulator = new Emulator(system);
 
                 emulator.init().done(function () {
                     done();
@@ -42,7 +46,7 @@ define([
                 this.timeout(10000);
 
                 // Run the emulator, wait for INT 0x19 "Boot Load Service Entry Point"
-                emulator.on("interrupt", [0x19], function () {
+                system.on("interrupt", [0x19], function () {
                     emulator.pause();
                     describe.restoreSlowTimeout();
                     done();

@@ -10,21 +10,68 @@
 /*global define, DataView, Uint8Array */
 define([
     "modular",
+    "module",
     "require"
 ], function (
     modular,
+    module,
     require
 ) {
     "use strict";
 
-    var create = Object.create || function (from) {
-        function F() {}
-        F.prototype = from;
-        return new F();
-    },
+    // Microseconds (us) === 1000 * 1000 per second,
+    //  but clock signal is 1193181 (because of oscillator/crystal).
+    //  Slight difference between the two, but enough to warrant additional
+    //  calculations for accuracy.
+
+    var USEC_PER_SECOND = 1000000,  // Of course: 1000ms * 1000 = us, but...
+        TICKS_PER_SECOND = 1193181, // ... because of 1.193181MHz clock.
+        create = Object.create || function (from) {
+            function F() {}
+            F.prototype = from;
+            return new F();
+        },
+        get,
         util = create(modular.util),
         console = util.global.console,
         Promise;
+
+    get = util.global.XMLHttpRequest ? function (uri) {
+        var promise = new Promise(),
+            xhr = new util.global.XMLHttpRequest();
+
+        xhr.open("GET", "/" + uri + "?__r=" + Math.random(), true);
+        xhr.responseType = "arraybuffer";
+        xhr.onreadystatechange = function () {
+            var buffer;
+
+            if (this.readyState === 4) {
+                if (this.status === 200) {
+                    buffer = new DataView(this.response);
+
+                    promise.resolve(buffer, uri);
+                } else {
+                    promise.reject(uri);
+                }
+            }
+        };
+        xhr.send("");
+
+        return promise;
+    } : function (uri) {
+        var promise = new Promise();
+
+        require("fs").readFile("./" + uri, function (error, data) {
+            if (error) {
+                promise.reject(new Error("util.get() :: Failed to read file '" + uri + "' - " + error.toString()));
+                return;
+            }
+
+            promise.resolve(new Uint8Array(data), uri);
+        });
+
+        return promise;
+    };
 
     util.extend(util, {
         copyBuffer: function (options) {
@@ -66,34 +113,21 @@ define([
             }
         },
 
-        get: function (uri) {
-            var promise = new Promise(),
-                xhr = new util.global.XMLHttpRequest();
+        get: get,
 
-            xhr.open("GET", uri + "?__r=" + Math.random(), true);
-            xhr.responseType = "arraybuffer";
-            xhr.onreadystatechange = function () {
-                var buffer;
+        heredoc: function (fn) {
+            var match = function () {}.toString.call(fn).match(/\/\*<<<(\w+)[\r\n](?:([\s\S]*)[\r\n])?\1\s*\*\//);
 
-                if (this.readyState === 4) {
-                    if (this.status === 200) {
-                        buffer = new DataView(this.response);
+            if (!match) {
+                throw new Error("util.heredoc() :: Function does not contain a heredoc");
+            }
 
-                        promise.resolve(buffer, uri);
-                    } else {
-                        promise.reject(uri);
-                    }
-                }
-            };
-            xhr.send("");
-
-            return promise;
+            return match[2] || "";
         },
 
-        hexify: function (number, byteSize) {
-            /*jshint bitwise: true */
+        hexify: function (number) {
+            /*jshint bitwise: false */
             var val = (number >>> 0).toString(16).toUpperCase(),
-                sizeHexChars = byteSize * 2,
                 textLeadingZeroes = new Array(8 - val.length + 1).join("0");
 
             return "0x" + textLeadingZeroes + val;
@@ -124,6 +158,14 @@ define([
             /*jslint bitwise: true */
 
             return (number & mask) >>> 0;
+        },
+
+        ticksToMicroseconds: function (ticks) {
+            return Math.floor((ticks * USEC_PER_SECOND) / TICKS_PER_SECOND);
+        },
+
+        microsecondsToTicks: function (usec) {
+            return Math.floor((usec * TICKS_PER_SECOND) / USEC_PER_SECOND);
         }
     });
 
@@ -138,7 +180,7 @@ define([
         util.extend(util, {
             assert: console.assert.bind(console),
             info: console.info.bind(console),
-            debug: console.debug.bind(console),
+            debug: (console.debug || console.info).bind(console),
             warning: console.warn.bind(console),
             problem: console.error.bind(console),
             panic: function (msg) {

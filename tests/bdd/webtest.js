@@ -7,11 +7,13 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global console, __dirname, require */
+/*global Buffer, console, __dirname, require */
 (function () {
     "use strict";
 
-    var express = require("express"),
+    var childProcess = require("child_process"),
+        express = require("express"),
+        fs = require("fs"),
         http = require("http"),
         app = express(),
         bddPath = __dirname,
@@ -20,6 +22,7 @@
         nodeModulesPath = rootPath + "/node_modules",
         port = 6700,
         server = http.createServer(app),
+        tmp = require("tmp"),
         util = modular.util,
         vendorPath = rootPath + "/vendor";
 
@@ -27,19 +30,66 @@
         util.each(map, function (realPath, virtualPath) {
             if (/\/$/.test(realPath)) {
                 app.use(virtualPath, express.static(realPath));
-            } else {
+            } else if (typeof realPath === "string") {
                 app.get(virtualPath, function (request, response) {
                     response.sendfile(realPath);
                 });
+            } else if (typeof realPath === "object") {
+                app[realPath.method.toLowerCase()](virtualPath, function (request, response) {
+                    realPath.handler(request, response);
+                });
+            } else {
+                throw new Error("Value is not supported");
             }
         });
     }
 
+    (function () {
+        var define = modular.createDefiner();
+
+        define("child_process", childProcess);
+        define("fs", fs);
+        define("tmp", tmp);
+    }());
+
     server.listen(port);
+
+    // Enable parsing POST variables
+    app.use(express.bodyParser());
 
     mapPaths({
         "/acceptance": bddPath + "/acceptance/",
+        "/assembler": {
+            method: "POST",
+            handler: function (request, response) {
+                var require = modular.createRequirer();
+
+                require({
+                    baseUrl: __dirname,
+                    paths: {
+                        "js": "../../js"
+                    }
+                }, [
+                    "tools/Assembler/NASM"
+                ], function (
+                    NASMAssembler
+                ) {
+                    var assembler = new NASMAssembler(),
+                        assembly = request.body.assembly;
+
+                    assembler.assemble(assembly).done(function (data) {
+                        response.status(200);
+                        response.end(new Buffer(data));
+                    }).fail(function (error) {
+                        response.status(500);
+                        response.set("X-Assembly-Errors", error.toString());
+                        response.end();
+                    });
+                });
+            }
+        },
         "/chai": nodeModulesPath + "/chai/",
+        "/docs": rootPath + "/docs/",
         "/index.html": bddPath + "/index.html",
         "/integration": bddPath + "/integration/",
         "/js": rootPath + "/js/",
@@ -50,6 +100,7 @@
         "/runner.js": bddPath + "/runner.js",
         "/sinon": vendorPath + "/sinon/",
         "/sinon-chai": nodeModulesPath + "/sinon-chai/lib/",
+        "/tools": bddPath + "/tools/",
         "/unit": bddPath + "/unit/"
     });
 

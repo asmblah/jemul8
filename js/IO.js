@@ -27,7 +27,7 @@ define([
         this.devices = [];
         this.nullDevice = {
             ioRead: function (port, length) {
-                util.problem("Read from unregistered port 0x" + port.toString(16).toUpperCase() + " (length " + length + ")");
+                //util.problem("Read from unregistered port 0x" + port.toString(16).toUpperCase() + " (length " + length + ")");
 
                 // Return max value
                 if (length === 1) {
@@ -44,7 +44,7 @@ define([
             ioWrite: function (port, value, length) {
                 // Do nothing
 
-                util.problem("Write to unregistered port 0x" + port.toString(16).toUpperCase() + ": " + util.hexify(value) + " (length " + length + ")");
+                //util.problem("Write to unregistered port 0x" + port.toString(16).toUpperCase() + ": " + util.hexify(value) + " (length " + length + ")");
             }
         };
         this.ports = [];

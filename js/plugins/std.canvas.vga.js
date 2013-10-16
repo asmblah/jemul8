@@ -841,7 +841,10 @@ define([
         this.ctx_screenVGA.putImageData(imageData, 0, 0);
 
         blitted = Date.now();
-        document.title = (end - start) + "/" + (blitted - end);
+
+        if (document) {
+            document.title = (end - start) + "/" + (blitted - end);
+        }
     };
     function dimensionUpdate(
         x

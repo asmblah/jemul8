@@ -25,7 +25,12 @@ define([
 
 	var keyboardPlugin = {
 		applyTo: function (emu) {
-			var cancelKeypress = false;
+            var cancelKeypress = false;
+
+            if (!util.global.document) {
+                return;
+            }
+
 			util.global.document.addEventListener("keydown", function (evt) {
 				var key = toKeyIndex(evt.keyCode);
 

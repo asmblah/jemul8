@@ -11,11 +11,13 @@
 define([
     "js/util",
     "js/Emulator",
-    "js/Jemul8"
+    "js/Jemul8",
+    "js/Factory/System"
 ], function (
     util,
     Emulator,
-    Jemul8
+    Jemul8,
+    SystemFactory
 ) {
     "use strict";
 
@@ -23,7 +25,7 @@ define([
         var jemul8;
 
         beforeEach(function () {
-            jemul8 = new Jemul8();
+            jemul8 = new Jemul8(new SystemFactory());
         });
 
         describe("createEmulator()", function () {

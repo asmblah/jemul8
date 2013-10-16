@@ -10,21 +10,25 @@
 /*global define */
 define([
     "js/util",
-    "js/Jemul8"
+    "js/Emulator",
+    "js/Factory/System"
 ], function (
     util,
-    Jemul8
+    Emulator,
+    SystemFactory
 ) {
     "use strict";
 
     describe("NOP acceptance tests", function () {
         describe("when the program is NOP, NOP, NOP, HLT", function () {
             var emulator,
-                registers;
+                registers,
+                system;
 
             beforeEach(function (done) {
-                emulator = new Jemul8().createEmulator();
-                registers = emulator.getCPURegisters();
+                system = new SystemFactory().create();
+                emulator = new Emulator(system);
+                registers = system.getCPURegisters();
 
                 emulator.init().done(function () {
                     // Write machine code for NOP, NOP, NOP, HLT to memory @ 0x0
