@@ -30,25 +30,41 @@ Node that you will need `nasm` available in your PATH for the tests to execute.
 
     From the project root, run `npm run-script webtest` and visit the URL provided in the output.
 
-A simple example of instantiating the emulator:
------------------------------------------------
+A simple example of instantiating the emulator (AMD)
+----------------------------------------------------
 
 ```javascript
-var emu = new jemul8( {
-    "floppy0.driveType":
-        "FDD_350HD"
-        //"FDD_525HD"
-    , "floppy0.diskType":
-        "FLOPPY_1_44"
-        //"FLOPPY_160K"
-    , "floppy0.path":
-        "boot/mikeos/mikeos-4.3/disk_images/mikeos.flp"
-    , "floppy0.status": true
-} );
+/*global define */
+define({
+    cache: false
+}, [
+    "../../jemul8"
+], function (
+    jemul8
+) {
+    "use strict";
 
-emu.init(function () {
-    emu.run();
-}, function () {
-    // Load failed
+    var environment = jemul8.getEnvironment(),
+        emulator = jemul8.createEmulator({
+            "cmos": {
+                "bios": "docs/bochs-20100605/bios/BIOS-bochs-legacy"
+            },
+            "vga": {
+                "bios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+            },
+            "floppy": [{
+                "driveType": "FDD_350HD",
+                "diskType": "FLOPPY_1_44",
+                "path": "../../boot/" + environment.getOption("flp"),
+                "loaded": true
+            }]
+        });
+
+    emulator.loadPlugin("canvas.vga.renderer");
+    emulator.loadPlugin("keyboard.input");
+
+    emulator.init().done(function () {
+        emulator.run();
+    });
 });
 ```
