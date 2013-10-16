@@ -20,15 +20,15 @@ Live demo
 Run the tests
 -------------
 
-Node that you will need NASM available in your PATH for the tests to execute.
+Node that you will need `nasm` available in your PATH for the tests to execute.
 
 - Under Node.js
 
-    From the project root, simply run "npm test".
+    From the project root, simply run `npm test`.
 
 - In the browser
 
-    From the project root, run "npm run-script webtest" and visit the URL provided in the output.
+    From the project root, run `npm run-script webtest` and visit the URL provided in the output.
 
 A simple example of instantiating the emulator:
 -----------------------------------------------
