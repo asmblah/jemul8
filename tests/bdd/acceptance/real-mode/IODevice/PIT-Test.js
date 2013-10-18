@@ -72,10 +72,11 @@ define([
             });
         });
 
-        describe("when using mode 3 (square wave generator)", function () {
-            describe("when counter 0 is enabled with a count of 10 ticks", function () {
-                beforeEach(function (done) {
-                    var assembly = util.heredoc(function (/*<<<EOS
+        describe("when counter 0 is enabled", function () {
+            describe("when using mode 3 (square wave generator)", function () {
+                describe("with a count of 10 ticks", function () {
+                    beforeEach(function (done) {
+                        var assembly = util.heredoc(function (/*<<<EOS
 ; Control Word first
 ; - Binary counting, Mode 3, Read or Load LSB first then MSB, Channel 0 (for IRQ 0)
 mov al, 110110b
@@ -90,60 +91,61 @@ hlt
 EOS
 */) {});
 
-                    testSystem.execute(assembly).done(function () {
-                        done();
-                    }).fail(function (exception) {
-                        done(exception);
+                        testSystem.execute(assembly).done(function () {
+                            done();
+                        }).fail(function (exception) {
+                            done(exception);
+                        });
                     });
-                });
 
-                it("should not have raised counter 0's OUT after 0 ticks", function () {
-                    // Still tick for zero, so async events are fired
-                    testSystem.tickForwardBy(0);
+                    it("should not have raised counter 0's OUT after 0 ticks", function () {
+                        // Still tick for zero, so async events are fired
+                        testSystem.tickForwardBy(0);
 
-                    expect(counter0Raises).to.equal(0);
-                });
+                        expect(counter0Raises).to.equal(0);
+                    });
 
-                it("should have raised counter 0's OUT once after 1 tick", function () {
-                    testSystem.tickForwardBy(1);
+                    it("should have raised counter 0's OUT once after 1 tick", function () {
+                        testSystem.tickForwardBy(1);
 
-                    expect(counter0Raises).to.equal(1);
-                });
+                        expect(counter0Raises).to.equal(1);
+                    });
 
-                it("should not have lowered counter 0's OUT after 4 ticks", function () {
-                    testSystem.tickForwardBy(4);
+                    it("should not have lowered counter 0's OUT after 4 ticks", function () {
+                        testSystem.tickForwardBy(4);
 
-                    expect(counter0Lowers).to.equal(0);
-                });
+                        expect(counter0Lowers).to.equal(0);
+                    });
 
-                it("should have lowered counter 0's OUT once after 5 ticks", function () {
-                    testSystem.tickForwardBy(5);
+                    it("should have lowered counter 0's OUT once after 5 ticks", function () {
+                        testSystem.tickForwardBy(5);
 
-                    expect(counter0Lowers).to.equal(1);
-                });
+                        expect(counter0Lowers).to.equal(1);
+                    });
 
-                it("should still have raised counter 0's OUT only once after 9 ticks", function () {
-                    testSystem.tickForwardBy(9);
+                    it("should still have raised counter 0's OUT only once after 9 ticks", function () {
+                        testSystem.tickForwardBy(9);
 
-                    expect(counter0Raises).to.equal(1);
-                });
+                        expect(counter0Raises).to.equal(1);
+                    });
 
-                it("should still have lowered counter 0's OUT only once after 9 ticks", function () {
-                    testSystem.tickForwardBy(9);
+                    it("should still have lowered counter 0's OUT only once after 9 ticks", function () {
+                        testSystem.tickForwardBy(9);
 
-                    expect(counter0Lowers).to.equal(1);
-                });
+                        expect(counter0Lowers).to.equal(1);
+                    });
 
-                it("should have raised counter 0's OUT twice after 10 ticks", function () {
-                    testSystem.tickForwardBy(10);
+                    it("should have raised counter 0's OUT twice after 10 ticks", function () {
+                        testSystem.tickForwardBy(10);
 
-                    expect(counter0Raises).to.equal(2);
-                });
+                        expect(counter0Raises).to.equal(2);
+                    });
 
-                it("should still have lowered counter 0's OUT only once after 10 ticks", function () {
-                    testSystem.tickForwardBy(10);
+                    it("should still have lowered counter 0's OUT only once after 10 ticks", function () {
+                        testSystem.tickForwardBy(10);
 
-                    expect(counter0Lowers).to.equal(1);
+                        expect(counter0Lowers).to.equal(1);
+                    });
                 });
             });
         });
