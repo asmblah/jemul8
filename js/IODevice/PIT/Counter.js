@@ -36,7 +36,7 @@ define([
 
         this.count = 0;
         this.enabled = false;
-        this.halfLoadedCount = null;
+        this.halfLoadedCount = false;
         this.mode = MODE_LOW;
         this.operatingMode = null;
         this.previousTicks = null;
@@ -93,16 +93,20 @@ define([
     });
 
     function onElapse(counter) {
+        var count;
+
         if (!counter.enabled) {
             return;
         }
+
+        count = counter.count === 0 ? 0xFFFF + 1 : counter.count;
 
         if (counter.operatingMode === RATE_GENERATOR) {
             if (counter.mode === MODE_LOW) {
                 counter.emit("out high");
                 counter.mode = MODE_HIGH;
 
-                counter.previousTicks += counter.count;
+                counter.previousTicks += count;
 
                 counter.timer.triggerAtTicks(counter.previousTicks);
             } else {
@@ -122,7 +126,7 @@ define([
                 counter.mode = MODE_LOW;
             }
 
-            counter.previousTicks += counter.count / 2;
+            counter.previousTicks += count / 2;
 
             counter.timer.triggerAtTicks(counter.previousTicks);
         }

@@ -10,10 +10,12 @@
 /*global define */
 define([
     "js/util",
-    "js/EventEmitter"
+    "js/EventEmitter",
+    "js/Exception"
 ], function (
     util,
-    EventEmitter
+    EventEmitter,
+    Exception
 ) {
     "use strict";
 
@@ -33,7 +35,13 @@ define([
         },
 
         enable: function () {
-            this.enabled = true;
+            var timer = this;
+
+            if (timer.triggerTicks === 0) {
+                throw new Exception("Timer.enable() :: Cannot enable a timer with a trigger ticks of zero");
+            }
+
+            timer.enabled = true;
         },
 
         getTriggerTicks: function () {
@@ -50,7 +58,7 @@ define([
                 do {
                     previousTriggerTicks = timer.triggerTicks;
                     timer.emit("elapse");
-                } while (timer.triggerTicks !== previousTriggerTicks && ticksNow >= timer.triggerTicks);
+                } while (timer.enabled && timer.triggerTicks !== previousTriggerTicks && ticksNow >= timer.triggerTicks);
             }
         },
 

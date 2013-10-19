@@ -118,5 +118,16 @@ define([
                 });
             });
         });
+
+        describe("millisecondsToTicks", function () {
+            util.each([
+                // One second
+                {milliseconds: 1000, ticks: 1193181}
+            ], function (scenario) {
+                it("should return " + scenario.ticks + " for " + scenario.milliseconds + " milliseconds", function () {
+                    expect(util.millisecondsToTicks(scenario.milliseconds)).to.equal(scenario.ticks);
+                });
+            });
+        });
     });
 });

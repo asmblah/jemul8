@@ -739,12 +739,6 @@ define([
 
                 insn.execute(this);
 
-                // FIXME
-                if (CS.get() === 0xF000) {
-                    // Skip BIOS-bochs-legacy _interactive_bootkey()
-                    if (this.IP.get() === 0xE22E) { this.IP.set(0xE231); }
-                }
-
                 /* // Resume Flag
                 if (this.RF.get()) {
                     this.RF.clear();

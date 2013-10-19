@@ -73,6 +73,58 @@ define([
         });
 
         describe("when counter 0 is enabled", function () {
+            describe("when using mode 2 (rate generator)", function () {
+                describe("with a count of 0 (65536 - equivalent to the input timer frequency, 18.2Hz)", function () {
+                    beforeEach(function (done) {
+                        var assembly = util.heredoc(function (/*<<<EOS
+; Control Word first
+; - Binary counting, Mode 2, Read or Load LSB first then MSB, Channel 0 (for IRQ 0)
+mov al, 110100b
+out 0x43, al
+
+; Then configure counter (0 ticks) - 18.2Hz
+mov ax, 0
+out 0x40, al   ; LSB
+xchg ah, al
+out 0x40, al   ; MSB
+hlt
+EOS
+*/) {});
+
+                        testSystem.execute(assembly).done(function () {
+                            done();
+                        }).fail(function (exception) {
+                            done(exception);
+                        });
+                    });
+
+                    it("should not have raised counter 0's OUT after 0 ticks", function () {
+                        // Still tick for zero, so async events are fired
+                        testSystem.tickForwardBy(0);
+
+                        expect(counter0Raises).to.equal(0);
+                    });
+
+                    it("should have raised counter 0's OUT once after 1 tick", function () {
+                        testSystem.tickForwardBy(1);
+
+                        expect(counter0Raises).to.equal(1);
+                    });
+
+                    it("should not have lowered counter 0's OUT after 54 milliseconds", function () {
+                        testSystem.tickForwardBy(util.millisecondsToTicks(54));
+
+                        expect(counter0Lowers).to.equal(0);
+                    });
+
+                    it("should have lowered counter 0's OUT once after 55 milliseconds", function () {
+                        testSystem.tickForwardBy(util.millisecondsToTicks(55));
+
+                        expect(counter0Lowers).to.equal(1);
+                    });
+                });
+            });
+
             describe("when using mode 3 (square wave generator)", function () {
                 describe("with a count of 10 ticks", function () {
                     beforeEach(function (done) {

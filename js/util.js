@@ -166,6 +166,10 @@ define([
 
         microsecondsToTicks: function (usec) {
             return Math.floor((usec * TICKS_PER_SECOND) / USEC_PER_SECOND);
+        },
+
+        millisecondsToTicks: function (milliseconds) {
+            return util.microsecondsToTicks(milliseconds * 1000);
         }
     });
 
