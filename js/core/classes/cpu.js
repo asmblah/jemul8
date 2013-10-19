@@ -1103,7 +1103,6 @@ define([
                 );
                 // An enabled interrupt will wake the CPU if halted
                 cpu.run();
-                cpu.cycle();
 
                 return true;
             }

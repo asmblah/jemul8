@@ -86,10 +86,17 @@ define([
         },
 
         tickForwardBy: function (ticks) {
-            var testSystem = this;
+            var promise = new Promise(),
+                testSystem = this,
+                system = testSystem.system;
 
             testSystem.ticksNow += ticks;
-            testSystem.system.handleAsynchronousEvents();
+            system.handleAsynchronousEvents();
+            system.run().done(function () {
+                promise.resolve();
+            });
+
+            return promise;
         }
     });
 

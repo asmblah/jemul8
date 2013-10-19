@@ -73,10 +73,25 @@ define([
         });
 
         describe("when counter 0 is disabled", function () {
+            beforeEach(function (done) {
+                var assembly = util.heredoc(function (/*<<<EOS
+hang:
+hlt
+jmp hang
+EOS
+*/) {});
+
+                testSystem.execute(assembly).done(function () {
+                    done();
+                }).fail(function (exception) {
+                    done(exception);
+                });
+            });
+
             util.each([0, 1, 10], function (afterTicks) {
                 describe("after " + afterTicks + " tick(s)", function () {
-                    beforeEach(function () {
-                        testSystem.tickForwardBy(afterTicks);
+                    beforeEach(function (done) {
+                        testSystem.tickForwardBy(afterTicks).done(done);
                     });
 
                     it("should not have raised counter 0's OUT", function () {
@@ -183,9 +198,9 @@ EOS
                     });
 
                     describe("after 0 ticks", function () {
-                        beforeEach(function () {
+                        beforeEach(function (done) {
                             // Still tick for zero, so async events are fired
-                            testSystem.tickForwardBy(0);
+                            testSystem.tickForwardBy(0).done(done);
                         });
 
                         it("should not have raised counter 0's OUT", function () {
@@ -202,8 +217,8 @@ EOS
                     });
 
                     describe("after 1 tick", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(1);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(1).done(done);
                         });
 
                         it("should have raised counter 0's OUT once", function () {
@@ -220,8 +235,8 @@ EOS
                     });
 
                     describe("after 54 milliseconds", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(util.millisecondsToTicks(54));
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(util.millisecondsToTicks(54)).done(done);
                         });
 
                         it("should not have lowered counter 0's OUT", function () {
@@ -238,8 +253,8 @@ EOS
                     });
 
                     describe("after 55 milliseconds", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(util.millisecondsToTicks(55));
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(util.millisecondsToTicks(55)).done(done);
                         });
 
                         it("should have lowered counter 0's OUT once", function () {
@@ -271,7 +286,10 @@ mov ax, 10
 out 0x40, al   ;; LSB
 xchg ah, al
 out 0x40, al   ;; MSB
+
+hang:
 hlt
+jmp hang
 EOS
 */) {});
 
@@ -283,9 +301,9 @@ EOS
                     });
 
                     describe("after 0 ticks", function () {
-                        beforeEach(function () {
+                        beforeEach(function (done) {
                             // Still tick for zero, so async events are fired
-                            testSystem.tickForwardBy(0);
+                            testSystem.tickForwardBy(0).done(done);
                         });
 
                         it("should not have raised counter 0's OUT", function () {
@@ -294,8 +312,8 @@ EOS
                     });
 
                     describe("after 1 tick", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(1);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(1).done(done);
                         });
 
                         it("should have raised counter 0's OUT once", function () {
@@ -304,8 +322,8 @@ EOS
                     });
 
                     describe("after 4 ticks", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(4);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(4).done(done);
                         });
 
                         it("should not have lowered counter 0's OUT", function () {
@@ -314,8 +332,8 @@ EOS
                     });
 
                     describe("after 5 ticks", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(5);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(5).done(done);
                         });
 
                         it("should have lowered counter 0's OUT once", function () {
@@ -324,8 +342,8 @@ EOS
                     });
 
                     describe("after 9 ticks", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(9);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(9).done(done);
                         });
 
                         it("should still have raised counter 0's OUT only once", function () {
@@ -334,8 +352,8 @@ EOS
                     });
 
                     describe("after 9 ticks", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(9);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(9).done(done);
                         });
 
                         it("should still have lowered counter 0's OUT only once", function () {
@@ -344,8 +362,8 @@ EOS
                     });
 
                     describe("after 10 ticks", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(10);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(10).done(done);
                         });
 
                         it("should have raised counter 0's OUT twice", function () {
@@ -354,8 +372,8 @@ EOS
                     });
 
                     describe("after 10 ticks", function () {
-                        beforeEach(function () {
-                            testSystem.tickForwardBy(10);
+                        beforeEach(function (done) {
+                            testSystem.tickForwardBy(10).done(done);
                         });
 
                         it("should still have lowered counter 0's OUT only once", function () {
