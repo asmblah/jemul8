@@ -15,7 +15,7 @@ define([
 ) {
     "use strict";
 
-    var TICKS_PER_MICROSECOND = 1193.181,
+    var TICKS_PER_MILLISECOND = 1193.181,
         global = util.global,
         getMicrosecondsNow,
         getTicksNow;
@@ -27,7 +27,7 @@ define([
         };
         getTicksNow = function () {
             /*jshint bitwise: false */
-            return (global.performance.now() * TICKS_PER_MICROSECOND) >>> 0;
+            return (global.performance.now() * TICKS_PER_MILLISECOND) >>> 0;
         };
     } else {
         getMicrosecondsNow = function () {
@@ -36,7 +36,7 @@ define([
         };
         getTicksNow = function () {
             /*jshint bitwise: false */
-            return (Date.now() * TICKS_PER_MICROSECOND) >>> 0;
+            return (Date.now() * TICKS_PER_MILLISECOND) >>> 0;
         };
     }
 
