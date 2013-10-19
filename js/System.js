@@ -258,7 +258,11 @@ define([
         },
 
         lowerIRQ: function (irq) {
-            this.pic.lowerIRQ(irq);
+            var system = this;
+
+            system.emit("irq low", irq);
+
+            system.pic.lowerIRQ(irq);
         },
 
         observeEquipment: function (callback) {
@@ -293,7 +297,11 @@ define([
         },
 
         raiseIRQ: function (irq) {
-            this.pic.raiseIRQ(irq);
+            var system = this;
+
+            system.emit("irq high", irq);
+
+            system.pic.raiseIRQ(irq);
         },
 
         registerIRQ: function (irq, handler) {

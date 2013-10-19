@@ -20,6 +20,8 @@ define([
     describe("PIT I/O device", function () {
         var counter0Lowers,
             counter0Raises,
+            irq0Lowers,
+            irq0Raises,
             system,
             testSystem;
 
@@ -29,6 +31,8 @@ define([
 
             counter0Lowers = 0;
             counter0Raises = 0;
+            irq0Lowers = 0;
+            irq0Raises = 0;
 
             system.loadPlugin({
                 setupIODevices: function () {
@@ -49,6 +53,18 @@ define([
                 }
             });
 
+            system.on("irq high", function (irq) {
+                if (irq === 0) {
+                    irq0Raises++;
+                }
+            });
+
+            system.on("irq low", function (irq) {
+                if (irq === 0) {
+                    irq0Lowers++;
+                }
+            });
+
             testSystem.stubClock();
 
             testSystem.init().done(function () {
@@ -58,16 +74,26 @@ define([
 
         describe("when counter 0 is disabled", function () {
             util.each([0, 1, 10], function (afterTicks) {
-                it("should not have raised counter 0's OUT after " + afterTicks + " tick(s)", function () {
-                    testSystem.tickForwardBy(afterTicks);
+                describe("after " + afterTicks + " tick(s)", function () {
+                    beforeEach(function () {
+                        testSystem.tickForwardBy(afterTicks);
+                    });
 
-                    expect(counter0Raises).to.be.zero;
-                });
+                    it("should not have raised counter 0's OUT", function () {
+                        expect(counter0Raises).to.be.zero;
+                    });
 
-                it("should not have lowered counter 0's OUT after " + afterTicks + " tick(s)", function () {
-                    testSystem.tickForwardBy(afterTicks);
+                    it("should not have lowered counter 0's OUT", function () {
+                        expect(counter0Lowers).to.be.zero;
+                    });
 
-                    expect(counter0Lowers).to.be.zero;
+                    it("should not have raised IRQ0", function () {
+                        expect(irq0Raises).to.be.zero;
+                    });
+
+                    it("should not have lowered IRQ0", function () {
+                        expect(irq0Lowers).to.be.zero;
+                    });
                 });
             });
         });
@@ -98,29 +124,61 @@ EOS
                         });
                     });
 
-                    it("should not have raised counter 0's OUT after 0 ticks", function () {
-                        // Still tick for zero, so async events are fired
-                        testSystem.tickForwardBy(0);
+                    describe("after 0 ticks", function () {
+                        beforeEach(function () {
+                            // Still tick for zero, so async events are fired
+                            testSystem.tickForwardBy(0);
+                        });
 
-                        expect(counter0Raises).to.equal(0);
+                        it("should not have raised counter 0's OUT", function () {
+                            expect(counter0Raises).to.equal(0);
+                        });
+
+                        it("should not have raised IRQ0", function () {
+                            expect(irq0Raises).to.equal(0);
+                        });
                     });
 
-                    it("should have raised counter 0's OUT once after 1 tick", function () {
-                        testSystem.tickForwardBy(1);
+                    describe("after 1 tick", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(1);
+                        });
 
-                        expect(counter0Raises).to.equal(1);
+                        it("should have raised counter 0's OUT once", function () {
+                            expect(counter0Raises).to.equal(1);
+                        });
+
+                        it("should have raised IRQ0 once", function () {
+                            expect(irq0Raises).to.equal(1);
+                        });
                     });
 
-                    it("should not have lowered counter 0's OUT after 54 milliseconds", function () {
-                        testSystem.tickForwardBy(util.millisecondsToTicks(54));
+                    describe("after 54 milliseconds", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(util.millisecondsToTicks(54));
+                        });
 
-                        expect(counter0Lowers).to.equal(0);
+                        it("should not have lowered counter 0's OUT", function () {
+                            expect(counter0Lowers).to.equal(0);
+                        });
+
+                        it("should not have lowered IRQ0", function () {
+                            expect(irq0Lowers).to.equal(0);
+                        });
                     });
 
-                    it("should have lowered counter 0's OUT once after 55 milliseconds", function () {
-                        testSystem.tickForwardBy(util.millisecondsToTicks(55));
+                    describe("after 55 milliseconds", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(util.millisecondsToTicks(55));
+                        });
 
-                        expect(counter0Lowers).to.equal(1);
+                        it("should have lowered counter 0's OUT once", function () {
+                            expect(counter0Lowers).to.equal(1);
+                        });
+
+                        it("should have lowered IRQ0 once", function () {
+                            expect(irq0Lowers).to.equal(1);
+                        });
                     });
                 });
             });
@@ -150,53 +208,117 @@ EOS
                         });
                     });
 
-                    it("should not have raised counter 0's OUT after 0 ticks", function () {
-                        // Still tick for zero, so async events are fired
-                        testSystem.tickForwardBy(0);
+                    describe("after 0 ticks", function () {
+                        beforeEach(function () {
+                            // Still tick for zero, so async events are fired
+                            testSystem.tickForwardBy(0);
+                        });
 
-                        expect(counter0Raises).to.equal(0);
+                        it("should not have raised counter 0's OUT", function () {
+                            expect(counter0Raises).to.equal(0);
+                        });
+
+                        it("should not have raised IRQ0", function () {
+                            expect(irq0Raises).to.equal(0);
+                        });
                     });
 
-                    it("should have raised counter 0's OUT once after 1 tick", function () {
-                        testSystem.tickForwardBy(1);
+                    describe("after 1 tick", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(1);
+                        });
 
-                        expect(counter0Raises).to.equal(1);
+                        it("should have raised counter 0's OUT once", function () {
+                            expect(counter0Raises).to.equal(1);
+                        });
+
+                        it("should have raised IRQ0 once", function () {
+                            expect(irq0Raises).to.equal(1);
+                        });
                     });
 
-                    it("should not have lowered counter 0's OUT after 4 ticks", function () {
-                        testSystem.tickForwardBy(4);
+                    describe("after 4 ticks", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(4);
+                        });
 
-                        expect(counter0Lowers).to.equal(0);
+                        it("should not have lowered counter 0's OUT", function () {
+                            expect(counter0Lowers).to.equal(0);
+                        });
+
+                        it("should not have lowered IRQ0", function () {
+                            expect(irq0Lowers).to.equal(0);
+                        });
                     });
 
-                    it("should have lowered counter 0's OUT once after 5 ticks", function () {
-                        testSystem.tickForwardBy(5);
+                    describe("after 5 ticks", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(5);
+                        });
 
-                        expect(counter0Lowers).to.equal(1);
+                        it("should have lowered counter 0's OUT once", function () {
+                            expect(counter0Lowers).to.equal(1);
+                        });
+
+                        it("should have lowered IRQ0 once", function () {
+                            expect(irq0Lowers).to.equal(1);
+                        });
                     });
 
-                    it("should still have raised counter 0's OUT only once after 9 ticks", function () {
-                        testSystem.tickForwardBy(9);
+                    describe("after 9 ticks", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(9);
+                        });
 
-                        expect(counter0Raises).to.equal(1);
+                        it("should still have raised counter 0's OUT only once", function () {
+                            expect(counter0Raises).to.equal(1);
+                        });
+
+                        it("should still have raised IRQ0 only once", function () {
+                            expect(irq0Raises).to.equal(1);
+                        });
                     });
 
-                    it("should still have lowered counter 0's OUT only once after 9 ticks", function () {
-                        testSystem.tickForwardBy(9);
+                    describe("after 9 ticks", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(9);
+                        });
 
-                        expect(counter0Lowers).to.equal(1);
+                        it("should still have lowered counter 0's OUT only once", function () {
+                            expect(counter0Lowers).to.equal(1);
+                        });
+
+                        it("should still have lowered IRQ0 only once", function () {
+                            expect(irq0Lowers).to.equal(1);
+                        });
                     });
 
-                    it("should have raised counter 0's OUT twice after 10 ticks", function () {
-                        testSystem.tickForwardBy(10);
+                    describe("after 10 ticks", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(10);
+                        });
 
-                        expect(counter0Raises).to.equal(2);
+                        it("should have raised counter 0's OUT twice", function () {
+                            expect(counter0Raises).to.equal(2);
+                        });
+
+                        it("should have raised IRQ0 twice", function () {
+                            expect(irq0Raises).to.equal(2);
+                        });
                     });
 
-                    it("should still have lowered counter 0's OUT only once after 10 ticks", function () {
-                        testSystem.tickForwardBy(10);
+                    describe("after 10 ticks", function () {
+                        beforeEach(function () {
+                            testSystem.tickForwardBy(10);
+                        });
 
-                        expect(counter0Lowers).to.equal(1);
+                        it("should still have lowered counter 0's OUT only once", function () {
+                            expect(counter0Lowers).to.equal(1);
+                        });
+
+                        it("should still have lowered IRQ0 only once", function () {
+                            expect(irq0Lowers).to.equal(1);
+                        });
                     });
                 });
             });
