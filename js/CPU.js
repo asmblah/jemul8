@@ -231,6 +231,10 @@ define([
             cpu.emit("run");
 
             return promise;
+        },
+
+        serviceIRQs: function () {
+            this.legacyCPU.serviceIRQs();
         }
     });
 

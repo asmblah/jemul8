@@ -72,6 +72,10 @@ define([
             return this.legacyMemory.readPhysical(physicalAddress, size);
         },
 
+        readPhysicalBlock: function (physicalAddress, toBuffer, size) {
+            return this.legacyMemory.readPhysicalBlock(physicalAddress, toBuffer, size);
+        },
+
         register: function (options) {
             var device = options.device,
                 memory = this,

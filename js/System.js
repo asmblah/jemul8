@@ -298,6 +298,61 @@ define([
             system.emit("irq high", irq);
 
             system.pic.raiseIRQ(irq);
+            system.cpu.serviceIRQs();
+        },
+
+        read: function (options) {
+            /*global Uint8Array */
+            var as,
+                data,
+                from,
+                offset,
+                port,
+                size,
+                system = this;
+
+            options = options || {};
+
+            if (!hasOwn.call(options, "from") && !hasOwn.call(options, "port")) {
+                throw new Exception("System.read() :: Either 'from' or 'port' must be specified");
+            }
+
+            if (!hasOwn.call(options, "size")) {
+                throw new Exception("System.read() :: 'size' not specified");
+            }
+
+            as = hasOwn.call(options, "as") ? options.as : "number";
+
+            if (as && !/^(array|buffer|number)$/.test(as)) {
+                throw new Exception("System.read() :: 'as' must be 'array', 'buffer' or 'number' if specified, '" + as + "' given");
+            }
+
+            size = options.size;
+
+            // Reading from memory
+            if (hasOwn.call(options, "from")) {
+                from = options.from;
+
+                if (as === "buffer") {
+                    data = new Uint8Array(size);
+                    system.memory.readPhysicalBlock(from, data, data.byteLength);
+                } else if (as === "number") {
+                    return system.memory.readPhysical(from, size);
+                } else {
+                    data = [];
+                    for (offset = 0; offset < size; offset += 1) {
+                        data[offset] = system.memory.readPhysical(from + offset, 1);
+                    }
+                }
+
+                return from;
+            // Reading from I/O address space
+            } else {
+                port = options.port;
+                size = options.size;
+
+                return system.io.read(port, size);
+            }
         },
 
         registerIRQ: function (irq, handler) {

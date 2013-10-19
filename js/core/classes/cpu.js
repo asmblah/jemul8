@@ -616,14 +616,7 @@ define([
             }
 
             function yieldManager() {
-                // Start next set of Fetch-Decode-Execute cycles if CPU is not halted
-                //    (will run until next Yield)
-                if (!cpu.isHalted) {
-                    cpu.fetchDecodeExecute();
-                } else {
-                    // Still process IRQs, DMA etc. when CPU halted
-                    cpu.handleAsynchronousEvents();
-                }
+                cpu.cycle();
 
                 // Run next time-slice as soon as possible
                 global.setTimeout(yieldManager, 0);
@@ -631,6 +624,18 @@ define([
 
             // Don't start yield manager immediately; finish setup first
             global.setTimeout(yieldManager, 0);
+        },
+        cycle: function () {
+            var cpu = this;
+
+            // Start next set of Fetch-Decode-Execute cycles if CPU is not halted
+            //    (will run until next Yield)
+            if (!cpu.isHalted) {
+                cpu.fetchDecodeExecute();
+            } else {
+                // Still process IRQs, DMA etc. when CPU halted
+                cpu.handleAsynchronousEvents();
+            }
         },
         // Decode one page of instructions (23)
         decodePage: function (offset) {
@@ -873,23 +878,16 @@ define([
                 );
                 // An NMI will wake the CPU if halted
                 this.run();
-            // Check interrupts are enabled/uninhibited & one is pending
-            } else if (this.INTR.get() && this.IF.get()) {
-                // Only EVER process one interrupt here: we have to allow
-                //  the ISR to actually run!
 
-                // (NB: This may set INTR with the next interrupt)
-                vector = machine.pic.acknowledgeInterrupt();
-                this.interrupt(
-                    vector,                  // Vector
-                    util.EXTERNAL_INTERRUPT, // Type
-                    false,                   // Push error (no)
-                    0                        // Error code (none)
-                );
-                // An enabled interrupt will wake the CPU if halted
-                this.run();
+                return;
+            }
+
+            if (this.serviceIRQs()) {
+                return;
+            }
+
             // Handle DMA
-            } else if (machine.HRQ.get()) {
+            if (machine.HRQ.get()) {
                 // Assert Hold Acknowledge (HLDA) and go into a bus hold state,
                 //  transferring up to the specified max. no of quantums
                 //  (after which the bus is effectively released until the next yield)
@@ -1084,6 +1082,33 @@ define([
         // Current Privilege Level is the RPL of current code segment selector
         getCPL: function () {
             return this.CS.selector.rpl;
+        },
+        serviceIRQs: function () {
+            var cpu = this,
+                machine = cpu.machine,
+                vector;
+
+            // Check interrupts are enabled/uninhibited & one is pending
+            if (cpu.INTR.get() && cpu.IF.get()) {
+                // Only EVER process one interrupt here: we have to allow
+                //  the ISR to actually run!
+
+                // (NB: This may set INTR with the next interrupt)
+                vector = machine.pic.acknowledgeInterrupt();
+                cpu.interrupt(
+                    vector,                  // Vector
+                    util.EXTERNAL_INTERRUPT, // Type
+                    false,                   // Push error (no)
+                    0                        // Error code (none)
+                );
+                // An enabled interrupt will wake the CPU if halted
+                cpu.run();
+                cpu.cycle();
+
+                return true;
+            }
+
+            return false;
         }
     });
 
