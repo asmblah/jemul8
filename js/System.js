@@ -102,17 +102,13 @@ define([
             return this.clock.getTicksNow();
         },
 
-        handleAsynchronousEvents: function (options) {
+        handleAsynchronousEvents: function () {
             var system = this,
                 ticksNow = system.getTicksNow();
 
-            options = options || {};
-
-            if (options.timers !== false) {
-                util.each(system.timers, function (timer) {
-                    timer.tick(ticksNow);
-                });
-            }
+            util.each(system.timers, function (timer) {
+                timer.tick(ticksNow);
+            });
 
             system.emit("async events");
         },
