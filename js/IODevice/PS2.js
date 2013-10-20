@@ -58,6 +58,9 @@ define([
                     setInterval(function () {
                         fn.call(thisObj, Date.now());
                     }, 1);
+                },
+                setEnableA20: function (enabled) {
+
                 }
             };
         }(this)));
