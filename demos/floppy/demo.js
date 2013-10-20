@@ -18,20 +18,37 @@ define({
     "use strict";
 
     var environment = jemul8.getEnvironment(),
-        emulator = jemul8.createEmulator({
-            "cmos": {
-                "bios": "docs/bochs-20100605/bios/BIOS-bochs-legacy"
-            },
-            "vga": {
-                "bios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
-            },
-            "floppy": [{
-                "driveType": "FDD_350HD",
-                "diskType": "FLOPPY_1_44",
-                "path": "../../boot/" + environment.getOption("flp"),
-                "loaded": true
-            }]
-        });
+        driveType = environment.getOption("driveType"),
+        diskType = environment.getOption("diskType"),
+        emulator,
+        path = environment.getOption("flp");
+
+    if (!driveType) {
+        throw new Error("Argument 'driveType' is missing");
+    }
+
+    if (!diskType) {
+        throw new Error("Argument 'diskType' is missing");
+    }
+
+    if (!path) {
+        throw new Error("Argument 'flp' is missing");
+    }
+
+    emulator = jemul8.createEmulator({
+        "cmos": {
+            "bios": "docs/bochs-20100605/bios/BIOS-bochs-legacy"
+        },
+        "vga": {
+            "bios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
+        },
+        "floppy": [{
+            "driveType": driveType,
+            "diskType": diskType,
+            "path": "../../boot/" + path,
+            "loaded": true
+        }]
+    });
 
     emulator.loadPlugin("canvas.vga.renderer");
     emulator.loadPlugin("keyboard.input");
