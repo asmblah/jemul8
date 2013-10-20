@@ -88,6 +88,7 @@ define({
         };
 
         require([
+            "bdd/acceptance/real-mode/CPU/Instruction/jmpf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/pusha-Test",
