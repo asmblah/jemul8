@@ -83,7 +83,7 @@ define([
                 endAddress = options.endAddress;
 
             memory.legacyMemory.registerMemoryHandlers(startAddress, endAddress, function (a20Address, length) {
-                device.memoryRead(a20Address, length);
+                return device.memoryRead(a20Address, length);
             }, function (a20Address, value, length) {
                 device.memoryWrite(a20Address, value, length);
             }, memory.legacyMemory.machine.vga);

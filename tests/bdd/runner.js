@@ -93,6 +93,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/pusha-Test",
             "bdd/acceptance/real-mode/IODevice/PIT-Test",
+            "bdd/acceptance/real-mode/IODevice/VGA-Test",
             "bdd/acceptance/real-mode/NOP-Test",
             "bdd/acceptance/real-mode/ROMBIOS-POST-Test",
             "bdd/unit/js/core/classes/registerTest",
