@@ -36,14 +36,9 @@ define([
 
         init: function () {
             var promise = new Promise(),
-                system = this.system,
-                registers = system.getCPURegisters();
+                system = this.system;
 
             system.init().done(function () {
-                // Point CPU at first loaded instruction
-                registers.cs.set(0x0000);
-                registers.eip.set(LOAD_ADDRESS);
-
                 promise.resolve();
             }).fail(function (exception) {
                 promise.reject(exception);
@@ -56,7 +51,8 @@ define([
             var promise = new Promise(),
                 testSystem = this,
                 assembler = testSystem.assembler,
-                system = testSystem.system;
+                system = testSystem.system,
+                registers = system.getCPURegisters();
 
             assembler.assemble(assembly).done(function (buffer) {
                 // Write harness machine code to memory
@@ -64,6 +60,10 @@ define([
                     data: buffer,
                     to:   LOAD_ADDRESS
                 });
+
+                // Point CPU at first loaded instruction
+                registers.cs.set(0x0000);
+                registers.eip.set(LOAD_ADDRESS);
 
                 system.run().done(function () {
                     promise.resolve();
