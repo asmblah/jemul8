@@ -1517,7 +1517,10 @@ define([
             cpu.EFLAGS.set(cpu.popStack(operandSize));
         // Push data onto stack top (SS:SP)
         }, "PUSH": function (cpu) {
-            cpu.pushStack(this.operand1.read(), this.operand1.size);
+            var size = this.operandSizeAttr ? 4 : 2,
+                value = this.operand1.read();
+
+            cpu.pushStack(util.signExtend(value, this.operand1.size, size), size);
         // Push all General Registers
         }, "PUSHA": function (cpu) {
             var ptrStack;
