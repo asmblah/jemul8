@@ -20,7 +20,7 @@ Live demo
 Run the tests
 -------------
 
-Node that you will need `nasm` available in your PATH for the tests to execute.
+Note that you will need `nasm` available in your PATH for the tests to execute.
 
 - Under Node.js
 
