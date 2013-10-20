@@ -25,6 +25,7 @@ define([
 
     function TestSystem() {
         this.assembler = new AssemblerFactory().create();
+        this.assembledCache = {};
         this.system = new SystemFactory().create();
         this.ticksNow = null;
     }
@@ -54,7 +55,7 @@ define([
                 system = testSystem.system,
                 registers = system.getCPURegisters();
 
-            assembler.assemble(assembly).done(function (buffer) {
+            function execute(buffer) {
                 // Write harness machine code to memory
                 system.write({
                     data: buffer,
@@ -68,9 +69,18 @@ define([
                 system.run().done(function () {
                     promise.resolve();
                 });
-            }).fail(function (exception) {
-                promise.reject(exception);
-            });
+            }
+
+            if (testSystem.assembledCache[assembly]) {
+                execute(testSystem.assembledCache[assembly]);
+            } else {
+                assembler.assemble(assembly).done(function (buffer) {
+                    testSystem.assembledCache[assembly] = buffer;
+                    execute(buffer);
+                }).fail(function (exception) {
+                    promise.reject(exception);
+                });
+            }
 
             return promise;
         },
