@@ -69,6 +69,13 @@ define([
     util.inherit(PS2).from(IODevice);
 
     util.extend(PS2.prototype, {
+        getIOPorts: function () {
+            return {
+                0x0060: { description: "PS/2", allowedIOLengths: {1: true} },
+                0x0064: { description: "PS/2", allowedIOLengths: {1: true} }
+            };
+        },
+
         getPluginData: function () {
             return this.legacyPS2;
         },

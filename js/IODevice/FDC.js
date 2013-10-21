@@ -176,6 +176,17 @@ define([
             return 2;
         },
 
+        getIOPorts: function () {
+            var port,
+                ports = {};
+
+            for (port = 0x03F2 ; port <= 0x03F7 ; ++port) {
+                ports[port] = { description: "FDC", allowedIOLengths: {1: true} };
+            }
+
+            return ports;
+        },
+
         init: function () {
             var fdc = this,
                 promise = new Promise();

@@ -39,6 +39,13 @@ define([
     util.inherit(CMOS).from(IODevice);
 
     util.extend(CMOS.prototype, {
+        getIOPorts: function () {
+            return {
+                0x0070: { description: "CMOS RAM", allowedIOLengths: {1: true} },
+                0x0071: { description: "CMOS RAM", allowedIOLengths: {1: true} }
+            };
+        },
+
         init: function () {
             var cmos = this,
                 promise = new Promise(),

@@ -55,6 +55,15 @@ define([
     util.inherit(PIT).from(IODevice);
 
     util.extend(PIT.prototype, {
+        getIOPorts: function () {
+            return {
+                0x0040: { description: "PIT CTR0", allowedIOLengths: {1: true} },
+                0x0041: { description: "PIT CTR1", allowedIOLengths: {1: true} },
+                0x0042: { description: "PIT CTR2", allowedIOLengths: {1: true} },
+                0x0043: { description: "PIT ICW", allowedIOLengths: {1: true} }
+            };
+        },
+
         getPluginData: function () {
             return this;
         },

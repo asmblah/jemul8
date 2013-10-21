@@ -64,6 +64,26 @@ define([
     util.inherit(DMA).from(IODevice);
 
     util.extend(DMA.prototype, {
+        getIOPorts: function () {
+            var port,
+                ports = {};
+
+            // 0x0000 ... 0x000F
+            for (port = 0x0000 ; port <= 0x000F ; ++port) {
+                ports[port] = { description: "8237 DMA", allowedIOLengths: {1: true, 2: true} };
+            }
+            // 0x0080 ... 0x008F
+            for (port = 0x0080 ; port <= 0x008F ; ++port) {
+                ports[port] = { description: "8237 DMA", allowedIOLengths: {1: true, 2: true} };
+            }
+            // 0x00C0 ... 0x00DE
+            for (port = 0x00C0 ; port <= 0x00DE ; port += 2) {
+                ports[port] = { description: "8237 DMA", allowedIOLengths: {1: true, 2: true} };
+            }
+
+            return ports;
+        },
+
         init: function () {
             var dma = this,
                 promise = new Promise();

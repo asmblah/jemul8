@@ -110,14 +110,13 @@ define([
             }
         },
 
-        register: function (options) {
-            var device = options.device,
-                io = this,
+        register: function (device) {
+            var io = this,
                 ports = io.ports;
 
             io.devices.push(device);
 
-            util.each(options.ports, function (portOptions, port) {
+            util.each(device.getIOPorts(), function (portOptions, port) {
                 var description = portOptions.description;
 
                 if (ports[port].device !== io.nullDevice) {

@@ -62,6 +62,15 @@ define([
             return this.legacyPIC.acknowledgeInterrupt();
         },
 
+        getIOPorts: function () {
+            return {
+                0x0020: { description: "PIC", allowedIOLengths: {1: true} },
+                0x0021: { description: "PIC", allowedIOLengths: {1: true} },
+                0x00A0: { description: "PIC", allowedIOLengths: {1: true} },
+                0x00A1: { description: "PIC", allowedIOLengths: {1: true} }
+            };
+        },
+
         init: function () {
             var pic = this,
                 promise = new Promise();

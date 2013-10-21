@@ -48,6 +48,13 @@ define([
     util.inherit(GuestToHost).from(IODevice);
 
     util.extend(GuestToHost.prototype, {
+        getIOPorts: function () {
+            return {
+                0x0402: { description: "GuestToHost INFO_PORT", allowedIOLengths: {1: true} },
+                0x0403: { description: "GuestToHost DEBUG_PORT", allowedIOLengths: {1: true} }
+            };
+        },
+
         init: function () {
             var guestToHost = this,
                 promise = new Promise();

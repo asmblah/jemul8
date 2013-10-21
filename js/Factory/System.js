@@ -85,113 +85,17 @@ define([
             system.setDMA(dma);
             system.setPIC(pic);
 
-            io.register({
-                device: new CMOS(system, io, memory, options[CMOS_OPTIONS]),
-                ports: {
-                    0x0070: { description: "CMOS RAM", allowedIOLengths: {1: true} },
-                    0x0071: { description: "CMOS RAM", allowedIOLengths: {1: true} }
-                }
-            });
-            io.register({
-                device: dma,
-                ports: (function () {
-                    var port,
-                        ports = {};
-
-                    // 0x0000 ... 0x000F
-                    for (port = 0x0000 ; port <= 0x000F ; ++port) {
-                        ports[port] = { description: "8237 DMA", allowedIOLengths: {1: true, 2: true} };
-                    }
-                    // 0x0080 ... 0x008F
-                    for (port = 0x0080 ; port <= 0x008F ; ++port) {
-                        ports[port] = { description: "8237 DMA", allowedIOLengths: {1: true, 2: true} };
-                    }
-                    // 0x00C0 ... 0x00DE
-                    for (port = 0x00C0 ; port <= 0x00DE ; port += 2) {
-                        ports[port] = { description: "8237 DMA", allowedIOLengths: {1: true, 2: true} };
-                    }
-
-                    return ports;
-                }())
-            });
+            io.register(new CMOS(system, io, memory, options[CMOS_OPTIONS]));
+            io.register(dma);
             fdc = new FDC(system, io, memory, options[FDC_OPTIONS]);
-            io.register({
-                device: fdc,
-                ports: (function () {
-                    var port,
-                        ports = {};
-
-                    for (port = 0x03F2 ; port <= 0x03F7 ; ++port) {
-                        ports[port] = { description: "FDC", allowedIOLengths: {1: true} };
-                    }
-
-                    return ports;
-                }())
-            });
+            io.register(fdc);
             dma.register(fdc);
-            io.register({
-                device: new GuestToHost(system, io, memory, options[CMOS_OPTIONS]),
-                ports: {
-                    0x0402: { description: "GuestToHost INFO_PORT", allowedIOLengths: {1: true} },
-                    0x0403: { description: "GuestToHost DEBUG_PORT", allowedIOLengths: {1: true} }
-                }
-            });
-            io.register({
-                device: pic,
-                ports: {
-                    0x0020: { description: "PIC", allowedIOLengths: {1: true} },
-                    0x0021: { description: "PIC", allowedIOLengths: {1: true} },
-                    0x00A0: { description: "PIC", allowedIOLengths: {1: true} },
-                    0x00A1: { description: "PIC", allowedIOLengths: {1: true} }
-                }
-            });
-            io.register({
-                device: new PIT(system, io, memory, options[PIT_OPTIONS]),
-                ports: {
-                    0x0040: { description: "PIT CTR0", allowedIOLengths: {1: true} },
-                    0x0041: { description: "PIT CTR1", allowedIOLengths: {1: true} },
-                    0x0042: { description: "PIT CTR2", allowedIOLengths: {1: true} },
-                    0x0043: { description: "PIT ICW", allowedIOLengths: {1: true} }
-                }
-            });
-            io.register({
-                device: new PS2(system, io, memory, options[PS2_OPTIONS]),
-                ports: {
-                    0x0060: { description: "PS/2", allowedIOLengths: {1: true} },
-                    0x0064: { description: "PS/2", allowedIOLengths: {1: true} }
-                }
-            });
+            io.register(new GuestToHost(system, io, memory, options[CMOS_OPTIONS]));
+            io.register(pic);
+            io.register(new PIT(system, io, memory, options[PIT_OPTIONS]));
+            io.register(new PS2(system, io, memory, options[PS2_OPTIONS]));
             vga = new VGA(system, io, memory, options[VGA_OPTIONS]);
-            io.register({
-                device: vga,
-                ports: (function () {
-                    var description = "VGA",
-                        port,
-                        ports = {};
-
-                    for (port = 0x03B4 ; port <= 0x03B5; ++port) {
-                        ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
-                    }
-
-                    for (port = 0x03BA ; port <= 0x03BA ; ++port) {
-                        ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
-                    }
-
-                    for (port = 0x03C0 ; port <= 0x03CF ; ++port) {
-                        ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
-                    }
-
-                    for (port = 0x03D4 ; port <= 0x03D5 ; ++port) {
-                        ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
-                    }
-
-                    for (port = 0x03DA ; port <= 0x03DA ; ++port) {
-                        ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
-                    }
-
-                    return ports;
-                }())
-            });
+            io.register(vga);
             memory.register({
                 device: vga,
                 startAddress: 0xa0000,

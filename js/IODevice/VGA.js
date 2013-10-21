@@ -85,6 +85,34 @@ define([
     util.inherit(VGA).from(IODevice);
 
     util.extend(VGA.prototype, {
+        getIOPorts: function () {
+            var description = "VGA",
+                port,
+                ports = {};
+
+            for (port = 0x03B4 ; port <= 0x03B5; ++port) {
+                ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
+            }
+
+            for (port = 0x03BA ; port <= 0x03BA ; ++port) {
+                ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
+            }
+
+            for (port = 0x03C0 ; port <= 0x03CF ; ++port) {
+                ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
+            }
+
+            for (port = 0x03D4 ; port <= 0x03D5 ; ++port) {
+                ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
+            }
+
+            for (port = 0x03DA ; port <= 0x03DA ; ++port) {
+                ports[port] = { description: description, allowedIOLengths: {1: true, 2: true} };
+            }
+
+            return ports;
+        },
+
         getPluginData: function () {
             return this.legacyVGA;
         },
