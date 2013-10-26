@@ -20,12 +20,10 @@ define([
     "use strict";
 
     function Memory(options) {
-        var memory = this;
-
         this.options = options || {};
         this.system = null;
 
-        this.legacyMemory = new LegacyMemory((function () {
+        this.legacyMemory = new LegacyMemory((function (memory) {
             var machine,
                 vga = {
                     getName: function () {
@@ -50,7 +48,7 @@ define([
             vga.machine = machine;
 
             return machine;
-        }()));
+        }(this)));
 
         this.legacyMemory.init(function () {});
     }
