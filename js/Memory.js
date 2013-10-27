@@ -11,11 +11,13 @@
 define([
     "js/util",
     "js/Exception",
-    "js/core/classes/memory"
+    "js/core/classes/memory",
+    "js/Promise"
 ], function (
     util,
     Exception,
-    LegacyMemory
+    LegacyMemory,
+    Promise
 ) {
     "use strict";
 
@@ -49,11 +51,17 @@ define([
 
             return machine;
         }(this)));
-
-        this.legacyMemory.init(function () {});
     }
 
     util.extend(Memory.prototype, {
+        init: function () {
+            var promise = new Promise();
+
+            this.legacyMemory.init(function () {});
+
+            return promise.resolve();
+        },
+
         linearToPhysical: function (linearAddress) {
             return this.legacyMemory.linearToPhysical(linearAddress);
         },

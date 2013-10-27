@@ -196,13 +196,16 @@ define([
                     system.emit("io write", port, value, length);
                 });
 
-                system.cpu.init().done(function () {
-                    system.io.init().done(function () {
-                        system.cpu.reset();
-                        system.io.reset();
+                system.memory.init().done(function () {
+                    system.cpu.init().done(function () {
+                        system.io.init().done(function () {
+                            system.reset();
 
-                        system.inited = true;
-                        promise.resolve();
+                            system.inited = true;
+                            promise.resolve();
+                        }).fail(function (exception) {
+                            promise.reject(exception);
+                        });
                     }).fail(function (exception) {
                         promise.reject(exception);
                     });
