@@ -30,78 +30,66 @@ define([
         this.running = false;
         this.system = system;
 
-        this.legacyCPU = new LegacyCPU({
-            cpu: {
-                getCPL: function () {
-                    return 0;
+        this.legacyCPU = new LegacyCPU((function (cpu) {
+            return {
+                get cpu() {
+                    return cpu.legacyCPU;
                 },
-                PE: {
-                    get: function () {
-                        return 0;
-                    }
-                },
-                PG: {
-                    get: function () {
-                        return 0;
+                dma: {
+                    raiseHLDA: function () {
+                        system.raiseHLDA();
                     }
                 },
-                VM: {
-                    get: function () {
-                        return 0;
-                    }
-                }
-            },
-            dma: {
-                raiseHLDA: function () {
-                    system.raiseHLDA();
-                }
-            },
-            emu: {
-                getSetting: function (name) {
-                    if (name === "dma.maxQuantumsPerYield") {
-                        return 512;
-                    }
+                emu: {
+                    getSetting: function (name) {
+                        if (name === "dma.maxQuantumsPerYield") {
+                            return 512;
+                        }
 
-                    throw new Error("Unknown");
-                }
-            },
-            getTimeMsecs: function () {
-                return Date.now();
-            },
-            io: {
-                read: function (port, length) {
-                    return io.read(port, length);
+                        throw new Error("Unknown");
+                    }
                 },
-                write: function (port, value, length) {
-                    io.write(port, value, length);
-                }
-            },
-            list_tmr: [],
-            mem: {
-                linearToPhysical: function (linearAddress) {
-                    return memory.linearToPhysical(linearAddress);
+                getTimeMsecs: function () {
+                    return Date.now();
                 },
-                mapPhysical: function (physicalAddress) {
-                    return memory.mapPhysical(physicalAddress);
+                io: {
+                    read: function (port, length) {
+                        return io.read(port, length);
+                    },
+                    write: function (port, value, length) {
+                        io.write(port, value, length);
+                    }
                 },
-                readLinear: function (linearAddress, size) {
-                    return memory.readLinear(linearAddress, size);
+                list_tmr: [],
+                mem: {
+                    linearToPhysical: function (linearAddress) {
+                        return memory.linearToPhysical(linearAddress);
+                    },
+                    mapPhysical: function (physicalAddress) {
+                        return memory.mapPhysical(physicalAddress);
+                    },
+                    readLinear: function (linearAddress, size) {
+                        return memory.readLinear(linearAddress, size);
+                    },
+                    readPhysicalBlock: function (physicalAddress, toBuffer, size) {
+                        return memory.readPhysicalBlock(physicalAddress, toBuffer, size);
+                    },
+                    writeLinear: function (linearAddress, value, size) {
+                        memory.writeLinear(linearAddress, value, size);
+                    }
                 },
-                writeLinear: function (linearAddress, value, size) {
-                    memory.writeLinear(linearAddress, value, size);
+                pic: {
+                    acknowledgeInterrupt: function () {
+                        return system.acknowledgeInterrupt();
+                    }
+                },
+                HRQ: {
+                    get: function () {
+                        return system.isHRQHigh();
+                    }
                 }
-            },
-            pic: {
-                acknowledgeInterrupt: function () {
-                    return system.acknowledgeInterrupt();
-                }
-            },
-            HRQ: {
-                get: function () {
-                    return system.isHRQHigh();
-                }
-            }
-        });
+            };
+        }(this)));
 
         (function (cpu, legacyCPU) {
             // Monkey-patch a trap for interrupts
