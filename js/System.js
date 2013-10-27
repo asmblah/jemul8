@@ -30,6 +30,7 @@ define([
     "use strict";
 
     var EQUIPMENT_CHANGE = "equipment change",
+        RESET_TYPE_OPTION = "type",
         hasOwn = {}.hasOwnProperty;
 
     function System(clock, io, memory) {
@@ -199,7 +200,7 @@ define([
                 system.memory.init().done(function () {
                     system.cpu.init().done(function () {
                         system.io.init().done(function () {
-                            system.reset();
+                            system.reset({ "type": "hardware" });
 
                             system.inited = true;
                             promise.resolve();
@@ -373,15 +374,19 @@ define([
         },
 
         // Hardware reset
-        reset: function () {
+        reset: function (options) {
             var system = this;
+
+            options = options || {};
 
             system.setEnableA20(false);
 
             // Always reset CPU
             system.cpu.reset();
 
-            system.io.reset();
+            if (options[RESET_TYPE_OPTION] === "hardware") {
+                system.io.reset();
+            }
         },
 
         run: function () {
