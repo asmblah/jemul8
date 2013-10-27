@@ -7,7 +7,7 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global define, Uint8Array, Uint16Array, Uint32Array */
+/*global ArrayBuffer, define, Uint8Array, Uint16Array, Uint32Array */
 define([
     "js/util"
 ], function (
@@ -22,6 +22,12 @@ define([
     };
 
     function Register(buffer, offset, byteSize, name) {
+        if (typeof buffer === "number") {
+            byteSize = buffer;
+            buffer = new ArrayBuffer(byteSize);
+            offset = 0;
+        }
+
         this.byteSize = byteSize;
         this.name = name;
         this.view = new byteSizeToViewClass[byteSize](buffer, offset, 1);
