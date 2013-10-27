@@ -431,7 +431,33 @@ define([
             }
         // Decimal Adjust after Addition
         }, "DAA": function (cpu) {
-            util.panic("Execute (DAA) :: unsupported");
+            var tmpAL = cpu.AL.get(),
+                tmpCF = 0;
+
+            // [Bochs] Validated against Intel Pentium family hardware.
+
+            // DAA affects the following flags: S,Z,A,P,C
+
+            if (((tmpAL & 0x0F) > 0x09) || cpu.AF.get()) {
+                tmpCF = ((cpu.AL.get() > 0xF9) || cpu.CF.get());
+                cpu.AL.set(cpu.AL.get() + 0x06);
+                cpu.AF.setBin(1);
+            } else {
+                cpu.AF.clear();
+            }
+
+            if ((tmpAL > 0x99) || cpu.CF.get()) {
+                cpu.AL.set(cpu.AL.get() + 0x60);
+                tmpCF = 1;
+            } else {
+                tmpCF = 0;
+            }
+
+            cpu.OF.clear(); // Undocumented flag modification
+            cpu.SF.setBin(cpu.AL.get() >= 0x80);
+            cpu.ZF.setBin(cpu.AL.get() === 0);
+            // [Bochs] set_PF_base(AL);
+            cpu.CF.setBin(tmpCF);
         // Decimal Adjust for Subtraction
         }, "DAS": function (cpu) {
             util.panic("Execute (DAS) :: unsupported");
