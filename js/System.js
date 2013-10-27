@@ -29,13 +29,16 @@ define([
 ) {
     "use strict";
 
-    var EQUIPMENT_CHANGE = "equipment change",
+    var A20_DISABLED_MASK = 0xFFFFFFFF,
+        A20_ENABLED_MASK = 0xFFFFFFFF,
+        EQUIPMENT_CHANGE = "equipment change",
         RESET_TYPE_OPTION = "type",
         hasOwn = {}.hasOwnProperty;
 
     function System(clock, io, memory) {
         EventEmitter.call(this);
 
+        this.a20Mask = A20_DISABLED_MASK;
         this.clock = clock;
         this.floppyDriveType = 0;
 
@@ -76,7 +79,7 @@ define([
         },
 
         getA20Mask: function () {
-            return 0xFFFFFFFF;
+            return this.a20Mask;
         },
 
         getClock: function () {
@@ -407,6 +410,10 @@ define([
 
         setDMA: function (dma) {
             this.dma = dma;
+        },
+
+        setEnableA20: function (enabled) {
+            this.a20Mask = enabled ? A20_ENABLED_MASK : A20_DISABLED_MASK;
         },
 
         setFloppyDriveType: function (floppyDriveType) {

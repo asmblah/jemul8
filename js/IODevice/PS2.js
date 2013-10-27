@@ -60,7 +60,7 @@ define([
                     }, 1);
                 },
                 setEnableA20: function (enabled) {
-
+                    system.setEnableA20(enabled);
                 }
             };
         }(this)));
