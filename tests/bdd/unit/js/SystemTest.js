@@ -45,6 +45,7 @@ define([
 
             cpu.init.returns(new Promise().resolve());
             io.init.returns(new Promise().resolve());
+            memory.init.returns(new Promise().resolve());
 
             system.init().done(function () {
                 done();
