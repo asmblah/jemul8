@@ -47,11 +47,16 @@ define({
             "diskType": diskType,
             "path": "../../boot/" + path,
             "loaded": true
-        }]
+        }],
+        "ne2k": {
+            "ioAddress": 0x300,
+            "irq": 3
+        }
     });
 
     emulator.loadPlugin("canvas.vga.renderer");
     emulator.loadPlugin("keyboard.input");
+    emulator.loadPlugin("network.loopback");
 
     emulator.init().done(function () {
         emulator.run();

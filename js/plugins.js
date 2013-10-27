@@ -10,5 +10,6 @@
 /*global define */
 define({
     "canvas.vga.renderer": "CanvasVGARenderer",
-    "keyboard.input": "KeyboardInput"
+    "keyboard.input": "KeyboardInput",
+    "network.loopback": "Network/Loopback"
 });

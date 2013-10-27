@@ -48,6 +48,10 @@ define([
             return this.triggerTicks;
         },
 
+        isActive: function () {
+            return this.enabled;
+        },
+
         tick: function (ticksNow) {
             var previousTriggerTicks,
                 timer = this;
@@ -60,6 +64,18 @@ define([
                     timer.emit("elapse");
                 } while (timer.enabled && timer.triggerTicks !== previousTriggerTicks && ticksNow >= timer.triggerTicks);
             }
+        },
+
+        triggerAfterMicroseconds: function (microseconds) {
+            var timer = this;
+
+            return timer.triggerAtTicks(timer.system.getTicksNow() + util.microsecondsToTicks(microseconds));
+        },
+
+        triggerAfterTicks: function (ticks) {
+            var timer = this;
+
+            return timer.triggerAtTicks(timer.system.getTicksNow() + ticks);
         },
 
         triggerAtTicks: function (ticks) {

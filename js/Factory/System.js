@@ -20,6 +20,7 @@ define([
     "js/IODevice/GuestToHost",
     "js/IO",
     "js/Memory",
+    "js/IODevice/NE2K",
     "js/IODevice/PIC",
     "js/IODevice/PIT",
     "js/IODevice/PS2",
@@ -37,6 +38,7 @@ define([
     GuestToHost,
     IO,
     Memory,
+    NE2K,
     PIC,
     PIT,
     PS2,
@@ -50,6 +52,7 @@ define([
         DMA_OPTIONS = "dma",
         FDC_OPTIONS = "floppy",
         MEMORY_OPTIONS = "memory",
+        NE2K_OPTIONS = "ne2k",
         PIC_OPTIONS = "pic",
         PIT_OPTIONS = "pit",
         PS2_OPTIONS = "ps2",
@@ -101,6 +104,7 @@ define([
                 startAddress: 0xa0000,
                 endAddress: 0xbffff
             });
+            io.register(new NE2K(system, io, memory, options[NE2K_OPTIONS]));
 
             return system;
         }
