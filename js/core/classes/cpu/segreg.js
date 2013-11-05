@@ -197,7 +197,7 @@ define([
                     }
 
                     // Fetch raw descriptor as specified by selector
-                    rawDescriptor = mem.fetchRawDescriptor(selector, util.GP_EXCEPTION);
+                    rawDescriptor = cpu.fetchRawDescriptor(selector, util.GP_EXCEPTION);
 
                     /* selector's RPL must = CPL, else #GP(selector) */
                     if (selector.rpl != cpl) {
@@ -235,7 +235,7 @@ define([
                     }
 
                     // Mark segment as accessed
-                    mem.touchSegment(selector, descriptor);
+                    //mem.touchSegment(selector, descriptor);
 
                     // Load SS with selector, load SS cache with descriptor
                     // FIXME: Can we not reuse the same Descriptor object
@@ -256,7 +256,7 @@ define([
                     selector = Selector.parse(val);
 
                     // Fetch raw descriptor as specified by selector
-                    rawDescriptor = mem.fetchRawDescriptor(selector, util.GP_EXCEPTION);
+                    rawDescriptor = cpu.fetchRawDescriptor(selector, util.GP_EXCEPTION);
 
                     // Parse raw descriptor into components
                     descriptor = Descriptor.parse(rawDescriptor);
@@ -271,7 +271,7 @@ define([
 
                     // AR byte must indicate data
                     //  or readable code segment else #GP(selector)
-                    if ( descriptor.isSegment() == false
+                    /*if ( descriptor.isSegment() == false
                         || (descriptor.isCodeSegment()
                             && descriptor.isCodeSegmentReadable() == false
                         )
@@ -281,7 +281,7 @@ define([
                             , this.getName(), val
                         ));
                         cpu.exception(util.GP_EXCEPTION, val & 0xFFFC);
-                    }
+                    }*/
 
                     // If data or non-conforming code, then both the RPL and the CPL
                     //  must be less than or equal to DPL in AR byte else #GP(selector)
@@ -309,7 +309,7 @@ define([
                     }
 
                     // Mark segment as accessed
-                    mem.touchSegment(selector, descriptor);
+                    //mem.touchSegment(selector, descriptor);
 
                     // Load segment register with selector,
                     //  & load segment register-cache with descriptor

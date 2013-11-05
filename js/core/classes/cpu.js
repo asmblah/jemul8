@@ -666,9 +666,6 @@ define([
         // Private method; start next set of Fetch-Decode-Execute cycles up until next Yield is scheduled
         fetchDecodeExecute: function () {
             var machine = this.machine,
-            // Address- & operand-size attributes (true = 32-bit, false = 16-bit)
-                addressSizeAttr = false,
-                operandSizeAttr = false,
             // CPU's instruction cache (for speed... !)
                 cache_insn = this.cache_insn,
                 insn,
@@ -727,8 +724,8 @@ define([
                             decoder,
                             read,
                             offset,
-                            addressSizeAttr,
-                            operandSizeAttr
+                            CS.cache.default32BitSize,
+                            CS.cache.default32BitSize
                         );
 
                     // POLYMORPHIC: Look up & store

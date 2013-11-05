@@ -119,12 +119,39 @@ define([
                     system.handleAsynchronousEvents();
                 };
             }());
+
+            legacyCPU.fetchRawDescriptor = function (selector, exceptionType) {
+                return cpu.fetchRawDescriptor(selector, exceptionType);
+            };
         }(this, this.legacyCPU));
     }
 
     util.inherit(CPU).from(EventEmitter);
 
     util.extend(CPU.prototype, {
+        fetchRawDescriptor: function (selector) {
+            var cpu = this,
+                index = selector.index,
+                memory = cpu.memory,
+                offset;
+
+            // GDT is the table to fetch from
+            if (selector.table === 0) {
+                // Calculate address of raw descriptor to read in memory
+                offset = cpu.legacyCPU.GDTR.base + index * 8;
+            // LDT is the table to fetch from
+            } else {
+                // Calculate address of raw descriptor to read in memory
+                offset = cpu.legacyCPU.LDTR.cache.base + index * 8;
+            }
+
+            // Pass back 64-bit result as two 32-bit values
+            return {
+                dword1: memory.readLinear(offset, 4, 0),
+                dword2: memory.readLinear(offset + 4, 4, 0)
+            };
+        },
+
         getRegisters: function () {
             var cpu = this.legacyCPU;
 
