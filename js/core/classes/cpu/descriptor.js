@@ -107,11 +107,11 @@ define([
 			if (this.segment) {
 				limit = (dword1 & 0xFFFF) | (dword2 & 0x000F0000);
 
-				this.base             = (dword1 >> 16) | ((dword2 & 0xFF) << 16);
+				this.base             = ((dword1 >>> 16) | ((dword2 & 0xFF) << 16)) >>> 0;
 				this.use4KPages       = (dword2 & 0x00800000) > 0;
 				this.default32BitSize = (dword2 & 0x00400000) > 0;
 				this.available        = (dword2 & 0x00100000) > 0;
-				this.base            |= (dword2 & 0xFF000000);
+				this.base             = (this.base | (dword2 & 0xFF000000)) >>> 0;
 
 				if (this.use4KPages) {
 					this.limitScaled = ((limit << 12) | 0xFFF) >>> 0;
