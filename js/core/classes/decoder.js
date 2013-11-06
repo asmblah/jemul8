@@ -67,6 +67,10 @@ define([
             d.DS, d.DS, d.SS, d.SS
             , d.DS, d.DS, d.SS, d.DS
         ];
+        d.segreg_mod0_base32 = [
+            d.DS, d.DS, d.DS, d.DS
+            , d.SS, d.DS, d.DS, d.DS
+        ];
         d.segreg_mod1or2_base32 = [
             d.DS, d.DS, d.DS, d.DS
             , d.SS, d.SS, d.DS, d.DS

@@ -45,6 +45,7 @@ define([
 		this.mask = 0;
 
 		// Scale, Index & Base registers used (if applicable)
+		this.scale = 1;
 		this.reg = null;
 		this.reg2 = null;
 
@@ -82,6 +83,10 @@ define([
 			var addressSize = insn.addressSizeAttr ? 4 : 2;
 			var size = insn.operandSizeAttr ? 4 : 2;
 			var displacement;
+			var sib;
+			var scale;
+			var index;
+			var base;
 			var typeCode;
 
 			// Defaults
@@ -217,7 +222,33 @@ define([
 									insn.segreg = decoder.segreg_mod1or2_base32[ rm ];
 								// mod!=11b, rm==4, SIB byte follows
 								} else {
-									util.panic("No SIB support yet.");
+									sib = read(operand.offset, 1);
+									++operand.offset;
+
+									scale = Math.pow(2, (sib >> 6));
+									index = (sib >> 3) & 7;
+									base = sib & 7;
+
+									operand.scale = scale;
+									operand.reg = decoder.hsh_size_regOrdinals[ addressSize ][ index ];
+									operand.reg2 = decoder.hsh_size_regOrdinals[ addressSize ][ base ];
+
+									if (mod === 0x00) {
+										insn.segreg = decoder.segreg_mod0_base32[ base ];
+
+										if (base === 5) {
+											operand.reg2 = null;
+
+											// mod = 10b
+											operand.setDisplacement(read(operand.offset, 4), 4);
+											// Move offset pointer past the displacement just read
+											operand.offset += 4;
+										}
+
+										return operand; // Done!
+									} else {
+										insn.segreg = decoder.segreg_mod1or2_base32[ base ];
+									}
 								}
 
 								if (mod === 0x01) {
@@ -420,7 +451,7 @@ define([
 		//  for operands addressing memory)
 		}, getPointerAddress: function (offset) {
 			return (
-				(this.reg ? this.reg.get() : 0)
+				(this.reg ? this.reg.get() : 0) * this.scale
 				+ (this.reg2 ? this.reg2.get() : 0)
 				+ (offset || 0)
 				+ this.getDisplacement()
