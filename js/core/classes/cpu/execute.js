@@ -2172,7 +2172,8 @@ define([
             util.panic("Execute (SGDT) :: unsupported");
         // Store Interrupt Descriptor Table Register
         }, "SIDT": function (cpu) {
-            util.panic("Execute (SIDT) :: unsupported");
+            this.operand1.write(cpu.IDTR.limit, 0, 2); // Limit always 16-bit
+            this.operand1.write(cpu.IDTR.base, 2, 4);  // Base 32- or 24-bit
         // Shift Left - Double Precision
         }, "SHLD": function (cpu) {
             util.panic("Execute (SHLD) :: unsupported");

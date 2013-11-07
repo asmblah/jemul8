@@ -93,6 +93,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/pusha-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/sidt-Test",
             "bdd/acceptance/real-mode/CPU/SIB-Test",
             "bdd/acceptance/real-mode/IODevice/PIT-Test",
             "bdd/acceptance/real-mode/IODevice/VGA-Test",

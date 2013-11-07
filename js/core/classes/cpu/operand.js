@@ -25,7 +25,8 @@ define([
     var MASKS = {
         1: util.generateMask(1),
         2: util.generateMask(2),
-        4: util.generateMask(4)
+        4: util.generateMask(4),
+        6: util.generateMask(6)
     };
 
 	// x86 Instruction Operand (eg. dest or src) class constructor

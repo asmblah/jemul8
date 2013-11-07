@@ -196,7 +196,16 @@ define([
                 es: cpu.ES,
                 fs: cpu.FS,
                 gs: cpu.GS,
-                ss: cpu.SS
+                ss: cpu.SS,
+
+                idtr: {
+                    setBase: function (base) {
+                        cpu.IDTR.base = base;
+                    },
+                    setLimit: function (limit) {
+                        cpu.IDTR.limit = limit;
+                    }
+                }
             };
         },
 
