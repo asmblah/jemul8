@@ -177,6 +177,7 @@ define([
 			, size_mem: 0x00 // memsize
 			// Bit8u text_snapshot[128 * 1024]; // current text snapshot
 			// Bit8u tile[X_TILESIZE * Y_TILESIZE * 4]; /**< Currently allocates the tile as large as needed. */
+			, tile: Buffer.createByteBuffer(X_TILESIZE * Y_TILESIZE * 4)
 			, charmap_address: 0x0000
 			, x_dotclockdiv2: false
 			, y_doublescan: false
@@ -208,6 +209,17 @@ define([
 		this.textSnapshot = null;
 	}
 	util.inherit(VGA, IODevice, "VGA"); // Inheritance
+
+	VGA.prototype.getTileSize = function () {
+		return {
+			width: X_TILESIZE,
+			height: Y_TILESIZE
+		};
+	};
+
+	// Stub
+	VGA.prototype.graphicsTileUpdate = function () {};
+
 	VGA.prototype.init = function (done, fail) {
 		var machine = this.machine;
 		var state = this.state;
@@ -594,8 +606,8 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if (trace) { util.warning("graphics_tile_update()"); }
-								//bx_gui->graphics_tile_update(state.tile, xc, yc);
+
+								this.graphicsTileUpdate(state.tile, xc, yc);
 							}
 						}
 					}
@@ -662,8 +674,8 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if (trace) { util.warning("graphics_tile_update()"); }
-								//bx_gui->graphics_tile_update(state.tile, xc, yc);
+
+								this.graphicsTileUpdate(state.tile, xc, yc);
 							}
 						}
 					}
@@ -699,8 +711,8 @@ define([
 								}
 							}
 							this.setTileUpdated(xti, yti, 0);
-							if (trace) { util.warning("graphics_tile_update()"); }
-							//bx_gui->graphics_tile_update(state.tile, xc, yc);
+
+							this.graphicsTileUpdate(state.tile, xc, yc);
 						}
 					}
 				}
@@ -733,8 +745,8 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if (trace) { util.warning("graphics_tile_update()"); }
-								//bx_gui->graphics_tile_update(state.tile, xc, yc);
+
+								this.graphicsTileUpdate(state.tile, xc, yc);
 							}
 						}
 					}
@@ -758,8 +770,8 @@ define([
 									}
 								}
 								this.setTileUpdated(xti, yti, 0);
-								if (trace) { util.warning("graphics_tile_update"); }
-								//bx_gui->graphics_tile_update(state.tile, xc, yc);
+
+								this.graphicsTileUpdate(state.tile, xc, yc);
 							}
 						}
 					}
@@ -915,7 +927,8 @@ define([
 	VGA.prototype.determineScreenDimensions = function () {
 		var ai = new Array(0x20)
 			, i, h, v
-			, dimens = { width: 0, height: 0 };
+			, dimens = { width: 0, height: 0 }
+			, state = this.state;
 
 		for (i = 0 ; i < 0x20 ; i++) {
 			ai[i] = state.CRTC.reg[i];
@@ -972,9 +985,31 @@ define([
 		state.vga_mem_updated = true;
 
 		if (state.graphics_ctrl.graphics_alpha) {
-			util.panic("VGA.redrawArea() :: Gfx mode not implemented yet");
-		}
+			// graphics mode
+			xmax = old_iWidth;
+			ymax = old_iHeight;
 
+			xt0 = x0 / X_TILESIZE;
+			yt0 = y0 / Y_TILESIZE;
+
+			if (x0 < xmax) {
+				xt1 = (x0 + width  - 1) / X_TILESIZE;
+			} else {
+				xt1 = (xmax - 1) / X_TILESIZE;
+			}
+
+			if (y0 < ymax) {
+				yt1 = (y0 + height - 1) / Y_TILESIZE;
+			} else {
+				yt1 = (ymax - 1) / Y_TILESIZE;
+			}
+
+			for (yti = yt0; yti <= yt1; yti++) {
+				for (xti = xt0; xti <= xt1; xti++) {
+					this.setTileUpdated(xti, yti, 1);
+				}
+			}
+		}
 	};
 	// Based on [bx_vga_c::get_actl_palette_idx]
 	VGA.prototype.getAttrCtrlPaletteIndex = function (index) {
@@ -2091,9 +2126,35 @@ define([
 
 		start_addr = (state.CRTC.reg[0x0c] << 8) | state.CRTC.reg[0x0d];
 
-		if (state.graphics_ctrl.graphics_alpha) {
-			util.panic("VGA memoryWrite() :: Gfx mode not implemented yet");
-		}
+        if (state.graphics_ctrl.graphics_alpha) {
+            if (state.graphics_ctrl.memory_mapping == 3) { // 0xB8000 .. 0xBFFFF
+                util.panic("CGA 320x200x4 / 640x200x2 :: Not supported");
+            } else if (state.graphics_ctrl.memory_mapping != 1) {
+                util.panic("VGA :: Invalid memory mapping: " + state.graphics_ctrl.memory_mapping);
+            }
+
+            if (state.sequencer.chain_four) {
+                (function () {
+                    var x_tileno, y_tileno;
+
+                    // 320 x 200 256 color mode: chained pixel representation
+                    bufVRAM[((offset & ~0x03) >>> 0) + (offset % 4)*65536] = val;
+                    if (state.line_offset > 0) {
+                        offset -= start_addr;
+                        x_tileno = ((offset % state.line_offset) / (X_TILESIZE/2)) >>> 0;
+                        if (state.y_doublescan) {
+                            y_tileno = ((offset / state.line_offset) / (Y_TILESIZE/2)) >>> 0;
+                        } else {
+                            y_tileno = ((offset / state.line_offset) / Y_TILESIZE) >>> 0;
+                        }
+                        state.vga_mem_updated = 1;
+                        device.setTileUpdated(x_tileno, y_tileno, 1);
+                    }
+                }());
+
+                return;
+            }
+        }
 
 		/** Address between 0xA0000 and 0xAFFFF **/
 
