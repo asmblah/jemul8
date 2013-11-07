@@ -187,22 +187,22 @@ define([
                 return promise;
             }
 
-            loadPlugins().done(function () {
-                system.cpu.on("interrupt", function (vector) {
-                    system.emit("interrupt", vector);
-                });
+            system.cpu.on("interrupt", function (vector) {
+                system.emit("interrupt", vector);
+            });
 
-                system.io.on("io read", function (port, length) {
-                    system.emit("io read", port, length);
-                });
+            system.io.on("io read", function (port, length) {
+                system.emit("io read", port, length);
+            });
 
-                system.io.on("io write", function (port, value, length) {
-                    system.emit("io write", port, value, length);
-                });
+            system.io.on("io write", function (port, value, length) {
+                system.emit("io write", port, value, length);
+            });
 
-                system.memory.init().done(function () {
-                    system.cpu.init().done(function () {
-                        system.io.init().done(function () {
+            system.memory.init().done(function () {
+                system.cpu.init().done(function () {
+                    system.io.init().done(function () {
+                        loadPlugins().done(function () {
                             system.reset({ "type": "hardware" });
 
                             system.inited = true;
