@@ -60,6 +60,13 @@ ${person} walked up the stairs in ${person}'s flat.
 EOS
 */) {}, {person: "Fred"}),
                     expectedString: "Fred walked up the stairs in Fred's flat."
+                },
+                {
+                    heredoc: util.heredoc(function (/*<<<EOS
+The ladder is ${length}cm long.
+EOS
+*/) {}, {length: 12}),
+                    expectedString: "The ladder is 12cm long."
                 }
             ], function (scenario, index) {
                 it("should return the correct string for heredoc #" + (index + 1), function () {

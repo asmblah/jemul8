@@ -129,7 +129,7 @@ define([
                 var pattern = new RegExp(("${" + name + "}").replace(/[^a-z0-9]/g, "\\$&"), "g");
 
                 string = string.replace(pattern, value);
-            });
+            }, {keys: true});
 
             return string;
         },
