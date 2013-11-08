@@ -1342,19 +1342,21 @@ define([
 
                 len = CX.get() + 1;
 
-                while (--len) {
+                while (len > 0) {
                     this.operand2.write(this.operand1.read());
 
                     esi += delta;
                     edi += delta;
                     SI.set(esi);
                     DI.set(edi);
+
+                    len -= delta;
                 }
 
                 // TODO: Almost always "len === 0", however if hits eg. segment limit
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
-                CX.set(len);
+                CX.set(len < 0 ? 0 : len);
             } else {
                 // Otherwise must have been #REPNE (#REPNZ)
                 util.problem("Instruction.execute() :: MOVS - #REPNE invalid");

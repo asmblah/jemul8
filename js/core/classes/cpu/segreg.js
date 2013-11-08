@@ -365,6 +365,8 @@ define([
             } else {
                 return util.GP_EXCEPTION;
             }
+        }, setLimit: function (limit) {
+            this.cache.limitScaled = limit;
         }
     });
 

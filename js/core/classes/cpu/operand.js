@@ -332,7 +332,7 @@ define([
 							operand.type = "GENERAL";
 							// DS may be overridden for string operations...
 							//  (set as default)
-							operand.reg = decoder.SI;
+							operand.reg = addressSize === 4 ? decoder.ESI : decoder.SI;
 							operand.isPointer = true;
 							break;
 						// Memory, addressed by ES:DI register pair
@@ -340,7 +340,7 @@ define([
 							operand.type = "GENERAL";
 							// ... but ES may not
 							operand.segreg = decoder.ES;
-							operand.reg = decoder.DI;
+							operand.reg = addressSize === 4 ? decoder.EDI : decoder.DI;
 							operand.isPointer = true;
 							break;
 						// (E)FLAGS register

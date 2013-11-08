@@ -330,8 +330,8 @@ define([
 
             as = hasOwn.call(options, "as") ? options.as : "number";
 
-            if (as && !/^(array|buffer|number)$/.test(as)) {
-                throw new Exception("System.read() :: 'as' must be 'array', 'buffer' or 'number' if specified, '" + as + "' given");
+            if (as && !/^(array|buffer|number|string)$/.test(as)) {
+                throw new Exception("System.read() :: 'as' must be 'array', 'buffer', 'number' or 'string' if specified, '" + as + "' given");
             }
 
             size = options.size;
@@ -344,22 +344,27 @@ define([
                     data = new Uint8Array(size);
                     system.memory.readPhysicalBlock(from, data, data.byteLength);
                 } else if (as === "number") {
-                    return system.memory.readPhysical(from, size);
+                    data = system.memory.readPhysical(from, size);
+                } else if (as === "string") {
+                    data = "";
+                    for (offset = 0; offset < size; offset += 1) {
+                        data += String.fromCharCode(system.memory.readPhysical(from + offset, 1));
+                    }
                 } else {
                     data = [];
                     for (offset = 0; offset < size; offset += 1) {
                         data[offset] = system.memory.readPhysical(from + offset, 1);
                     }
                 }
-
-                return from;
             // Reading from I/O address space
             } else {
                 port = options.port;
                 size = options.size;
 
-                return system.io.read(port, size);
+                data = system.io.read(port, size);
             }
+
+            return data;
         },
 
         registerIRQ: function (irq, handler) {
@@ -439,6 +444,7 @@ define([
         },
 
         write: function (options) {
+            /*jshint bitwise: false */
             var data,
                 offset,
                 port,
@@ -468,6 +474,10 @@ define([
                 } else if (util.isArray(data)) {
                     for (offset = 0; offset < size; offset += 1) {
                         system.memory.writePhysical(to + offset, data[offset], 1);
+                    }
+                } else if (util.isString(data)) {
+                    for (offset = 0; offset < size; offset += 1) {
+                        system.memory.writePhysical(to + offset, data.charCodeAt(offset) & 0xff, 1);
                     }
                 }
             // Writing to I/O address space
