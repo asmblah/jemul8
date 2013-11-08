@@ -44,6 +44,30 @@ define([
             });
         });
 
+        describe("heredoc()", function () {
+            util.each([
+                {
+                    heredoc: util.heredoc(function (/*<<<EOS
+Line 1
+Line 2
+EOS
+*/) {}),
+                    expectedString: "Line 1\nLine 2"
+                },
+                {
+                    heredoc: util.heredoc(function (/*<<<EOS
+${person} walked up the stairs in ${person}'s flat.
+EOS
+*/) {}, {person: "Fred"}),
+                    expectedString: "Fred walked up the stairs in Fred's flat."
+                }
+            ], function (scenario, index) {
+                it("should return the correct string for heredoc #" + (index + 1), function () {
+                    expect(scenario.heredoc).to.equal(scenario.expectedString);
+                });
+            });
+        });
+
         describe("hexify()", function () {
             util.each([
                 {byteSize: 1, values: [

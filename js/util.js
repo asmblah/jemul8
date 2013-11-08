@@ -115,14 +115,23 @@ define([
 
         get: get,
 
-        heredoc: function (fn) {
-            var match = function () {}.toString.call(fn).match(/\/\*<<<(\w+)[\r\n](?:([\s\S]*)[\r\n])?\1\s*\*\//);
+        heredoc: function (fn, variables) {
+            var match = function () {}.toString.call(fn).match(/\/\*<<<(\w+)[\r\n](?:([\s\S]*)[\r\n])?\1\s*\*\//),
+                string;
 
             if (!match) {
                 throw new Error("util.heredoc() :: Function does not contain a heredoc");
             }
 
-            return match[2] || "";
+            string = match[2] || "";
+
+            util.each(variables, function (value, name) {
+                var pattern = new RegExp(("${" + name + "}").replace(/[^a-z0-9]/g, "\\$&"), "g");
+
+                string = string.replace(pattern, value);
+            });
+
+            return string;
         },
 
         hexify: function (number) {
