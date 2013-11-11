@@ -1314,9 +1314,9 @@ define([
                     if (cpu.DF.get()) {
                         Buffer.copy(
                             accessor1.buf
-                            , accessor1.addrA20 - accessor1.addrStart_buf - len
+                            , accessor1.addrA20 - len
                             , accessor2.buf
-                            , accessor2.addrA20 - accessor2.addrStart_buf - len
+                            , accessor2.addrA20 - len
                             , len
                         );
                         SI.set(esi - len);
@@ -1325,9 +1325,9 @@ define([
                     } else {
                         Buffer.copy(
                             accessor1.buf
-                            , accessor1.addrA20 - accessor1.addrStart_buf
+                            , accessor1.addrA20
                             , accessor2.buf
-                            , accessor2.addrA20 - accessor2.addrStart_buf
+                            , accessor2.addrA20
                             , len
                         );
                         SI.set(esi + len);

@@ -52,10 +52,7 @@ define([
         this.machine = machine;
 
         // Physical memory / DRAM
-        this.bufDRAM = null;
-
-        // ROM memory
-        this.bufROMs = null;
+        this.buffer = null;
 
         // Memory access handlers
         this.handlers = {};
@@ -67,33 +64,19 @@ define([
         var sizeDRAM = 32 * 1024 * 1024;
 
         // Ask system to allocate a memory buffer to use for guest DRAM
-        this.bufDRAM = Buffer.wrapMultibyteBuffer(
+        this.buffer = Buffer.wrapMultibyteBuffer(
             Buffer.createBuffer(sizeDRAM)
         );
         this.sizeDRAM = sizeDRAM;
-
-        // Allocate buffer for system (CMOS), VGA & optional expansion ROMs
-        // - mem size from Bochs' [BX_MEM_C::init_memory] /memory/misc_mem.cc
-        /*
-         *    Memory map inside the 1st megabyte:
-         *
-         *    ...
-         *    0xc0000 - 0xdffff    Expansion Card BIOS and Buffer Area (128K)
-         *    0xe0000 - 0xeffff    Lower BIOS Area (64K)
-         *    0xf0000 - 0xfffff    Upper BIOS Area (64K)
-         */
-        this.bufROMs = Buffer.wrapMultibyteBuffer(
-            Buffer.createBuffer(EXROMSIZE + BIOSROMSZ + 4096)
-        );
 
         done();
     };
     Memory.prototype.destroy = function () {
         // Free memory etc. when finished
         if (!util.support.typedArrays) {
-            this.bufDRAM.length = 0;
+            this.buffer.length = 0;
         }
-        delete this.bufDRAM;
+        delete this.buffer;
     };
     // Register memory read & write handlers for the specified address range
     //    (For now, until/if it causes a problem, all I/O memory mapping
@@ -195,13 +178,13 @@ define([
         // Read/write memory buffer
         if (buf) {
             if (size === 1) {
-                return buf.getUint8(addrA20 - accessor.addrStart_buf, true);
+                return buf.getUint8(addrA20, true);
             }
             if (size === 2) {
-                return buf.getUint16(addrA20 - accessor.addrStart_buf, true);
+                return buf.getUint16(addrA20, true);
             }
             if (size === 4) {
-                return buf.getUint32(addrA20 - accessor.addrStart_buf, true);
+                return buf.getUint32(addrA20, true);
             }
 
             util.panic("Data length > 4");
@@ -220,7 +203,7 @@ define([
 
         // Read memory buffer
         if (buf) {
-            Buffer.copy(buf, addrA20 - accessor.addrStart_buf, toBuffer, 0, size);
+            Buffer.copy(buf, addrA20, toBuffer, 0, size);
         // Read via handler function
         } else {
             util.panic("Memory.readPhysicalBlock() :: Memory-mapped I/O not supported");
@@ -235,11 +218,11 @@ define([
         // Read/write memory buffer
         if (buf) {
             if (size === 1) {
-                buf.setUint8(addrA20 - accessor.addrStart_buf, val, true);
+                buf.setUint8(addrA20, val, true);
             } else if (size === 2) {
-                buf.setUint16(addrA20 - accessor.addrStart_buf, val, true);
+                buf.setUint16(addrA20, val, true);
             } else if (size === 4) {
-                buf.setUint32(addrA20 - accessor.addrStart_buf, val, true);
+                buf.setUint32(addrA20, val, true);
             } else {
                 util.panic("Data length > 4");
             }
@@ -257,7 +240,7 @@ define([
 
         // Read memory buffer
         if (buf) {
-            Buffer.copy(fromBuffer, 0, buf, addrA20 - accessor.addrStart_buf, Buffer.getBufferLength(fromBuffer));
+            Buffer.copy(fromBuffer, 0, buf, addrA20, Buffer.getBufferLength(fromBuffer));
         // Read via handler function
         } else {
             util.panic("Memory.writePhysicalBlock() :: Memory-mapped I/O not supported");
@@ -345,7 +328,6 @@ define([
         // Determine whether we are in CMOS ROM
             isBIOS = (addrA20 >= (~BIOS_MASK >>> 0)),
             buf = null,
-            addrStart_buf,
             handler = null;
 
         /*
@@ -367,8 +349,7 @@ define([
             // Check access is within guest DRAM size
             if (addrA20 < mem.sizeDRAM) {
                 // DRAM starts (of course) from address 0x00
-                buf = mem.bufDRAM;
-                addrStart_buf = 0;
+                buf = mem.buffer;
             } else {
                 // TODO: It is ok to set a segreg to an invalid value,
                 //    just not to then reference using the invalid value,
@@ -391,8 +372,7 @@ define([
             if ((addrA20 & 0xfffe0000) === 0x000e0000) {
                 // ROM memory buffer begins at 0xC0000 in physical memory
                 // FIXME: Should be Read Only...?
-                buf = mem.bufROMs;
-                addrStart_buf = 0xC0000;
+                buf = mem.buffer;
             /*
              *    Expansion ROMs/BIOSes
              *    0xC0000 -> 0xDFFFF "Exp. Card BIOS and Buffer Area" (128K)
@@ -402,14 +382,12 @@ define([
              */
             } else {
                 // ROM memory buffer begins at 0xC0000 in physical memory
-                buf = mem.bufROMs;
-                addrStart_buf = 0xC0000;
+                buf = mem.buffer;
             }
         } else if (isBIOS) {
             // ROM memory buffer begins at 0xC0000 in physical memory
             // FIXME: Should be Read Only...?
-            buf = mem.bufROMs;
-            addrStart_buf = 0xC0000;
+            buf = mem.buffer;
         } else {
             util.problem("Memory.mapPhysical() ::"
                 + " Address " + util.format("hex", addrA20) + " is out-of-bounds");
@@ -419,7 +397,6 @@ define([
         return {
             addrA20: addrA20,
             buf: buf,
-            addrStart_buf: addrStart_buf,
             handler: handler
         };
     };
