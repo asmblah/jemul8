@@ -21,7 +21,7 @@ define([
 ) {
     "use strict";
 
-    function Memory(options) {
+    function Memory(memoryAllocator, options) {
         this.options = options || {};
         this.system = null;
 
@@ -50,14 +50,13 @@ define([
             vga.machine = machine;
 
             return machine;
-        }(this)));
+        }(this)), memoryAllocator.allocateBytes(32 * 1024 * 1024));
     }
 
     util.extend(Memory.prototype, {
         init: function () {
-            var promise = new Promise();
-
-            this.legacyMemory.init(function () {});
+            var memory = this,
+                promise = new Promise();
 
             return promise.resolve();
         },

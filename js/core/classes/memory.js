@@ -45,32 +45,19 @@ define([
         EXROM_MASK = (EXROMSIZE - 1);
 
     // Memory subsystem class constructor
-    function Memory(machine) {
+    function Memory(machine, buffer) {
         util.assert(this && (this instanceof Memory),
             "Memory constructor :: error - not called properly");
 
         this.machine = machine;
 
-        // Physical memory / DRAM
-        this.buffer = null;
+        // Physical memory / DRAM and ROMs
+        this.buffer = buffer;
+        this.sizeDRAM = buffer.byteLength;
 
         // Memory access handlers
         this.handlers = {};
     }
-    // Set up memory subsystem
-    Memory.prototype.init = function (done, fail) {
-        // 32MB RAM
-        // FIXME: This should be a config setting
-        var sizeDRAM = 32 * 1024 * 1024;
-
-        // Ask system to allocate a memory buffer to use for guest DRAM
-        this.buffer = Buffer.wrapMultibyteBuffer(
-            Buffer.createBuffer(sizeDRAM)
-        );
-        this.sizeDRAM = sizeDRAM;
-
-        done();
-    };
     Memory.prototype.destroy = function () {
         // Free memory etc. when finished
         if (!util.support.typedArrays) {

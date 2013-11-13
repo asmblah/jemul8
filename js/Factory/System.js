@@ -58,7 +58,8 @@ define([
         PS2_OPTIONS = "ps2",
         VGA_OPTIONS = "vga";
 
-    function SystemFactory(options) {
+    function SystemFactory(memoryAllocator, options) {
+        this.memoryAllocator = memoryAllocator;
         this.options = options;
     }
 
@@ -78,7 +79,7 @@ define([
             options = util.extend({}, factory.options, options);
 
             io = new IO();
-            memory = new Memory(options[MEMORY_OPTIONS]);
+            memory = new Memory(factory.memoryAllocator, options[MEMORY_OPTIONS]);
             system = new System(clock, io, memory);
             memory.setSystem(system);
             cpu = new CPU(system, io, memory, options[CPU_OPTIONS]);

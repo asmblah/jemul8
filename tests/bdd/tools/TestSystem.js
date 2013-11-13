@@ -7,26 +7,34 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global define */
+/*global ArrayBuffer, DataView, define, setTimeout */
 define([
     "js/util",
     "tools/Factory/Assembler",
+    "js/MemoryAllocator",
     "js/Promise",
     "js/Factory/System"
 ], function (
     util,
     AssemblerFactory,
+    MemoryAllocator,
     Promise,
     SystemFactory
 ) {
     "use strict";
 
-    var LOAD_ADDRESS = 0x00000100;
+    var LOAD_ADDRESS = 0x00000100,
+        assembledCache = {},
+        // Statically create the memory buffer once and reuse, so we don't run out of JavaScript memory
+        memoryBuffer = new DataView(new ArrayBuffer(32 * 1024 * 1024));
 
     function TestSystem() {
         this.assembler = new AssemblerFactory().create();
-        this.assembledCache = {};
-        this.system = new SystemFactory().create();
+        this.memoryAllocator = new MemoryAllocator();
+
+        sinon.stub(this.memoryAllocator, "allocateBytes").returns(memoryBuffer);
+
+        this.system = new SystemFactory(this.memoryAllocator).create();
         this.ticksNow = null;
     }
 
@@ -71,11 +79,11 @@ define([
                 });
             }
 
-            if (testSystem.assembledCache[assembly]) {
-                execute(testSystem.assembledCache[assembly]);
+            if (assembledCache[assembly]) {
+                execute(assembledCache[assembly]);
             } else {
                 assembler.assemble(assembly).done(function (buffer) {
-                    testSystem.assembledCache[assembly] = buffer;
+                    assembledCache[assembly] = buffer;
                     execute(buffer);
                 }).fail(function (exception) {
                     promise.reject(exception);

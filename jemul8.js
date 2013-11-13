@@ -18,14 +18,17 @@ define({
     }
 }, [
     "js/Jemul8",
+    "js/MemoryAllocator",
     "js/Factory/System"
 ], function (
     Jemul8,
+    MemoryAllocator,
     SystemFactory
 ) {
     "use strict";
 
-    var systemFactory = new SystemFactory();
+    var memoryAllocator = new MemoryAllocator(),
+        systemFactory = new SystemFactory(memoryAllocator);
 
     return new Jemul8(systemFactory);
 });
