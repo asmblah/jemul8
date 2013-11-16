@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         describe("when under 32-bit protected mode", function () {
             // Based on http://f.osdev.org/viewtopic.php?f=1&t=20588
             it("should correctly enter protected mode and load AX with 0x1234", function (done) {

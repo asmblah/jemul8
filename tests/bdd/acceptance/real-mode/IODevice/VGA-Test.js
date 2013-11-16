@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         it("should return 0xFF from the first byte of I/O-mapped VGA memory when not configured", function (done) {
             var assembly = util.heredoc(function (/*<<<EOS
 org 0x100

@@ -72,6 +72,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         describe("when counter 0 is disabled", function () {
             beforeEach(function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS

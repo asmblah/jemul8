@@ -104,27 +104,22 @@ define([
                     }
                 },
                 registerTimer: function (fn, thisObj, intervalUsecs, isContinuous, isActive) {
-                    /*global clearTimeout, setTimeout */
-                    var timer;
+                    var timer = system.createTimer();
+
+                    timer.on("elapse", function () {
+                        if (isContinuous) {
+                            fn.call(thisObj, Date.now());
+                            setupTimer();
+                        } else {
+                            fn.call(thisObj, Date.now());
+                        }
+                    });
 
                     function setupTimer() {
-                        clearTimeout(timer);
-
                         if (isActive) {
-                            (function create() {
-                                timer = setTimeout(function () {
-                                    var i;
-
-                                    if (isContinuous) {
-                                        for (i = 0; i < 1000; i++) {
-                                            fn.call(thisObj, Date.now());
-                                        }
-                                        create();
-                                    } else {
-                                        fn.call(thisObj, Date.now());
-                                    }
-                                }, intervalUsecs / 1000);
-                            }());
+                            timer.triggerAfterMicroseconds(intervalUsecs);
+                        } else {
+                            timer.disable();
                         }
                     }
 

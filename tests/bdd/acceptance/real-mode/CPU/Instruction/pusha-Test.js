@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         describe("when the address-size attribute of the stack segment is 16-bit", function () {
             beforeEach(function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS

@@ -11,10 +11,12 @@
 define([
     "js/util",
     "js/Emulator",
+    "js/MemoryAllocator",
     "js/Factory/System"
 ], function (
     util,
     Emulator,
+    MemoryAllocator,
     SystemFactory
 ) {
     "use strict";
@@ -25,7 +27,7 @@ define([
                 system;
 
             beforeEach(function (done) {
-                system = new SystemFactory().create({
+                system = new SystemFactory(new MemoryAllocator()).create({
                     "cmos": {
                         "bios": "docs/bochs-20100605/bios/BIOS-bochs-legacy"
                     },

@@ -53,11 +53,15 @@ define([
                         system.raiseIRQ(irq);
                     }
                 },
-                registerTimer: function (fn, thisObj) {
-                    //return system.registerTimer(fn, thisObj);
-                    setInterval(function () {
+                registerTimer: function (fn, thisObj, interval) {
+                    var timer = system.createTimer();
+
+                    timer.on("elapse", function () {
                         fn.call(thisObj, Date.now());
-                    }, 1);
+                        timer.triggerAfterMicroseconds(interval);
+                    });
+
+                    timer.triggerAfterMicroseconds(interval);
                 },
                 setEnableA20: function (enabled) {
                     system.setEnableA20(enabled);

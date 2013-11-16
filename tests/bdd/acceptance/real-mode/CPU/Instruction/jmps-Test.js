@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         describe("when under 16-bit real mode", function () {
             it("should be able to jump forward, within a few bytes", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS

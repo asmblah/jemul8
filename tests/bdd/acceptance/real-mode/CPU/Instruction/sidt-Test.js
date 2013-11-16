@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         describe("when the operand-size attribute is 16-bit", function () {
             describe("when IDTR contains 0x00123456FABC", function () {
                 beforeEach(function (done) {

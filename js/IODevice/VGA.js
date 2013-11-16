@@ -73,10 +73,14 @@ define([
                     }
                 },
                 registerTimer: function (fn, thisObj, interval) {
-                    //return system.registerTimer(fn, thisObj);
-                    setInterval(function () {
+                    var timer = system.createTimer();
+
+                    timer.on("elapse", function () {
                         fn.call(thisObj, Date.now());
-                    }, interval / 1000);
+                        timer.triggerAfterMicroseconds(interval);
+                    });
+
+                    timer.triggerAfterMicroseconds(interval);
                 }
             };
         }(this)));

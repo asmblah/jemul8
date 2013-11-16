@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         describe("when using the #REP prefix to repeat while (E)CX > 0", function () {
             util.each([
                 // 16-bit address size

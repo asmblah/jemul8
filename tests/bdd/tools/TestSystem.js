@@ -7,7 +7,7 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global ArrayBuffer, DataView, define, setTimeout */
+/*global ArrayBuffer, DataView, define, setTimeout, Uint8Array */
 define([
     "js/util",
     "tools/Factory/Assembler",
@@ -25,13 +25,17 @@ define([
 
     var LOAD_ADDRESS = 0x00000100,
         assembledCache = {},
+        memorySize = 32 * 1024 * 1024,
         // Statically create the memory buffer once and reuse, so we don't run out of JavaScript memory
-        memoryBuffer = new DataView(new ArrayBuffer(32 * 1024 * 1024));
+        memoryBuffer = new DataView(new ArrayBuffer(memorySize)),
+        zeroMemoryBuffer = new Uint8Array(memorySize);
 
     function TestSystem() {
         this.assembler = new AssemblerFactory().create();
         this.memoryAllocator = new MemoryAllocator();
 
+        // Zero out memory buffer
+        new Uint8Array(memoryBuffer.buffer).set(zeroMemoryBuffer);
         sinon.stub(this.memoryAllocator, "allocateBytes").returns(memoryBuffer);
 
         this.system = new SystemFactory(this.memoryAllocator).create();

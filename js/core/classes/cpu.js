@@ -82,6 +82,7 @@ define([
         //    See SegRegister.set() in /classes/memory.js
         this.cache_insn = [];
 
+        this.timeout = null;
         this.isHalted = true;
 
         // Operands & result from last flag-affecting operation
@@ -428,11 +429,17 @@ define([
 
                 util.debug("CPU halted");
             }
+
+            global.clearTimeout(this.timeout);
         },
         // Command emulated CPU to run/resume from CS:EIP
         run: function () {
+            var cpu = this;
+
             if (this.isHalted) {
                 this.isHalted = false;
+
+                cpu.yieldManager();
 
                 util.debug("CPU resumed");
             }
@@ -605,8 +612,7 @@ define([
         },
         // Set up the CPU - start fetch/execute cycle etc.
         init: function () {
-            var machine = this.machine,
-                cpu = this;
+            var machine = this.machine;
 
             // Config setting for max no. of DMA quantums (byte or word)
             //  that may be transferred in one bulk batch during Yield
@@ -614,16 +620,6 @@ define([
             if (typeof this.maxDMAQuantumsPerYield !== "number") {
                 this.maxDMAQuantumsPerYield = 512;
             }
-
-            function yieldManager() {
-                cpu.cycle();
-
-                // Run next time-slice as soon as possible
-                global.setTimeout(yieldManager, 0);
-            }
-
-            // Don't start yield manager immediately; finish setup first
-            global.setTimeout(yieldManager, 0);
         },
         cycle: function () {
             var cpu = this;
@@ -1105,6 +1101,16 @@ define([
             }
 
             return false;
+        },
+        yieldManager: function () {
+            var cpu = this;
+
+            cpu.cycle();
+
+            // Run next time-slice as soon as possible
+            cpu.timeout = global.setTimeout(function nextTimeSlice() {
+                cpu.yieldManager();
+            }, 0);
         }
     });
 
