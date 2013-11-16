@@ -101,12 +101,15 @@ define([
             }(legacyCPU.interrupt));
 
             // Monkey-patch a trap for halt
-            legacyCPU.halt = (function (halt) {
-                return function () {
-                    cpu.halt();
-                    halt.apply(this, arguments);
-                };
-            }(legacyCPU.halt));
+            (function (newHalt, legacyHalt) {
+                function halt() {
+                    newHalt.call(cpu);
+                    legacyHalt.call(legacyCPU);
+                }
+
+                cpu.halt = halt;
+                legacyCPU.halt = halt;
+            }(cpu.halt, legacyCPU.halt));
 
             (function () {
                 var originalHandleAsynchronousEvents = legacyCPU.handleAsynchronousEvents;
