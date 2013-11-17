@@ -43,24 +43,27 @@ define([
                     operandSize: 8,
                     addressSize: 16,
                     string: "hello world!",
+                    quantums: 12,
                     from: 0x300,
                     to: 0x500,
-                    expectedSI: 0x300 + 13,
-                    expectedDI: 0x500 + 13
+                    expectedSI: 0x300 + 12,
+                    expectedDI: 0x500 + 12
                 },
                 {
                     operandSize: 16,
                     addressSize: 16,
                     string: "hello again!",
+                    quantums: 6,
                     from: 0x300,
                     to: 0x500,
-                    expectedSI: 0x300 + 14,
-                    expectedDI: 0x500 + 14
+                    expectedSI: 0x300 + 12,
+                    expectedDI: 0x500 + 12
                 },
                 {
                     operandSize: 32,
                     addressSize: 16,
-                    string: "greetings!",
+                    string: "greetings..!",
+                    quantums: 3,
                     from: 0x300,
                     to: 0x500,
                     expectedSI: 0x300 + 12,
@@ -72,10 +75,11 @@ define([
                     operandSize: 8,
                     addressSize: 32,
                     string: "hello!",
+                    quantums: 6,
                     from: 0x280000,
                     to: 0x290000,
-                    expectedSI: 0x280000 + 7,
-                    expectedDI: 0x290000 + 7
+                    expectedSI: 0x280000 + 6,
+                    expectedDI: 0x290000 + 6
                 },
             ], function (scenario) {
                 var description = "when the operand-size attribute is " + scenario.operandSize + "-bit " +
@@ -93,12 +97,12 @@ org 0x100
 cld
 mov ${register32}si, ${from}
 mov ${register32}di, ${to}
-mov ${register32}cx, ${length}
+mov ${register32}cx, ${quantums}
 ${prefix}rep movs${suffix}
 
 hlt
 EOS
-*/) {}, {prefix: prefix, register32: register32, length: scenario.string.length, from: scenario.from, to: scenario.to, suffix: suffix});
+*/) {}, {prefix: prefix, register32: register32, quantums: scenario.quantums, from: scenario.from, to: scenario.to, suffix: suffix});
 
                         // Allow access to high memory even though we are in real mode
                         system.getCPURegisters().cs.setLimit(0xffffffff);
