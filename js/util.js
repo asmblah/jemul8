@@ -163,6 +163,10 @@ define([
             });
         },
 
+        isNumber: function (number) {
+            return util.getType(number) === "Number";
+        },
+
         mask: function (number, mask) {
             /*jslint bitwise: true */
 

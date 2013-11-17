@@ -467,18 +467,21 @@ define([
             // Writing to memory
             if (hasOwn.call(options, "to")) {
                 to = options.to;
-                size = data.length;
 
                 if (options.data.byteLength) {
                     system.memory.writePhysicalBlock(to, data);
                 } else if (util.isArray(data)) {
+                    size = data.length;
                     for (offset = 0; offset < size; offset += 1) {
                         system.memory.writePhysical(to + offset, data[offset], 1);
                     }
                 } else if (util.isString(data)) {
+                    size = data.length;
                     for (offset = 0; offset < size; offset += 1) {
                         system.memory.writePhysical(to + offset, data.charCodeAt(offset) & 0xff, 1);
                     }
+                } else if (util.isNumber(data)) {
+                    system.memory.writePhysical(to, data, options.size);
                 }
             // Writing to I/O address space
             } else {

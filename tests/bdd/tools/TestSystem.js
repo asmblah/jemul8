@@ -7,7 +7,7 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global ArrayBuffer, DataView, define, setTimeout, Uint8Array */
+/*global ArrayBuffer, DataView, define, Uint8Array */
 define([
     "js/util",
     "tools/Factory/Assembler",
@@ -60,7 +60,7 @@ define([
             return promise;
         },
 
-        execute: function (assembly) {
+        execute: function (assembly, options) {
             var promise = new Promise(),
                 testSystem = this,
                 assembler = testSystem.assembler,
@@ -76,12 +76,14 @@ define([
 
                 // Point CPU at first loaded instruction
                 registers.cs.set(0x0000);
-                registers.eip.set(LOAD_ADDRESS);
+                registers.eip.set(options.entrypoint || LOAD_ADDRESS);
 
                 system.run().done(function () {
                     promise.resolve();
                 });
             }
+
+            options = options || {};
 
             if (assembledCache[assembly]) {
                 execute(assembledCache[assembly]);

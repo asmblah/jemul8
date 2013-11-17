@@ -89,6 +89,7 @@ define({
 
         require([
             "bdd/acceptance/protected-mode/simpleTest",
+            "bdd/acceptance/real-mode/CPU/Instruction/callf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/jmpf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/movs-Test",
