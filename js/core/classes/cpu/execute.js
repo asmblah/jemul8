@@ -705,14 +705,13 @@ define([
             //  into upper half of result. Cleared when result
             //  fits exactly in the lower half
             if (operandSize == 1) {
-                isSignExtended = highBits && (res & 0x80);
+                isSignExtended = !highBits && (res & 0x80);
             } else if (operandSize == 2) {
-                isSignExtended = highBits && (res & 0x8000);
+                isSignExtended = !highBits && (res & 0x8000);
             } else if (operandSize == 4) {
-                isSignExtended = highBits && (lowBits & 0x80000000);
+                isSignExtended = !highBits && (lowBits & 0x80000000);
                 util.warning("IMUL :: setFlags needs to support Int64s");
             }
-
             // Lazy flags
             setFlags(this, cpu, multiplicand, multiplier, res);
 
@@ -720,6 +719,9 @@ define([
             if (isSignExtended) {
                 cpu.OF.set();
                 cpu.CF.set();
+            } else {
+                cpu.OF.clear();
+                cpu.CF.clear();
             }
         // Input Byte or Word from Port
         }, "IN": function (cpu) {

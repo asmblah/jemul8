@@ -208,7 +208,17 @@ define([
                     setLimit: function (limit) {
                         cpu.IDTR.limit = limit;
                     }
-                }
+                },
+
+                cf: cpu.CF,
+                pf: cpu.PF,
+                af: cpu.AF,
+                zf: cpu.ZF,
+                sf: cpu.SF,
+                tf: cpu.TF,
+                if: cpu.IF,
+                df: cpu.DF,
+                of: cpu.OF
             };
         },
 
