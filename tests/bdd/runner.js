@@ -100,6 +100,7 @@ define({
             "bdd/acceptance/real-mode/CPU/SIB-Test",
             "bdd/acceptance/real-mode/IODevice/CMOS-Test",
             "bdd/acceptance/real-mode/IODevice/PIT-Test",
+            "bdd/acceptance/real-mode/IODevice/SystemControl-Test",
             "bdd/acceptance/real-mode/IODevice/VGA-Test",
             "bdd/acceptance/real-mode/NOP-Test",
             "bdd/acceptance/real-mode/ROMBIOS-POST-Test",

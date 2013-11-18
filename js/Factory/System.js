@@ -25,6 +25,7 @@ define([
     "js/IODevice/PIT",
     "js/IODevice/PS2",
     "js/System",
+    "js/IODevice/SystemControl",
     "js/IODevice/VGA"
 ], function (
     browser,
@@ -43,6 +44,7 @@ define([
     PIT,
     PS2,
     System,
+    SystemControl,
     VGA
 ) {
     "use strict";
@@ -106,6 +108,7 @@ define([
                 endAddress: 0xbffff
             });
             io.register(new NE2K(system, io, memory, options[NE2K_OPTIONS]));
+            io.register(new SystemControl(system, io, memory));
 
             return system;
         }

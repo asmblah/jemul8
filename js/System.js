@@ -29,7 +29,7 @@ define([
 ) {
     "use strict";
 
-    var A20_DISABLED_MASK = 0xFFFFFFFF,
+    var A20_DISABLED_MASK = 0xFFeFFFFF,
         A20_ENABLED_MASK = 0xFFFFFFFF,
         EQUIPMENT_CHANGE = "equipment change",
         RESET_TYPE_OPTION = "type",
@@ -221,6 +221,10 @@ define([
             });
 
             return promise;
+        },
+
+        isA20Enabled: function () {
+            return this.a20Mask === A20_ENABLED_MASK;
         },
 
         isHRQHigh: function () {
