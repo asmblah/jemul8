@@ -27,7 +27,8 @@ define([
 ) {
     "use strict";
 
-    var BIOS_ROM_OPTION = "bios";
+    var BASE_MEMORY_IN_K = 640,
+        BIOS_ROM_OPTION = "bios";
 
     function CMOS(system, io, memory, options) {
         IODevice.call(this, "CMOS", system, io, memory, options);
@@ -47,6 +48,7 @@ define([
         },
 
         init: function () {
+            /*jshint bitwise: false */
             var cmos = this,
                 promise = new Promise(),
                 ram = new ArrayBuffer(0x80),
@@ -59,7 +61,6 @@ define([
             });
 
             cmos.system.observeEquipment(function () {
-                /*jshint bitwise: false */
                 var numberOfSupportedFloppies = cmos.system.getNumberOfSupportedFloppies();
 
                 registers[0x10].set(cmos.system.getFloppyDriveType());
@@ -70,6 +71,9 @@ define([
                     registers[0x14].set(registers[0x14].get() & 0x3e);
                 }
             });
+
+            registers[0x15].set(BASE_MEMORY_IN_K & 0xFF);
+            registers[0x16].set(BASE_MEMORY_IN_K >>> 8);
 
             (function () {
                 /*jshint bitwise: false */
