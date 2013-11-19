@@ -26,13 +26,22 @@ define([
                 // 1KB of total memory
                 memoryKB: 1,
                 // 0KB of extended memory, because conventional memory is first 1MB
-                expectedExtendedMemoryKBBelow64MB: 0
+                expectedExtendedMemoryKBBelow64MB: 0,
+                expectedExtendedMemoryKBAbove16MB: 0
             },
             {
                 // 16MB of total memory
                 memoryKB: 16 * 1024,
-                // 0KB of extended memory, because conventional memory is first 1MB
-                expectedExtendedMemoryKBBelow64MB: 15 * 1024
+                // 15MB of extended memory, because conventional memory is first 1MB
+                expectedExtendedMemoryKBBelow64MB: 15 * 1024,
+                expectedExtendedMemoryKBAbove16MB: 0
+            },
+            {
+                // 96MB of total memory
+                memoryKB: 96 * 1024,
+                // 63MB of extended memory, because conventional memory is first 1MB
+                expectedExtendedMemoryKBBelow64MB: 63 * 1024,
+                expectedExtendedMemoryKBAbove16MB: 80 * 1024
             }
         ], function (scenario) {
             describe("when there is " + scenario.memoryKB + "KB of extended memory (above 1MB)", function () {
@@ -151,6 +160,43 @@ EOS
                         }).fail(function (exception) {
                             done(exception);
                         });
+                    });
+                });
+
+                it("should report " + scenario.expectedExtendedMemoryKBAbove16MB + "KB of extended memory above 16MB in registers 0x34,0x35", function (done) {
+                    var assembly = util.heredoc(function (/*<<<EOS
+;; Write to index port
+mov dx, 0x70
+mov al, 0x34
+out dx, al
+
+;; Read CMOS register 0x34 to get low byte
+mov dx, 0x71
+in al, dx
+;; Place low byte in BL
+mov bl, al
+
+;; Write to index port
+mov dx, 0x70
+mov al, 0x35
+out dx, al
+
+;; Read CMOS register 0x35 to get high byte
+mov dx, 0x71
+in al, dx
+;; Place high byte in BH
+mov bh, al
+
+hlt
+EOS
+*/) {});
+
+                    testSystem.execute(assembly).done(function () {
+                        // Number is reported in 64KB chunks
+                        expect(system.getCPURegisters().bx.get()).to.equal(scenario.expectedExtendedMemoryKBAbove16MB / 64);
+                        done();
+                    }).fail(function (exception) {
+                        done(exception);
                     });
                 });
             });

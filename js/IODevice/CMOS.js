@@ -50,6 +50,7 @@ define([
         init: function () {
             /*jshint bitwise: false */
             var cmos = this,
+                extendedMemoryKBAbove16MB,
                 extendedMemoryKBBelow64MB,
                 memoryInKB,
                 promise = new Promise(),
@@ -84,6 +85,11 @@ define([
             registers[0x18].set(extendedMemoryKBBelow64MB >>> 8);
             registers[0x30].set(extendedMemoryKBBelow64MB & 0xFF);
             registers[0x31].set(extendedMemoryKBBelow64MB >>> 8);
+
+            extendedMemoryKBAbove16MB = Math.min(0xffff, Math.max(0, memoryInKB - 16384) / 64);
+
+            registers[0x34].set(extendedMemoryKBAbove16MB & 0xFF);
+            registers[0x35].set(extendedMemoryKBAbove16MB >>> 8);
 
             (function () {
                 /*jshint bitwise: false */
