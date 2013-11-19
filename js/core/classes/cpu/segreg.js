@@ -184,7 +184,7 @@ define([
                 // Find out the Current Privilege Level
                 //  for enforcing memory protection
                 cpl = cpu.getCPL();
-                debugger;
+
                 // Loading Segment Selector is special
                 if (this === cpu.SS) {
                     // Parse raw selector into components
