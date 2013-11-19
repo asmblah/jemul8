@@ -90,7 +90,7 @@ EOS
                         registers[register].set(value);
                     });
 
-                    testSystem.execute(assembly, {setCS: false}).done(function () {
+                    testSystem.execute(assembly).done(function () {
                         done();
                     }).fail(function (exception) {
                         done(exception);
