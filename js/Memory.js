@@ -21,8 +21,11 @@ define([
 ) {
     "use strict";
 
+    var DEFAULT_MEMORY_MEGABYTES = 32;
+
     function Memory(memoryAllocator, options) {
         this.options = options || {};
+        this.sizeInBytes = (this.options.kilobytes || DEFAULT_MEMORY_MEGABYTES * 1024) * 1024;
         this.system = null;
 
         this.legacyMemory = new LegacyMemory((function (memory) {
@@ -50,10 +53,14 @@ define([
             vga.machine = machine;
 
             return machine;
-        }(this)), memoryAllocator.allocateBytes(32 * 1024 * 1024));
+        }(this)), memoryAllocator.allocateBytes(this.sizeInBytes));
     }
 
     util.extend(Memory.prototype, {
+        getSizeInBytes: function () {
+            return this.sizeInBytes;
+        },
+
         init: function () {
             var memory = this,
                 promise = new Promise();

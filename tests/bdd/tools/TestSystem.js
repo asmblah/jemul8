@@ -30,7 +30,7 @@ define([
         memoryBuffer = new DataView(new ArrayBuffer(memorySize)),
         zeroMemoryBuffer = new Uint8Array(memorySize);
 
-    function TestSystem() {
+    function TestSystem(options) {
         this.assembler = new AssemblerFactory().create();
         this.memoryAllocator = new MemoryAllocator();
 
@@ -38,7 +38,7 @@ define([
         new Uint8Array(memoryBuffer.buffer).set(zeroMemoryBuffer);
         sinon.stub(this.memoryAllocator, "allocateBytes").returns(memoryBuffer);
 
-        this.system = new SystemFactory(this.memoryAllocator).create();
+        this.system = new SystemFactory(this.memoryAllocator).create(options);
         this.ticksNow = null;
     }
 
