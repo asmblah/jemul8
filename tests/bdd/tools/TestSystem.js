@@ -11,12 +11,14 @@
 define([
     "js/util",
     "tools/Factory/Assembler",
+    "js/EventEmitter",
     "js/MemoryAllocator",
     "js/Promise",
     "js/Factory/System"
 ], function (
     util,
     AssemblerFactory,
+    EventEmitter,
     MemoryAllocator,
     Promise,
     SystemFactory
@@ -31,6 +33,8 @@ define([
         zeroMemoryBuffer = new Uint8Array(memorySize);
 
     function TestSystem(options) {
+        EventEmitter.call(this);
+
         this.assembler = new AssemblerFactory().create();
         this.memoryAllocator = new MemoryAllocator();
 
@@ -41,6 +45,8 @@ define([
         this.system = new SystemFactory(this.memoryAllocator).create(options);
         this.ticksNow = null;
     }
+
+    util.inherit(TestSystem).from(EventEmitter);
 
     util.extend(TestSystem.prototype, {
         getSystem: function () {
@@ -77,6 +83,8 @@ define([
                 // Point CPU at first loaded instruction
                 registers.cs.set(0x0000);
                 registers.eip.set(options.entrypoint || LOAD_ADDRESS);
+
+                testSystem.emit("pre-run");
 
                 system.run().done(function () {
                     promise.resolve();

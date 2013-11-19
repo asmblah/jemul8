@@ -367,6 +367,8 @@ define([
             }
         }, setLimit: function (limit) {
             this.cache.limitScaled = limit;
+        }, set32BitMode: function (is32Bit) {
+            this.cache.default32BitSize = is32Bit;
         }
     });
 
