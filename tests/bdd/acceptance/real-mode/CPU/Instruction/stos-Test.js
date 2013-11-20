@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         util.each((function () {
             // Ensure every combination of default and overridden operand- and address-sizes is tested
             var sizing = [];

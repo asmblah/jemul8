@@ -30,6 +30,12 @@ define([
             });
         });
 
+        afterEach(function () {
+            system.pause();
+            system = null;
+            testSystem = null;
+        });
+
         util.each([false, true], function (is32BitMode) {
             describe("when in " + (is32BitMode ? 32 : 16) + "-bit real mode", function () {
                 /*jshint bitwise: false */
