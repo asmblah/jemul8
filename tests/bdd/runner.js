@@ -95,6 +95,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lea-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/movs-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/movzx-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/pusha-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/sidt-Test",
