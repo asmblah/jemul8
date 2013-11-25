@@ -110,6 +110,7 @@ define({
             "bdd/unit/js/core/classes/registerTest",
             "bdd/unit/js/IODevice/CMOSTest",
             "bdd/unit/js/plugins/std.keyboardTest",
+            "bdd/unit/js/DecoderTest",
             "bdd/unit/js/EmulatorTest",
             "bdd/unit/js/Jemul8Test",
             "bdd/unit/js/RegisterTest",
