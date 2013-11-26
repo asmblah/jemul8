@@ -44,6 +44,26 @@ define([
                     expectedName: "NOP",
                     expectedOperands: []
                 },
+                // Tests that 16-bit register is used
+                {
+                    is32Bit: false,
+                    assembly: "mov ax, 1",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "AX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            immediate: 1,
+                            immediateSize: 2,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
                 // Tests addressing method "O"
                 {
                     is32Bit: false,
@@ -161,7 +181,7 @@ define([
                     });
 
                     it("should have the correct name", function () {
-                        expect(instruction.name).to.equal(scenario.expectedName);
+                        expect(instruction.opcodeData.name).to.equal(scenario.expectedName);
                     });
 
                     it("should have the correct length", function () {
@@ -220,6 +240,24 @@ define([
 
                                     it("should have a displacement size of zero", function () {
                                         expect(operand.displacementSize).to.equal(0);
+                                    });
+                                }
+
+                                if (data.immediate) {
+                                    it("should have '" + data.immediate + "' as the immediate", function () {
+                                        expect(operand.immed).to.equal(data.immediate);
+                                    });
+
+                                    it("should have '" + data.immediateSize + "' as the immediate size", function () {
+                                        expect(operand.immedSize).to.equal(data.immediateSize);
+                                    });
+                                } else {
+                                    it("should have an immediate of zero", function () {
+                                        expect(operand.immed).to.equal(0);
+                                    });
+
+                                    it("should have an immediate size of zero", function () {
+                                        expect(operand.immedSize).to.equal(0);
                                     });
                                 }
 

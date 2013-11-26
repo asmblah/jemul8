@@ -10,9 +10,11 @@
 /*global define */
 define([
     "js/util",
+    "js/EventEmitter",
     "js/core/classes/decoder"
 ], function (
     util,
+    EventEmitter,
     LegacyDecoder
 ) {
     "use strict";
@@ -25,10 +27,14 @@ define([
     };
 
     function Decoder() {
-        this.legacyDecoder = null;
+        EventEmitter.call(this);
+
+        this.legacyDecoder = new LegacyDecoder();
         this.opcodeMap = null;
         this.partials = null;
     }
+
+    util.inherit(Decoder).from(EventEmitter);
 
     util.extend(Decoder.prototype, {
         bindCPU: function (cpu) {
@@ -162,7 +168,7 @@ getPrefixes:
             opcodeData.decodeFor(instruction, decoderState);
 
             instruction.length = decoderState.offset - offset;
-            instruction.name = opcodeData.name;
+            instruction.opcodeData = opcodeData;
 
             return instruction;
         },
@@ -247,7 +253,7 @@ getPrefixes:
             }
 
             var decoder = this,
-                legacyDecoder = new LegacyDecoder(),
+                legacyDecoder = decoder.legacyDecoder,
                 opcodeMap = {},
                 partials = {
                     "decodeModRM": function (instruction, operand, decoderState) {
@@ -411,11 +417,14 @@ getPrefixes:
                     // FIXME
                 };
 
-            decoder.legacyDecoder = legacyDecoder;
             decoder.opcodeMap = opcodeMap;
             decoder.partials = partials;
 
             registers = decoder.getRegisters();
+
+            decoder.emit("pre init", {
+                partials: partials
+            });
 
             // Translate legacy decoder table into faster version
             util.each(LegacyDecoder.arr_mapOpcodes, function (data, opcode) {
@@ -583,17 +592,16 @@ getPrefixes:
                         }
                     // Flag indicates a general purpose register (eg. AX, AH, AL)
                     //  or segment register (eg. CS, DS, SS)
-                    } else if (registers[attributes.toLowerCase()]) {
-                        register1Expression = "this.registers." + attributes.toLowerCase();
-                        typeExpression = "'GENERAL'";
-                        operandSizeExpression = register1Expression + ".size";
+                    } else {
+                        // 32-bit, depending on operand-size attribute
+                        if (attributes.length === 3) {
+                            register1Expression = operandSizeExpression + " === 4 ? this.registers." + attributes.toLowerCase() + " : this.registers." + attributes.toLowerCase().substr(1);
+                        } else {
+                            register1Expression = "this.registers." + attributes.toLowerCase();
+                        }
+
                         operandMaskExpression = "this.MASKS[" + register1Expression + ".size]";
-                    // Flag indicates a 16-bit general purpose register (eg. AX, SI)
-                    } else if (registers[attributes.toLowerCase().substr(1)]) {
-                        register1Expression = "this.registers." + attributes.toLowerCase().substr(1);
                         typeExpression = "'GENERAL'";
-                        operandSizeExpression = register1Expression + ".size";
-                        operandMaskExpression = "this.MASKS[" + register1Expression + ".size]";
                     }
 
                     parts.push("instruction.operand" + (index + 1) + " = {\
@@ -637,14 +645,24 @@ getPrefixes:
 };");
 
                     [].push.apply(parts, operandParts);
+
+                    decoder.emit("init operand", {
+                        addSet: function (propertyName, expression) {
+                            parts.push("instruction.operand" + (index + 1) + "." + propertyName + " = " + expression + ";");
+                        }
+                    });
                 });
 
                 util.extend(opcodeData, {
                     /*jshint evil: true */
-                    decodeFor: new Function("instruction, decoderState", parts.join(""))
+                    decodeFor: new Function("instruction, decoderState", parts.join("\n"))
                 });
 
                 opcodeMap[opcode] = opcodeData;
+            });
+
+            decoder.emit("post init", {
+                opcodeMap: opcodeMap
             });
         }
     });
