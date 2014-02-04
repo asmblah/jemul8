@@ -15,10 +15,8 @@
 /*global define, require */
 
 define([
-    "jquery",
     "modular"
 ], function (
-    $,
     modular
 ) {
     "use strict";

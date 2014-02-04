@@ -1,11 +1,8 @@
 require([
-      "jquery"
-      , "js/core/classes/emulator"
+      "js/core/classes/emulator"
       , "js/plugins/std.canvas.vga"
       , "js/plugins/std.keyboard"
-  ], function (
-      $
-      , jemul8
+  ], function (jemul8
       , canvasVGAPlugin
       , keyboardPlugin
   ) { "use strict";
