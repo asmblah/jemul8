@@ -186,6 +186,21 @@ define([
             return (number & mask) >>> 0;
         },
 
+        // For reinterpreting a number as signed / "sign-extending" a number
+        signExtend: function (num, length, lengthTo) {
+            /*jshint bitwise: false */
+            var numBits = length * 8, numBitsTo = lengthTo * 8;
+
+            // Sign bit set
+            if (num >>> (numBits - 1)) {
+                // TODO: Convert "<<" to Math.pow() or multiply? May overflow
+                //    the JavaScript 32-bit limit...
+                return num | ((Math.pow(2, numBitsTo - numBits) - 1) << numBits);
+            } else {
+                return num;
+            }
+        },
+
         ticksToMicroseconds: function (ticks) {
             return Math.floor((ticks * USEC_PER_SECOND) / TICKS_PER_SECOND);
         },
