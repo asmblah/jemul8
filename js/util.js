@@ -115,6 +115,19 @@ define([
 
         get: get,
 
+        getParity: function (num) {
+            /*jshint bitwise: false */
+            var res = 0;
+
+            while (num) {
+                ++res;
+                // Loop will execute once for each bit set in num
+                num &= num - 1;
+            }
+
+            return (res % 2 === 0) & 1;
+        },
+
         heredoc: function (fn, variables) {
             var match = function () {}.toString.call(fn).match(/\/\*<<<(\w+)[\r\n](?:([\s\S]*)[\r\n])?\1\s*\*\//),
                 string;
