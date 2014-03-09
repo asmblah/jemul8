@@ -57,6 +57,10 @@ define({
         }),
             Reporter = mocha._reporter;
 
+        if (options.grep) {
+            mocha.grep(new RegExp(options.grep));
+        }
+
         // Expose Mocha functions in the global scope
         mocha.suite.emit("pre-require", global, null, mocha);
 
