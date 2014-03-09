@@ -261,23 +261,41 @@ EOS
                         source: {register: "edx", value: -2},
                         expectedResult: -4000000,
                         expectedResultSize: 4
+                    },
+                    // Test the sign-extended immediate byte form
+                    {
+                        destination: {register: "ax", value: 2},
+                        source: {immediate: "byte -2"}, // Use byte prefix to force byte form
+                        expectedResult: -4,
+                        expectedResultSize: 2
                     }
                 ], function (scenario) {
                     var destinationName = scenario.destination.register,
                         destinationValue = scenario.destination.value,
                         mask = util.generateMask(scenario.expectedResultSize),
-                        sourceName = scenario.source.register,
-                        sourceValue = scenario.source.value;
+                        sourceName = scenario.source.register || "immediate",
+                        sourceValue = scenario.source.value || scenario.source.immediate;
 
                     describe("when multiplying " + destinationName + "(" + destinationValue + ") with " + sourceName + "(" + sourceValue + ")", function () {
                         beforeEach(function (done) {
-                            var assembly = util.heredoc(function (/*<<<EOS
+                            var assembly;
+
+                            if (sourceName === "immediate") {
+                                assembly = util.heredoc(function (/*<<<EOS
+mov ${destinationName}, ${destinationValue}
+imul ${destinationName}, ${immediate}
+hlt
+EOS
+*/) {}, {destinationName: destinationName, destinationValue: destinationValue, immediate: sourceValue});
+                            } else {
+                                assembly = util.heredoc(function (/*<<<EOS
 mov ${destinationName}, ${destinationValue}
 mov ${sourceName}, ${sourceValue}
 imul ${destinationName}, ${sourceName}
 hlt
 EOS
 */) {}, {destinationName: destinationName, destinationValue: destinationValue, sourceName: sourceName, sourceValue: sourceValue});
+                            }
 
                             testSystem.execute(assembly).done(function () {
                                 done();
@@ -290,9 +308,11 @@ EOS
                             expect(system.getCPURegisters()[destinationName].get()).to.equal((scenario.expectedResult & mask) >>> 0);
                         });
 
-                        it("should not alter " + sourceName, function () {
-                            expect(system.getCPURegisters()[sourceName].get()).to.equal((sourceValue & mask) >>> 0);
-                        });
+                        if (sourceName !== "immediate") {
+                            it("should not alter " + sourceName, function () {
+                                expect(system.getCPURegisters()[sourceName].get()).to.equal((sourceValue & mask) >>> 0);
+                            });
+                        }
                     });
                 });
             });
