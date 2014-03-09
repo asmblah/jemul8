@@ -175,6 +175,31 @@ define([
                 },
                 {
                     is32BitCodeSegment: false,
+                    // Check support for negative displacements
+                    assembly: "mov [bp-1], al",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "BP",
+                            indexRegister: null,
+                            displacement: -1,
+                            displacementSize: 1,
+                            isPointer: true,
+                            scale: 1,
+                            // BP register use implies SS
+                            segmentRegister: "SS"
+                        },
+                        {
+                            baseRegister: "AL",
+                            indexRegister: null,
+                            scale: 1,
+                            // BP register use implies SS
+                            segmentRegister: "SS"
+                        }
+                    ]
+                },
+                {
+                    is32BitCodeSegment: false,
                     is32BitOperandSize: true,
                     assembly: "xchg ebx, ecx",
                     expectedName: "XCHG",
