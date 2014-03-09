@@ -194,20 +194,20 @@ EOS
                     {
                         eax: 32,
                         operand: {register: "ebx", value: 3},
-                        expectedDX: 0,
-                        expectedAX: 96
+                        expectedEDX: 0,
+                        expectedEAX: 96
                     },
                     {
                         eax: 64,
                         operand: {register: "ecx", value: -2},
-                        expectedDX: 0xFFFFFFFF, // High bits set for negative result
-                        expectedAX: -128
+                        expectedEDX: 0xFFFFFFFF, // High bits set for negative result
+                        expectedEAX: -128
                     },
                     {
                         eax: -32,
                         operand: {register: "edx", value: 3},
-                        expectedDX: 0xFFFFFFFF, // High bits set for negative result
-                        expectedAX: -96
+                        expectedEDX: 0xFFFFFFFF, // High bits set for negative result
+                        expectedEAX: -96
                     }
                 ], function (scenario) {
                     var operandName = scenario.operand.register,
@@ -216,8 +216,9 @@ EOS
                     describe("when multiplying eax(" + scenario.eax + ") with " + operandName + "(" + operandValue + ")", function () {
                         beforeEach(function (done) {
                             var assembly = util.heredoc(function (/*<<<EOS
+[BITS 16]
 mov eax, ${eax}
-mov ${operandName}, ${operandValue}
+mov ${operandName}, dword ${operandValue}
 imul ${operandName}
 hlt
 EOS
@@ -230,12 +231,12 @@ EOS
                             });
                         });
 
-                        it("should leave " + scenario.expectedDX + " in dx", function () {
-                            expect(system.getCPURegisters().dx.get()).to.equal((scenario.expectedDX & 0xFFFF) >>> 0);
+                        it("should leave " + scenario.expectedEDX + " in edx", function () {
+                            expect(system.getCPURegisters().edx.get()).to.equal(scenario.expectedEDX >>> 0);
                         });
 
-                        it("should leave " + scenario.expectedAX + " in ax", function () {
-                            expect(system.getCPURegisters().ax.get()).to.equal((scenario.expectedAX & 0xFFFF) >>> 0);
+                        it("should leave " + scenario.expectedEAX + " in eax", function () {
+                            expect(system.getCPURegisters().eax.get()).to.equal(scenario.expectedEAX >>> 0);
                         });
                     });
                 });
