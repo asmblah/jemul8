@@ -85,6 +85,53 @@ define([
                         }
                     ]
                 },
+                // Tests addressing method "I"
+                {
+                    is32BitCodeSegment: false,
+                    assembly: "imul ax, byte -1",
+                    expectedName: "IMUL",
+                    // NB: NASM assembles to the 3-operand form despite using the 2-operand form above
+                    expectedOperands: [
+                        {
+                            baseRegister: "AX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "AX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            immediate: -1,
+                            immediateSize: 2,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                {
+                    is32BitCodeSegment: false,
+                    // Similar to IMUL test above, but this time checking with an immediate in operand1
+                    assembly: "out 4, al",
+                    expectedName: "OUT",
+                    expectedOperands: [
+                        {
+                            immediate: 4,
+                            immediateSize: 1,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "AL",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
                 // Tests addressing method "O"
                 {
                     is32BitCodeSegment: false,
@@ -300,7 +347,8 @@ define([
 
                                 if (data.displacement) {
                                     it("should have '" + data.displacement + "' as the displacement", function () {
-                                        expect(operand.displacement).to.equal(data.displacement);
+                                        /*jshint bitwise: false */
+                                        expect(operand.displacement).to.equal(data.displacement & util.generateMask(data.displacementSize));
                                     });
 
                                     it("should have '" + data.displacementSize + "' as the displacement size", function () {
@@ -318,7 +366,8 @@ define([
 
                                 if (data.immediate) {
                                     it("should have '" + data.immediate + "' as the immediate", function () {
-                                        expect(operand.immed).to.equal(data.immediate);
+                                        /*jshint bitwise: false */
+                                        expect(operand.immed).to.equal(data.immediate & util.generateMask(data.immediateSize));
                                     });
 
                                     it("should have '" + data.immediateSize + "' as the immediate size", function () {
@@ -345,7 +394,7 @@ define([
                                 }
 
                                 it("should have '" + data.segmentRegister + "' as the segment register", function () {
-                                    expect(operand.segreg.name).to.equal(data.segmentRegister);
+                                    expect(operand.getSegReg().name).to.equal(data.segmentRegister);
                                 });
                             });
                         });
