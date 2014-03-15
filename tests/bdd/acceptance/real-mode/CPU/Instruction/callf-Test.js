@@ -58,6 +58,33 @@ EOS
                 });
             });
 
+            it("should be able to call forward, within a few bytes, direct, but with a different segment", function (done) {
+                var assembly = util.heredoc(function (/*<<<EOS
+org 0x100
+;; Implicit "call far"
+call 0x0092:0x0006
+mov ax, 0x1234
+
+;; This hlt should catch any issues with segment being ignored,
+;; otherwise it is possible for the gulf of 0x00 bytes to execute
+;; all the way up to the mov below and provide a false positive
+TIMES 0x200-($-$$) DB 0
+hlt
+
+TIMES 0x0926-($-$$) DB 0
+mov ax, 0x4321
+hlt
+EOS
+*/) {});
+
+                testSystem.execute(assembly).done(function () {
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x4321);
+                    done();
+                }).fail(function (exception) {
+                    done(exception);
+                });
+            });
+
             it("should be able to call forward, within a few bytes, indirect", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
