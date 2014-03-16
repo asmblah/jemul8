@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+
+/**
+ * jemul8 - JavaScript x86 Emulator
+ * http://jemul8.com/
+ *
+ * Copyright 2013 jemul8.com (http://github.com/asmblah/jemul8)
+ * Released under the MIT license
+ * http://jemul8.com/MIT-LICENSE.txt
+ */
+
+/*global process, require */
+(function () {
+    "use strict";
+
+    var modular = require("modular-amd"),
+        optionsManager = require("node-getopt").create([
+            ["b", "rombios=<path>", "Load CMOS ROMBIOS from <path>"],
+            ["f", "floppy=<path>", "Boot floppy disk image at <path>"],
+            ["v", "vgabios=<path>", "Load VGABIOS from <path>"]
+        ]),
+        parsedOptions = optionsManager.parseSystem();
+
+    modular.require([
+        "jemul8"
+    ], function (
+        jemul8
+    ) {
+        var emulator,
+            hasOwn = {}.hasOwnProperty;
+
+        if (hasOwn.call(parsedOptions.options, "floppy")) {
+            emulator = jemul8.createEmulator();
+
+            emulator.init().done(function () {
+                emulator.run().done(function () {
+                    process.stdout.write("CPU halted\n");
+                });
+            }).fail(function (exception) {
+                process.stderr.write(exception.getMessage() + "\n");
+            });
+        } else {
+            optionsManager.showHelp();
+            process.exit(1);
+        }
+    });
+}());

@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+
+/**
+ * jemul8 - JavaScript x86 Emulator
+ * http://jemul8.com/
+ *
+ * Copyright 2013 jemul8.com (http://github.com/asmblah/jemul8)
+ * Released under the MIT license
+ * http://jemul8.com/MIT-LICENSE.txt
+ */
+
+/*global __dirname, process, require */
+(function () {
+    "use strict";
+
+    var PORT = "port",
+        basePath = require("fs").realpathSync(__dirname + "/.."),
+        express = require("express"),
+        http = require("http"),
+        modular = require("modular-amd"),
+        optionsManager = require("node-getopt").create([
+            ["p", "port=<port>", "HTTP port to run the server on"]
+        ]),
+        parsedOptions = optionsManager.parseSystem(),
+        ws = require("ws");
+
+    modular.require([
+        "server"
+    ], function (
+        server
+    ) {
+        var hasOwn = {}.hasOwnProperty,
+            port,
+            service;
+
+        if (hasOwn.call(parsedOptions.options, PORT)) {
+            port = parsedOptions.options[PORT] * 1;
+            if (isNaN(port)) {
+                port = null;
+            }
+        } else {
+            port = 80;
+        }
+
+        if (port) {
+            service = server.createService(http, express, ws, port, basePath);
+
+            service.init().done(function () {
+                process.stdout.write("Started Jemul8 service running on port " + port + "\n");
+            }).fail(function (exception) {
+                process.stderr.write(exception.getMessage() + "\n");
+            });
+        } else {
+            optionsManager.showHelp();
+            process.exit(1);
+        }
+    });
+}());
