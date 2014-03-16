@@ -11,10 +11,7 @@
 define({
     "paths": {
         "js": "./js",
-        "vendor": "./vendor",
-
-        // FIXME!! (In Modular)
-        "Modular": require.config().paths.Modular
+        "vendor": "./vendor"
     }
 }, [
     "js/Jemul8",
