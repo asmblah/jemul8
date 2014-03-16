@@ -57,6 +57,9 @@ define([
 	UnlazyFlag.prototype.toggle = function () {
 		this.set(!this.get());
 	};
+    UnlazyFlag.prototype.isHigh = function () {
+        return this.get();
+    };
 
 	/* ====== Private ====== */
 
