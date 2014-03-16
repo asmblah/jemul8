@@ -366,6 +366,29 @@ define([
                         }
                     ]
                 },
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: true,
+                    assembly: "mov [esp+2], dword 0xe3dbffff",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "ESP",
+                            indexRegister: null,
+                            displacement: 2,
+                            displacementSize: 4,
+                            isPointer: true,
+                            scale: 1,
+                            segmentRegister: "SS"
+                        },
+                        {
+                            immediate: 0xe3dbffff,
+                            immediateSize: 4,
+                            scale: 1,
+                            segmentRegister: "SS"
+                        }
+                    ]
+                },
                 // Opcode extension group 1 (Immediate)
                 {
                     is32BitCodeSegment: false,

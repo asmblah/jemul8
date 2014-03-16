@@ -81,6 +81,19 @@ define([
                     bp: 10
                 },
                 expectedResult: 0x45
+            },
+            {
+                destination: "[esp+2]",
+                expression: "dword 0xe3dbffff",
+                setup: {
+                    ss: 0x300,
+                    esp: 10
+                },
+                expectedMemory: [{
+                    from: (0x300 << 4) + 10 + 2,
+                    size: 4,
+                    expected: 0xe3dbffff
+                }]
             }
         ], function (scenario) {
             var setupSummary = JSON.stringify(scenario.setup || "<no setup>").replace(/^\{|\}$/g, "");
@@ -119,8 +132,18 @@ EOS
                             });
                         });
 
-                        it("should store the correct value in " + scenario.destination, function () {
-                            expect(system.getCPURegisters()[scenario.destination].get()).to.equal(scenario.expectedResult);
+                        if (scenario.hasOwnProperty("expectedResult")) {
+                            it("should store the correct value in " + scenario.destination, function () {
+                                expect(system.getCPURegisters()[scenario.destination].get()).to.equal(scenario.expectedResult);
+                            });
+                        }
+
+                        util.each(scenario.expectedMemory, function (data) {
+                            var expectedValue = data.expected;
+
+                            it("should store " + util.hexify(expectedValue) + " at " + util.hexify(data.from), function () {
+                                expect(system.read(data)).to.equal(expectedValue);
+                            });
                         });
                     });
                 });

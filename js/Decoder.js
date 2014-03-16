@@ -338,9 +338,12 @@ define([
                                 index = (sib >>> 3) & 7;
                                 base = sib & 7;
 
+                                if (index !== 4) {
+                                    operand.reg2 = legacyDecoder.hsh_size_regOrdinals[ addressSize ][ base ];
+                                }
+
                                 operand.scale = scale;
                                 operand.reg = legacyDecoder.hsh_size_regOrdinals[ addressSize ][ index ];
-                                operand.reg2 = legacyDecoder.hsh_size_regOrdinals[ addressSize ][ base ];
 
                                 if (mod === 0x00) {
                                     instruction.segreg = legacyDecoder.segreg_mod0_base32[ base ];
