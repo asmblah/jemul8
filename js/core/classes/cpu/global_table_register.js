@@ -35,8 +35,15 @@ define([
 		reset: function (raw) {
 			this.base = 0x00000000;
             this.limit =    0xFFFF;
-		}, get: function () {
+		},
+		get: function () {
 			util.panic("GlobalTableRegister.get() :: Not yet implemented");
+		},
+		setBase: function (base) {
+			this.base = base;
+		},
+		setLimit: function (limit) {
+			this.limit = limit;
 		}
 	});
 
