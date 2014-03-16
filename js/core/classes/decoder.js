@@ -59,6 +59,10 @@ define([
         d.hsh_regOrdinals_Control = [
             d.CR0, d.CR1, d.CR2, d.CR3, d.CR4
         ];
+        d.hsh_regOrdinals_Debug = [
+            d.DR0, d.DR1, d.DR2, d.DR3,
+            d.DR4, d.DR5, d.DR6, d.DR7
+        ];
         d.hsh_regOrdinals_Segment_Mod00RM16 = [
             d.DS, d.DS, d.SS, d.SS
             , d.DS, d.DS, d.DS, d.DS
@@ -122,6 +126,15 @@ define([
         , CR2: new Register("CR2", 4)
         , CR3: new Register("CR3", 4)
         , CR4: new Register("CR4", 4)
+
+        , DR0: new Register("DR0", 4)
+        , DR1: new Register("DR1", 4)
+        , DR2: new Register("DR2", 4)
+        , DR3: new Register("DR3", 4)
+        , DR4: new Register("DR4", 4)
+        , DR5: new Register("DR5", 4)
+        , DR6: new Register("DR6", 4)
+        , DR7: new Register("DR7", 4)
     });
 
     // NB: all pre-shifted left by 8 bits for simple ORing together
