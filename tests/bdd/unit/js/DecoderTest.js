@@ -88,7 +88,7 @@ define([
                 // Tests addressing method "A"
                 {
                     is32BitCodeSegment: false,
-                    is32BitOperandSize: true,
+                    is32BitOperandSize: false,
                     assembly: "call 0x3456:0xABCD",
                     expectedName: "CALLF",
                     expectedOperands: [
