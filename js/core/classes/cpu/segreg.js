@@ -173,12 +173,6 @@ define([
             // This is still a register: store its value
             this.value = val;
 
-            // When (C)ode (S)egment is changed, eg. for a [far jmp],
-            //  Instruction cache needs to be flushed
-            if (this === cpu.CS) {
-                cpu.flushInstructionCaches();
-            }
-
             // Protected mode
             if (cpu.PE.get() && !cpu.VM.get()) {
                 // Find out the Current Privilege Level
