@@ -11,11 +11,15 @@
 define([
     "js/util",
     "js/EventEmitter",
-    "js/core/classes/decoder"
+    "js/Decoder/Instruction",
+    "js/core/classes/decoder",
+    "js/Decoder/Operand"
 ], function (
     util,
     EventEmitter,
-    LegacyDecoder
+    Instruction,
+    LegacyDecoder,
+    Operand
 ) {
     "use strict";
 
@@ -29,7 +33,8 @@ define([
     function Decoder() {
         EventEmitter.call(this);
 
-        this.legacyDecoder = new LegacyDecoder();
+        this.legacyDecoder = null;
+        this.opcodeExtensionMap = null;
         this.opcodeMap = null;
         this.partials = null;
     }
@@ -38,96 +43,107 @@ define([
 
     util.extend(Decoder.prototype, {
         bindCPU: function (cpu) {
-            var decoder = this;
+            var decoder = this,
+                registers = cpu.getRegisters();
 
-            util.extend(decoder.legacyDecoder, {
-                ES: cpu.es,
-                CS: cpu.cs,
-                SS: cpu.ss,
-                DS: cpu.ds,
-                FS: cpu.fs,
-                GS: cpu.gs,
+            if (decoder.legacyDecoder) {
+                throw new Error("Decoder.bindCPU() :: Already inited");
+            }
 
-                AL: cpu.al,
-                AH: cpu.ah,
-                CL: cpu.cl,
-                CH: cpu.ch,
-                BL: cpu.bl,
-                BH: cpu.bh,
-                DL: cpu.dl,
-                DH: cpu.dh,
+            decoder.legacyDecoder = new LegacyDecoder({
+                ES: registers.es,
+                CS: registers.cs,
+                SS: registers.ss,
+                DS: registers.ds,
+                FS: registers.fs,
+                GS: registers.gs,
 
-                AX: cpu.ax,
-                EAX: cpu.eax,
-                CX: cpu.cx,
-                ECX: cpu.ecx,
-                BX: cpu.bx,
-                EBX: cpu.ebx,
-                DX: cpu.dx,
-                EDX: cpu.edx,
-                SP: cpu.sp,
-                ESP: cpu.esp,
-                BP: cpu.bp,
-                EBP: cpu.ebp,
-                SI: cpu.si,
-                ESI: cpu.esi,
-                DI: cpu.di,
-                EDI: cpu.edi,
+                AL: registers.al,
+                AH: registers.ah,
+                CL: registers.cl,
+                CH: registers.ch,
+                BL: registers.bl,
+                BH: registers.bh,
+                DL: registers.dl,
+                DH: registers.dh,
 
-                CR0: cpu.cr0,
-                CR1: cpu.cr1,
-                CR2: cpu.cr2,
-                CR3: cpu.cr3,
-                CR4: cpu.cr4
+                AX: registers.ax,
+                EAX: registers.eax,
+                CX: registers.cx,
+                ECX: registers.ecx,
+                BX: registers.bx,
+                EBX: registers.ebx,
+                DX: registers.dx,
+                EDX: registers.edx,
+                SP: registers.sp,
+                ESP: registers.esp,
+                BP: registers.bp,
+                EBP: registers.ebp,
+                SI: registers.si,
+                ESI: registers.esi,
+                DI: registers.di,
+                EDI: registers.edi,
+
+                CR0: registers.cr0,
+                CR1: registers.cr1,
+                CR2: registers.cr2,
+                CR3: registers.cr3,
+                CR4: registers.cr4,
+
+                DR0: registers.dr0,
+                DR1: registers.dr1,
+                DR2: registers.dr2,
+                DR3: registers.dr3,
+                DR4: registers.dr4,
+                DR5: registers.dr5,
+                DR6: registers.dr6,
+                DR7: registers.dr7
             });
         },
 
-        decode: function (view, offset, is32Bit) {
+        decode: function (byteView, offset, is32Bit) {
             /*jshint bitwise: false */
             var byt,
                 decoder = this,
                 decoderState = {
-                    view: view,
+                    byteView: byteView,
                     offset: offset
                 },
+                getNextPrefixByte = true,
                 legacyDecoder = decoder.legacyDecoder,
-                instruction = {
-                    addressSizeAttr: is32Bit,
-                    operandSizeAttr: is32Bit,
-                    repeat: "",
-                    segreg: legacyDecoder.DS
-                },
-                opcodeData;
+                instruction = new Instruction(is32Bit, is32Bit, "", legacyDecoder.DS),
+                opcodeData,
+                segregOverride = null;
 
-getPrefixes:
-            while (true) {
+            while (getNextPrefixByte) {
                 // Read next byte of code - may be an opcode or a prefix
-                byt = view.getUint8(decoderState.offset++);
+                byt = byteView[decoderState.offset++];
 
                 // Prefixes
                 switch (byt) {
                 // 2-byte opcode escape
                 case 0x0F:
-                    byt = 0x100 | view.getUint8(decoderState.offset++);
-                    break getPrefixes;
+                    byt = 0x100 | byteView[decoderState.offset++];
+                    getNextPrefixByte = false;
+                    break;
                 // Segment overrides
                 case 0x26:
-                    instruction.segreg = legacyDecoder.ES;
+                    segregOverride = legacyDecoder.ES;
                     break;
                 case 0x2E:
-                    instruction.segreg = legacyDecoder.CS;
+                    segregOverride = legacyDecoder.CS;
                     break;
                 case 0x36:
-                    instruction.segreg = legacyDecoder.SS;
+                    segregOverride = legacyDecoder.SS;
                     break;
                 case 0x3E:
-                    instruction.segreg = legacyDecoder.DS;
+                    segregOverride = legacyDecoder.DS;
                     break;
                 case 0x64:
-                    instruction.segreg = legacyDecoder.FS;
+                    segregOverride = legacyDecoder.FS;
                     break;
                 case 0x65:
-                    instruction.segreg = legacyDecoder.GS;
+                    segregOverride = legacyDecoder.GS;
                     break;
                 // Operand-Size Attribute
                 case 0x66:
@@ -158,7 +174,7 @@ getPrefixes:
                 // Immediately exit prefix loop when we encounter
                 //    a non-prefix byte
                 default:
-                    break getPrefixes;
+                    getNextPrefixByte = false;
                 }
             }
 
@@ -167,8 +183,11 @@ getPrefixes:
             // Decode any operands
             opcodeData.decodeFor(instruction, decoderState);
 
+            if (segregOverride) {
+                instruction.segreg = segregOverride;
+            }
+
             instruction.length = decoderState.offset - offset;
-            instruction.opcodeData = opcodeData;
 
             return instruction;
         },
@@ -223,20 +242,34 @@ getPrefixes:
                 cr1: legacyDecoder.CR1,
                 cr2: legacyDecoder.CR2,
                 cr3: legacyDecoder.CR3,
-                cr4: legacyDecoder.CR4
+                cr4: legacyDecoder.CR4,
+
+                dr0: legacyDecoder.DR0,
+                dr1: legacyDecoder.DR1,
+                dr2: legacyDecoder.DR2,
+                dr3: legacyDecoder.DR3,
+                dr4: legacyDecoder.DR4,
+                dr5: legacyDecoder.DR5,
+                dr6: legacyDecoder.DR6,
+                dr7: legacyDecoder.DR7
             };
         },
 
-        init: function () {
+        init: function init() {
             function read(decoderState, size) {
+                /*jshint bitwise: false */
                 var result;
 
                 if (size === 1) {
-                    result = decoderState.view.getUint8(decoderState.offset);
+                    result = decoderState.byteView[decoderState.offset];
                 } else if (size === 2) {
-                    result = decoderState.view.getUint16(decoderState.offset, true);
+                    result = decoderState.byteView[decoderState.offset] |
+                        (decoderState.byteView[decoderState.offset + 1] << 8);
                 } else if (size === 4) {
-                    result = decoderState.view.getUint32(decoderState.offset, true);
+                    result = decoderState.byteView[decoderState.offset] |
+                        (decoderState.byteView[decoderState.offset + 1] << 8) |
+                        (decoderState.byteView[decoderState.offset + 2] << 16) |
+                        (decoderState.byteView[decoderState.offset + 3] << 24);
                 }
 
                 decoderState.offset += size;
@@ -248,12 +281,13 @@ getPrefixes:
                 // Use of a displacement implies a memory pointer
                 operand.isPointer = true;
 
-                operand.displacement = read(decoderState, size);
-                operand.displacementSize = size;
+                operand.displacement = util.signExtend(read(decoderState, size), size, operand.addressSize);
+                operand.displacementSize = operand.addressSize;
             }
 
             var decoder = this,
-                legacyDecoder = decoder.legacyDecoder,
+                legacyDecoder = decoder.legacyDecoder || (decoder.legacyDecoder = new LegacyDecoder()),
+                opcodeExtensionMap = {},
                 opcodeMap = {},
                 partials = {
                     "decodeModRM": function (instruction, operand, decoderState) {
@@ -383,7 +417,7 @@ getPrefixes:
                     },
                     "getModRM": function (instruction, decoderState) {
                         /*jshint bitwise: false */
-                        var modRM = decoderState.view.getUint8(decoderState.offset++);
+                        var modRM = decoderState.byteView[decoderState.offset++];
 
                         instruction.modRM = {
                             mod: modRM >>> 6,          // Mod field is first 2 bits
@@ -391,32 +425,52 @@ getPrefixes:
                             rm: modRM & 0x07           // Register/Memory field is last 3 bits (Reg 1)
                         };
                     },
-                    "opcodeExtension": function (instruction) {
-                        throw "Unsupported. Will only be called when we know opcode extension is needed.";
-                    },
                     "read": read,
                     "decodeDisplacement": function (operand, decoderState) {
                         readDisplacement(operand, operand.addressSize, decoderState);
                     },
+                    "signExtend": util.signExtend,
                     "useDSSI": function (operand) {
                         operand.reg = operand.addressSize === 4 ? registers.esi : registers.si;
                     },
                     "useESDI": function (operand) {
                         operand.segreg = registers.es;
                         operand.reg = operand.addressSize === 4 ? registers.edi : registers.di;
-                    }
+                    },
+                    "Operand": Operand
                 },
                 registers,
-                usesOpcodeExtensionInNNN = {
+                usesOpcodeExtensionInNNN = [
                     // Immediate Grp 1 (1A)
-                    0x80: true,
-                    0x81: true,
-                    0x82: true,
-                    0x83: true
+                    0x80,
+                    0x81,
+                    0x82,
+                    0x83,
 
-                    // FIXME
-                };
+                    0xc0,
+                    0xc1,
 
+                    0xc6,
+                    0xc7,
+
+                    0xd0,
+                    0xd1,
+                    0xd2,
+                    0xd3,
+
+                    0xf6,
+                    0xf7,
+
+                    0xfe,
+                    0xff,
+
+                    0x100,
+                    0x101,
+                    0x1ba,
+                    0x1c7
+                ];
+
+            decoder.opcodeExtensionMap = opcodeExtensionMap;
             decoder.opcodeMap = opcodeMap;
             decoder.partials = partials;
 
@@ -426,25 +480,22 @@ getPrefixes:
                 partials: partials
             });
 
-            // Translate legacy decoder table into faster version
-            util.each(LegacyDecoder.arr_mapOpcodes, function (data, opcode) {
+            function createOpcodeData(data, opcode) {
                 var hasModRM = LegacyDecoder.opcodeHasModRM32[opcode],
+                    name = data[0],
                     opcodeData = {
                         "MASKS": MASKS,
                         "legacyDecoder": legacyDecoder,
-                        "name": data[0],
+                        "name": name,
                         "partials": partials,
                         "registers": registers
                     },
-                    parts = [];
+                    parts = [
+                        "var partials = this.partials;"
+                    ];
 
                 if (hasModRM) {
-                    parts.push("this.partials.getModRM(instruction, decoderState);");
-                }
-
-                // Handle opcode extensions (with NNN field of ModR/M)
-                if (usesOpcodeExtensionInNNN[opcode]) {
-                    parts.push("this.partials.opcodeExtension(instruction);");
+                    parts.push("partials.getModRM(instruction, decoderState);");
                 }
 
                 // Loop through the operands for this instruction
@@ -452,7 +503,6 @@ getPrefixes:
                     /*jshint bitwise: false, multistr: true */
 
                     var addrMethodCode,
-                        addrMethod,
                         highImmediateExpression = "0",
                         highImmediateSizeExpression = "0",
                         immediateExpression = "0",
@@ -461,8 +511,10 @@ getPrefixes:
                         isRelativeJumpExpression = "false",
                         operandMaskExpression = "instruction.operandSizeAttr ? " + MASKS[4] + " : " + MASKS[2],
                         operandSizeExpression = "instruction.operandSizeAttr ? 4 : 2",
+                        operandSizeLookup,
                         operandParts = [],
                         register1Expression = "null",
+                        staticOperandSize,
                         typeCode,
                         typeExpression = "null";
 
@@ -478,8 +530,8 @@ getPrefixes:
 
                             // Look up TypeCode to determine operand size in bytes
                             opcodeData["operand" + (index + 1) + "SizeLookup"] = LegacyDecoder.hsh_size_operand[typeCode];
-                            operandSizeExpression = "this.operand" + (index + 1) + "SizeLookup[instruction.operandSizeAttr & 1]";
-                            operandMaskExpression = "this.MASKS[this.operand" + (index + 1) + "SizeLookup[instruction.operandSizeAttr & 1]]";
+                            operandSizeExpression = "this.operand" + (index + 1) + "SizeLookup[instruction.operandSizeAttr ? '1' : '0']";
+                            operandMaskExpression = "this.MASKS[this.operand" + (index + 1) + "SizeLookup[instruction.operandSizeAttr ? '1' : '0']]";
 
                             // AddressingMethod stored in high byte (for speed we leave the AddressingMethod shifted
                             //  left by 8 bits, so that we do not need to shift right here before doing a table lookup)
@@ -487,101 +539,111 @@ getPrefixes:
                             //      opcode_data.js: hsh[C] = "CONTROL" -> hsh[C >>> 8] = "CONTROL" ?
                             //  (test whether ">>>" is faster than "&")
                             addrMethodCode = attributes & 0xFF00;
-                            /* ============ Determine addressing method from AddressMethodCode ============ */
-                            // Operand addresses a register to be decoded using ModR/M Reg field
-                            addrMethod = LegacyDecoder.hsh_addrmethodRegister[addrMethodCode];
 
-                            if (addrMethod !== undefined) {
-                                typeExpression = "'" + addrMethod + "'";
-
-                                // Segment register
-                                if (addrMethod === "SEGMENT") {
-                                    register1Expression = "this.legacyDecoder.hsh_regOrdinals_Segment[instruction.modRM.nnn]";
-                                } else if (addrMethod === "CONTROL") {
-                                    register1Expression = "this.legacyDecoder.hsh_regOrdinals_Control[instruction.modRM.nnn]";
+                            // Determine addressing method from AddressMethodCode
+                            switch (addrMethodCode) {
+                            case 0x0300: //"C": // Operand addresses a Control register to be decoded using ModR/M Reg field
+                                register1Expression = "this.legacyDecoder.hsh_regOrdinals_Control[instruction.modRM.nnn]";
+                                break;
+                            case 0x0400: //"D": // Operand addresses a Debug register to be decoded using ModR/M Reg field
+                                register1Expression = "this.legacyDecoder.hsh_regOrdinals_Debug[instruction.modRM.nnn]";
+                                break;
+                            case 0x0700: //"G": // Operand addresses a General register to be decoded using ModR/M Reg field
+                                register1Expression = "this.legacyDecoder.hsh_size_regOrdinals[operandSizeExpression][instruction.modRM.nnn]";
+                                break;
+                            // No ModR/M byte used, Immediate data to be read
+                            case 0x0100: //"A":
+                            // Immediate data to be read
+                            case 0x0900: //"I":
+                                // 48-bit or 64-bit: split into 2 dwords
+                                /*if (size > 4) {
+                                    immediateExpression = "this.partials.read(decoderState, 4)"
+                                    immediateSizeExpression = "4";
+                                    highImmediateExpression = "this.partials.read(decoderState, (" + operandSizeExpression + ") - 4)";
+                                    highImmediateSizeExpression = "(" + operandSizeExpression + ") - 4";
+                                // Always sign-extend 8-bit immediates in operand2
+                                } else if (size === 1 && insn.operand1) {
+                                    size = insn.operand1.size;
+                                    operand.size = size;
+                                    operand.setImmediate(util.signExtend(
+                                        read(operand.offset, 1)
+                                        , 1
+                                        , size
+                                    ), size);
+                                    // Move offset pointer past the value just read
+                                    operand.offset += 1;
                                 } else {
-                                    register1Expression = "this.legacyDecoder.hsh_size_regOrdinals[" + operandSizeExpression + "][instruction.modRM.nnn]";
-                                }
-                            // Use a fast switch to decide how to proceed
-                            } else {
-                                switch (addrMethodCode) {
-                                // No ModR/M byte used, Immediate data to be read
-                                case 0x0100: //"A":
-                                // Immediate data to be read
-                                case 0x0900: //"I":
-                                    // 48-bit or 64-bit: split into 2 dwords
-                                    /*if (size > 4) {
-                                        immediateExpression = "this.partials.read(decoderState, 4)"
-                                        immediateSizeExpression = "4";
-                                        highImmediateExpression = "this.partials.read(decoderState, (" + operandSizeExpression + ") - 4)";
-                                        highImmediateSizeExpression = "(" + operandSizeExpression + ") - 4";
-                                    // Always sign-extend 8-bit immediates in operand2
-                                    } else if (size === 1 && insn.operand1) {
-                                        size = insn.operand1.size;
-                                        operand.size = size;
-                                        operand.setImmediate(util.signExtend(
-                                            read(operand.offset, 1)
-                                            , 1
-                                            , size
-                                        ), size);
-                                        // Move offset pointer past the value just read
-                                        operand.offset += 1;
-                                    } else {
-                                        operand.setImmediate(read(operand.offset, size), size);
-                                        // Move offset pointer past the value just read
-                                        operand.offset += size;
-                                    }*/
-                                    immediateExpression = "this.partials.read(decoderState, " + operandSizeExpression + ")";
-                                    immediateSizeExpression = operandSizeExpression;
-                                    break;
-                                // Instruction contains relative offset, to be added to EIP
-                                case 0x0A00: //"J":
-                                    immediateExpression = "this.partials.read(decoderState, " + operandSizeExpression + ")";
-                                    immediateSizeExpression = operandSizeExpression;
+                                    operand.setImmediate(read(operand.offset, size), size);
+                                    // Move offset pointer past the value just read
+                                    operand.offset += size;
+                                }*/
 
-                                    isRelativeJumpExpression = "true";
-                                    break;
-                                // No ModR/M byte, offset coded as word or dword
-                                //  (dep. on operand-size attr)
-                                case 0x0F00: //"O":
-                                    operandParts.push("this.partials.decodeDisplacement(instruction.operand" + (index + 1) + ", decoderState);");
-                                    break;
-                                case 0x0500: //"E": // ModR/M byte follows opcode, specifies operand (either general register or memory address)
-                                case 0x0D00: //"M": // ModR/M byte may only refer to memory
-                                case 0x1200: //"R": // ModR/M byte may only refer to general purpose reg (mod = general register)
-                                    operandParts.push("this.partials.decodeModRM(instruction, instruction.operand" + (index + 1) + ", decoderState);");
-                                    break;
-                                // ModR/M byte follows opcode, specifies operand (either MMX register or memory address)
-                                case 0x1100: //"Q":
-                                    util.problem("MMX registers unsupported");
-                                    break;
-                                // ModR/M byte follows opcode, specifies operand (either SIMD floating-point register or memory address)
-                                case 0x1700: //"W":
-                                    util.problem("SIMD registers unsupported");
-                                    break;
-                                // Memory, addressed by DS:SI register pair
-                                case 0x1800: //"X":
-                                    typeExpression = "'GENERAL'";
-                                    // DS may be overridden for string operations...
-                                    //  (set as default)
-                                    operandParts.push("this.partials.useDSSI(instruction.operand" + (index + 1) + ");");
-                                    isPointerExpression = "true";
-                                    break;
-                                // Memory, addressed by ES:DI register pair
-                                case 0x1900: //"Y":
-                                    typeExpression = "'GENERAL'";
-                                    // ... but ES may not
-                                    operandParts.push("this.partials.useESDI(instruction.operand" + (index + 1) + ");");
-                                    isPointerExpression = "true";
-                                    break;
-                                // (E)FLAGS register
-                                case 0x0600: //"F":
-                                    break;
-                                default:
-                                    util.problem("Unsupported AddressingMethodCode '" + addrMethodCode + "'.");
+                                operandSizeLookup = LegacyDecoder.hsh_size_operand[typeCode];
+
+                                immediateExpression = "partials.read(decoderState, operandSizeExpression)";
+
+                                // Operand size can be known statically for some type codes
+                                if (operandSizeLookup[0] === operandSizeLookup[1] && index > 0) {
+                                    staticOperandSize = operandSizeLookup[0];
+                                    immediateExpression = "partials.signExtend(" + immediateExpression + ", " + staticOperandSize + ", instruction.operand1.size)";
+                                    immediateSizeExpression = "instruction.operand1.size";
+                                } else {
+                                    immediateSizeExpression = "operandSizeExpression";
                                 }
+
+                                break;
+                            // Instruction contains relative offset, to be added to EIP
+                            case 0x0A00: //"J":
+                                immediateExpression = "partials.read(decoderState, operandSizeExpression)";
+                                immediateSizeExpression = "operandSizeExpression";
+
+                                isRelativeJumpExpression = "true";
+                                break;
+                            // No ModR/M byte, offset coded as word or dword
+                            //  (dep. on operand-size attr)
+                            case 0x0F00: //"O":
+                                operandParts.push("partials.decodeDisplacement(instruction.operand" + (index + 1) + ", decoderState);");
+                                break;
+                            case 0x0500: //"E": // ModR/M byte follows opcode, specifies operand (either general register or memory address)
+                            case 0x0D00: //"M": // ModR/M byte may only refer to memory
+                            case 0x1200: //"R": // ModR/M byte may only refer to general purpose reg (mod = general register)
+                                operandParts.push("partials.decodeModRM(instruction, instruction.operand" + (index + 1) + ", decoderState);");
+                                break;
+                            // ModR/M byte follows opcode, specifies operand (either MMX register or memory address)
+                            case 0x1100: //"Q":
+                                operandParts.push("throw new Error('MMX registers not supported yet');");
+                                break;
+                            case 0x1300: //"S": // Operand addresses a Segment register to be decoded using ModR/M Reg field
+                                register1Expression = "this.legacyDecoder.hsh_regOrdinals_Segment[instruction.modRM.nnn]";
+                                break;
+                            case 0x1600: //"V": The reg field of the ModR/M byte selects a packed SIMD floating-point register
+                                operandParts.push("throw new Error('SIMD registers not supported yet');");
+                                break;
+                            // ModR/M byte follows opcode, specifies operand (either SIMD floating-point register or memory address)
+                            case 0x1700: //"W":
+                                operandParts.push("throw new Error('SIMD registers not supported yet');");
+                                break;
+                            // Memory, addressed by DS:SI register pair
+                            case 0x1800: //"X":
+                                typeExpression = "'GENERAL'";
+                                // DS may be overridden for string operations...
+                                //  (set as default)
+                                operandParts.push("partials.useDSSI(instruction.operand" + (index + 1) + ");");
+                                isPointerExpression = "true";
+                                break;
+                            // Memory, addressed by ES:DI register pair
+                            case 0x1900: //"Y":
+                                typeExpression = "'GENERAL'";
+                                // ... but ES may not
+                                operandParts.push("partials.useESDI(instruction.operand" + (index + 1) + ");");
+                                isPointerExpression = "true";
+                                break;
+                            // (E)FLAGS register
+                            case 0x0600: //"F":
+                                break;
+                            default:
+                                util.problem("Unsupported AddressingMethodCode '" + addrMethodCode + "'.");
                             }
-                            /* ============ /Determine addressing method from AddressMethodCode ============ */
                         // Operand flags indicate a constant value
                         } else {
                             // Only low-byte holds constant, zero out higher bits
@@ -590,59 +652,66 @@ getPrefixes:
                             operandSizeExpression = "1";
                             operandMaskExpression = "0xff";
                         }
+
+                        parts.push("var operandSizeExpression = " + operandSizeExpression + ";");
+                        parts.push("var operandMaskExpression = " + operandMaskExpression + ";");
+                        parts.push("var register1Expression = " + register1Expression + ";");
                     // Flag indicates a general purpose register (eg. AX, AH, AL)
                     //  or segment register (eg. CS, DS, SS)
                     } else {
                         // 32-bit, depending on operand-size attribute
                         if (attributes.length === 3) {
-                            register1Expression = operandSizeExpression + " === 4 ? this.registers." + attributes.toLowerCase() + " : this.registers." + attributes.toLowerCase().substr(1);
+                            register1Expression = "instruction.operandSizeAttr ? this.registers." + attributes.toLowerCase() + " : this.registers." + attributes.toLowerCase().substr(1);
                         } else {
                             register1Expression = "this.registers." + attributes.toLowerCase();
                         }
 
-                        operandMaskExpression = "this.MASKS[" + register1Expression + ".size]";
+                        operandSizeExpression = "register1Expression.getSize()";
+                        operandMaskExpression = "register1Expression.getMask()";
                         typeExpression = "'GENERAL'";
+
+                        parts.push("var register1Expression = " + register1Expression + ";");
+                        parts.push("var operandSizeExpression = " + operandSizeExpression + ";");
+                        parts.push("var operandMaskExpression = " + operandMaskExpression + ";");
                     }
 
-                    parts.push("instruction.operand" + (index + 1) + " = {\
+
+
+                    parts.push("instruction.operand" + (index + 1) + " = new partials.Operand(\
     // Instruction this Operand belongs to\n\
-    insn: instruction,\n\
+    /*insn: */instruction,\n\
     // Offset (in bytes) of this Operand in memory\n\
-    offset: decoderState.offset,\n\
+    /*offset: */decoderState.offset,\n\
 \n\
-    addressSize: instruction.addressSizeAttr ? 4 : 2,\n\
-    addressMask: instruction.addressSizeAttr ? 0xffffffff : 0xffff,\n\
-    size: " + operandSizeExpression + ", // May change further down\n\
-    mask: " + operandMaskExpression + ",\n\
+    /*addressSize: */instruction.addressSizeAttr ? 4 : 2,\n\
+    /*addressMask: */instruction.addressSizeAttr ? 0xffffffff : 0xffff,\n\
+    /*size: */operandSizeExpression, // May change further down\n\
+    /*mask: */operandMaskExpression,\n\
 \n\
     // Scale, Index & Base registers used (if applicable)\n\
-    scale: 1,\n\
-    reg: " + register1Expression + ",\n\
-    reg2: null,\n\
-\n\
-    // Usually will be null, meaning use instruction's segreg,\n\
-    //  but some (eg. string) operations may need ES: for operand 2\n\
-    segreg: instruction.segreg,\n\
+    /*scale: */1,\n\
+    /*reg: */register1Expression,\n\
+    /*reg2: */null,\n\
 \n\
     // Immediate/scalar number value of operand (if applicable) -\n\
     //  NOT for storing memory addresses (use displacement for that)\n\
     //  (Mutex'd with .displacement)\n\
-    immed: " + immediateExpression + ",\n\
-    immedSize: " + immediateSizeExpression + ",\n\
-    highImmed: " + highImmediateExpression + ",\n\
-    highImmedSize: " + highImmediateSizeExpression + ",\n\
+    /*immed: */" + immediateExpression + ",\n\
+    /*immedSize: */" + immediateSizeExpression + ",\n\
+    /*highImmed: */" + highImmediateExpression + ",\n\
+    /*highImmedSize: */" + highImmediateSizeExpression + ",\n\
 \n\
     // Displacement / operand's Memory Pointer address in bytes (if applicable)\n\
     //  (Mutex'd with .immed)\n\
-    displacement: 0,\n\
-    displacementSize: 0,\n\
+    /*displacement: */0,\n\
+    /*displacementSize: */0,\n\
     // Type of operand's value (Immediate data, General register, MMX register etc.)\n\
-    type: " + typeExpression + ",\n\
+    /*type: */" + typeExpression + ",\n\
     // Whether operand represents a memory pointer\n\
-    isPointer: " + isPointerExpression + ",\n\
+    /*isPointer: */" + isPointerExpression + ",\n\
 \n\
-    isRelativeJump: " + isRelativeJumpExpression + "\n\
-};");
+    /*isRelativeJump: */" + isRelativeJumpExpression + "\n\
+);");
 
                     [].push.apply(parts, operandParts);
 
@@ -653,15 +722,49 @@ getPrefixes:
                     });
                 });
 
-                util.extend(opcodeData, {
-                    /*jshint evil: true */
-                    decodeFor: new Function("instruction, decoderState", parts.join("\n"))
-                });
+                parts.push("instruction.opcodeData = this;");
+                parts.push("instruction.execute = this.execute;");
+
+                if (!/^\w+$/.test(name)) {
+                    name = "Unknown";
+                }
+
+                /*jshint evil: true */
+                opcodeData.decodeFor = new Function("return (function Decode" + name + "(instruction, decoderState) {" + parts.join("\n") + "});")();
+
+                return opcodeData;
+            }
+
+            // Translate legacy decoder table into faster version
+            util.each(LegacyDecoder.arr_mapOpcodes, function translateOpcodeData(data, opcode) {
+                opcodeMap[opcode] = createOpcodeData(data, opcode);
+            });
+
+            util.each(LegacyDecoder.arr_mapOpcodeExtensions, function translateOpcodeExtensionData(data, opcode) {
+                opcodeExtensionMap[opcode] = createOpcodeData(data, opcode);
+            });
+
+            // Handle opcode extensions (with NNN field of ModR/M)
+            util.each(usesOpcodeExtensionInNNN, function (opcode) {
+                var opcodeData = {
+                        decodeFor: function decodeForOpcodeExtension(instruction, decoderState) {
+                            /*jshint bitwise: false */
+                            var opcodeExtensionData;
+
+                            // Use the ModR/M byte's NNN field as opcode extension
+                            partials.getModRM(instruction, decoderState);
+                            opcodeExtensionData = opcodeExtensionMap[(opcode << 3) | instruction.modRM.nnn];
+
+                            // Decode any operands
+                            opcodeExtensionData.decodeFor(instruction, decoderState);
+                        }
+                    };
 
                 opcodeMap[opcode] = opcodeData;
             });
 
             decoder.emit("post init", {
+                opcodeExtensionMap: opcodeExtensionMap,
                 opcodeMap: opcodeMap
             });
         }

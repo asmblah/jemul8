@@ -224,7 +224,7 @@ define([
             // NB: Do not interpret as signed; cannot have
             //     an absolute EIP that is negative
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
-                operandSize = IP.size,
+                operandSize = IP.getSize(),
                 cs_eip = this.operand1.read();
 
             // Push CS:IP so return can come back
@@ -251,11 +251,11 @@ define([
                 ip = this.operand1.read();
 
             // Push IP so return can come back
-            cpu.pushStack(IP.get(), IP.size);
+            cpu.pushStack(IP.get(), IP.getSize());
 
             // Relative jump - add to (E)IP
             if (this.operand1.isRelativeJump) {
-                ip = (IP.get() + ip) & IP.mask;
+                ip = (IP.get() + ip) & IP.getMask();
             }
             cpu.EIP.set(ip);
         // Convert Byte to Word (CBW) - uses AX
@@ -950,7 +950,7 @@ define([
 
             // Relative jump - add to (E)IP
             if (this.operand1.isRelativeJump) {
-                ip = (IP.get() + ip) & IP.mask;
+                ip = (IP.get() + ip) & IP.getMask();
             }
             cpu.EIP.set(ip);
         // Unconditional Short (8-bit) Jump, relative to next Instruction
@@ -959,7 +959,7 @@ define([
                 ip = this.operand1.signExtend(this.operandSizeAttr ? 4 : 2);
 
             // Relative jump - add to (E)IP
-            ip = (IP.get() + ip) & IP.mask;
+            ip = (IP.get() + ip) & IP.getMask();
             cpu.EIP.set(ip);
         // Load Flags into AH Register
         }, "LAHF": function (cpu) {
@@ -1296,7 +1296,7 @@ define([
                 //        with ArrayBuffer.set(...) behaviour
                 // FIXME: Check copy does not cross a mapping boundary
                 // FIXME: Check copy addresses do not wrap during copy!
-                linear = this.operand1.getSegReg().virtualToLinear(esi);
+                /*linear = this.operand1.getSegReg().virtualToLinear(esi);
                 physical = cpu.machine.mem.linearToPhysical(linear);
                 accessor1 = cpu.machine.mem.mapPhysical(
                     physical, operandSize
@@ -1306,7 +1306,7 @@ define([
                 physical = cpu.machine.mem.linearToPhysical(linear);
                 accessor2 = cpu.machine.mem.mapPhysical(
                     physical, operandSize
-                );
+                );*/
 
                 // Only valid for copies from buffer->buffer (unfortunately
                 //  means eg. DRAM->VRAM copies cannot be accelerated,
@@ -2281,7 +2281,7 @@ define([
         // - See http://faydoc.tripod.com/cpu/xlat.htm
         }, "XLAT": function (cpu) {
             var RBX = this.addressSizeAttr ? cpu.EBX : cpu.BX,
-                addrVirtual = (RBX.get() + cpu.AL.get()) & RBX.mask;
+                addrVirtual = (RBX.get() + cpu.AL.get()) & RBX.getMask();
 
             // Always 1 byte read
             cpu.AL.set(this.segreg.readSegment(addrVirtual, 1));
@@ -2303,10 +2303,10 @@ define([
     //  either short (8-bit) or near (16-bit)
     function branchRelative(insn, cpu) {
         var IP = insn.operandSizeAttr ? cpu.EIP : cpu.IP,
-            ip = insn.operand1.signExtend(IP.size);
+            ip = insn.operand1.signExtend(IP.getSize());
 
         // Relative jump - add to (E)IP, always set EIP though
-        cpu.EIP.set((IP.get() + ip) & IP.mask);
+        cpu.EIP.set((IP.get() + ip) & IP.getMask());
     }
 
     /* ============ State storage for Lazy Flags eval later ============ */

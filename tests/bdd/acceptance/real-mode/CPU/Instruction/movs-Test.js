@@ -31,7 +31,7 @@ define([
         });
 
         afterEach(function () {
-            system.pause();
+            system.stop();
             system = null;
             testSystem = null;
         });

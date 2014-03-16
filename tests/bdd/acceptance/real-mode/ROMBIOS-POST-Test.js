@@ -44,8 +44,8 @@ define([
 
             it("should complete the POST by executing INT 0x19", function (done) {
                 // Allow extra time, as we are running a full ROMBIOS POST
-                describe.setSlowTimeout(10000);
-                this.timeout(10000);
+                describe.setSlowTimeout(20000);
+                this.timeout(20000);
 
                 // Run the emulator, wait for INT 0x19 "Boot Load Service Entry Point"
                 system.on("interrupt", [0x19], function () {

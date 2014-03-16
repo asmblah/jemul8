@@ -447,6 +447,10 @@ define([
             this.pic = pic;
         },
 
+        stop: function () {
+            this.cpu.stop();
+        },
+
         write: function (options) {
             /*jshint bitwise: false */
             var data,

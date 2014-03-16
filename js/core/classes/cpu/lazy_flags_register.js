@@ -49,12 +49,14 @@ define([
         case LazyFlag:    // Fall through
         case UnlazyFlag:
             component.cpu = this.cpu;
-            this.cpu[ component.name ] = component;
+            //this.cpu[ component.name ] = component;
             this.hsh_flg[ component.name ] = component;
             break;
         default:
             util.problem("x86CPU.install :: Provided component cannot be installed into the CPU.");
         }
+
+        return component;
     };
     // Register is rarely evaluated in full, so performance is heavily biased toward
     //    speed in the Flags themselves - each stores their value independent of

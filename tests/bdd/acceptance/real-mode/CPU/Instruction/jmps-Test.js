@@ -31,7 +31,7 @@ define([
         });
 
         afterEach(function () {
-            system.pause();
+            system.stop();
             system = null;
             testSystem = null;
         });
@@ -41,6 +41,7 @@ define([
                 var assembly = util.heredoc(function (/*<<<EOS
 jmp short set_value
 mov ax, 0x1234
+hlt
 set_value:
 mov ax, 0x4321
 hlt

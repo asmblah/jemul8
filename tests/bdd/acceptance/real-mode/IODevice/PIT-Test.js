@@ -73,7 +73,7 @@ define([
         });
 
         afterEach(function () {
-            system.pause();
+            system.stop();
             system = null;
             testSystem = null;
         });
@@ -182,9 +182,16 @@ jmp hang
 ; -------------
 irq0_int08_isr:
     push ecx
+
+    push ds ;; Make sure we use segment base 0
+    xor ax, ax
+    mov ds, ax
+
     mov ecx, [0x046c] ;; Read ticks dword
     inc ecx
     mov [0x046c], ecx ;; Write ticks dword
+
+    pop ds
     pop ecx
     call eoi_master_pic
     iret

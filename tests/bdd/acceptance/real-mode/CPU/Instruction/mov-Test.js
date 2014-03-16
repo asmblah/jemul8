@@ -18,6 +18,7 @@ define([
     "use strict";
 
     describe("CPU 'mov' instruction", function () {
+        /*jshint bitwise: false */
         var system,
             testSystem;
 
@@ -49,6 +50,37 @@ define([
                 destination: "ax",
                 expression: "-1",
                 expectedResult: 0xFFFF
+            },
+            // Test for support for implicit SS segment when pointer involving BP is used
+            {
+                destination: "ebx",
+                expression: "[bp]",
+                memory: [{
+                    to: (0x300 << 4) + 0x10,
+                    data: 0x56781234,
+                    size: 4
+                }],
+                setup: {
+                    ss: 0x300,
+                    bp: 0x10
+                },
+                expectedResult: 0x56781234
+            },
+            // Test support for negative displacements
+            {
+                // mov al, [bp-7]
+                destination: "al",
+                expression: "[bp - 7]",
+                memory: [{
+                    to: (0x300 << 4) + 10 - 7,
+                    data: 0x45,
+                    size: 1
+                }],
+                setup: {
+                    ss: 0x300,
+                    bp: 10
+                },
+                expectedResult: 0x45
             }
         ], function (scenario) {
             var setupSummary = JSON.stringify(scenario.setup || "<no setup>").replace(/^\{|\}$/g, "");
@@ -74,6 +106,10 @@ EOS
 
                             util.each(scenario.setup, function (value, register) {
                                 registers[register].set(value);
+                            });
+
+                            util.each(scenario.memory, function (options) {
+                                system.write(options);
                             });
 
                             testSystem.execute(assembly).done(function () {

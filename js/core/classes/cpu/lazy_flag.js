@@ -162,8 +162,8 @@ define([
         // When flagged as dirty, reads must evaluate flag from result
         //    of last operation
         if (this.regMaster.bitsDirty & this.bitmaskDirtyGet) {
-            if (this.hsh_get[ cpu.insnLast.name ]) {
-                this.value = this.hsh_get[ cpu.insnLast.name ](cpu);
+            if (this.hsh_get[ cpu.insnLast.getName() ]) {
+                this.value = this.hsh_get[ cpu.insnLast.getName() ](cpu);
             } else {
                 //debugger;
                 util.warning("Cannot calculate value for lazy-flag " + this.name

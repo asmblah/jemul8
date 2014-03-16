@@ -25,10 +25,12 @@ define([
         if (typeof buffer === "number") {
             byteSize = buffer;
             buffer = new ArrayBuffer(byteSize);
+            name = offset;
             offset = 0;
         }
 
         this.byteSize = byteSize;
+        this.mask = util.generateMask(byteSize);
         this.name = name;
         this.view = new byteSizeToViewClass[byteSize](buffer, offset, 1);
     }
@@ -57,6 +59,10 @@ define([
             var register = this;
 
             return util.hexify(register.get(), register.getSize());
+        },
+
+        getMask: function () {
+            return this.mask;
         },
 
         getName: function () {

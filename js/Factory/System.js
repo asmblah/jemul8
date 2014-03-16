@@ -15,6 +15,7 @@ define([
     "js/Clock",
     "js/IODevice/CMOS",
     "js/CPU",
+    "js/Decoder",
     "js/IODevice/DMA",
     "js/IODevice/FDC",
     "js/IODevice/GuestToHost",
@@ -34,6 +35,7 @@ define([
     Clock,
     CMOS,
     CPU,
+    Decoder,
     DMA,
     FDC,
     GuestToHost,
@@ -69,6 +71,7 @@ define([
         create: function (options) {
             var clock = new Clock(),
                 cpu,
+                decoder,
                 dma,
                 fdc,
                 io,
@@ -84,7 +87,11 @@ define([
             memory = new Memory(factory.memoryAllocator, options[MEMORY_OPTIONS]);
             system = new System(clock, io, memory);
             memory.setSystem(system);
-            cpu = new CPU(system, io, memory, options[CPU_OPTIONS]);
+
+            decoder = new Decoder();
+            cpu = new CPU(system, io, memory, decoder, clock, options[CPU_OPTIONS]);
+            decoder.bindCPU(cpu);
+
             dma = new DMA(system, io, memory, options[DMA_OPTIONS]);
             pic = new PIC(system, io, memory, options[PIC_OPTIONS]);
             system.setCPU(cpu);

@@ -28,7 +28,10 @@ define({
     "sinon/sinon",
     "sinon-chai/sinon-chai",
     "Mocha",
-    "Modular"
+    "Modular",
+
+    // Load dependencies for util
+    "js/Jemul8"
 ], function (
     chai,
     modular,
@@ -116,6 +119,7 @@ define({
             "bdd/acceptance/real-mode/IODevice/VGA-Test",
             "bdd/acceptance/real-mode/NOP-Test",
             "bdd/acceptance/real-mode/ROMBIOS-POST-Test",
+            "bdd/integration/CPU-with-Decoder-Test.js",
             "bdd/unit/js/core/classes/registerTest",
             "bdd/unit/js/IODevice/CMOSTest",
             "bdd/unit/js/plugins/std.keyboardTest",

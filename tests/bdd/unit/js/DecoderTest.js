@@ -7,7 +7,7 @@
  * http://jemul8.com/MIT-LICENSE.txt
  */
 
-/*global DataView, define, Uint8Array */
+/*global define, Uint8Array */
 define([
     "js/util",
     "tools/Factory/Assembler",
@@ -80,6 +80,63 @@ define([
                         {
                             immediate: 1,
                             immediateSize: 4,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                // Tests addressing method "A"
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: true,
+                    assembly: "call 0x3456:0xABCD",
+                    expectedName: "CALLF",
+                    expectedOperands: [
+                        {
+                            immediate: 0x3456ABCD,
+                            immediateSize: 4,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                // Tests addressing method "C"
+                {
+                    is32BitCodeSegment: false,
+                    //is32BitOperandSize: true,
+                    assembly: "mov ecx, cr0",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "ECX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "CR0",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                // Tests addressing method "D"
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: false,
+                    assembly: "mov ebx, dr4",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "EBX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "DR4",
+                            indexRegister: null,
                             scale: 1,
                             segmentRegister: "DS"
                         }
@@ -183,7 +240,7 @@ define([
                             baseRegister: "BP",
                             indexRegister: null,
                             displacement: -1,
-                            displacementSize: 1,
+                            displacementSize: 2,
                             isPointer: true,
                             scale: 1,
                             // BP register use implies SS
@@ -200,21 +257,112 @@ define([
                 },
                 {
                     is32BitCodeSegment: false,
-                    is32BitOperandSize: true,
-                    assembly: "xchg ebx, ecx",
-                    expectedName: "XCHG",
+                    is32BitOperandSize: false,
+                    assembly: "arpl bx, cx",
+                    expectedName: "ARPL",
                     expectedOperands: [
                         {
-                            baseRegister: "ECX",
+                            baseRegister: "BX",
                             indexRegister: null,
                             scale: 1,
                             segmentRegister: "DS"
                         },
                         {
+                            baseRegister: "CX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: true,
+                    // TODO: Find out why these operands are decoded in the opposite order
+                    //       (even though it does not matter, it seems like a bug)
+                    assembly: "xchg ecx, ebx",
+                    expectedName: "XCHG",
+                    expectedOperands: [
+                        {
                             baseRegister: "EBX",
                             indexRegister: null,
                             scale: 1,
                             segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "ECX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                // Tests addressing method "S"
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: false,
+                    assembly: "mov dx, es",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "DX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "ES",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
+                // Segment override when using BP register (so implied SS, but then overridden)
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: false,
+                    assembly: "mov [es:bp], byte 2",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "BP",
+                            indexRegister: null,
+                            displacement: 0,
+                            displacementSize: 2,
+                            isPointer: true,
+                            scale: 1,
+                            segmentRegister: "ES"
+                        },
+                        {
+                            immediate: 2,
+                            immediateSize: 1,
+                            scale: 1,
+                            segmentRegister: "ES"
+                        }
+                    ]
+                },
+                // Negative displacement
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: false,
+                    assembly: "mov [bp-6], byte 3",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "BP",
+                            indexRegister: null,
+                            displacement: -6,
+                            displacementSize: 2,
+                            isPointer: true,
+                            scale: 1,
+                            segmentRegister: "SS"
+                        },
+                        {
+                            immediate: 3,
+                            immediateSize: 1,
+                            scale: 1,
+                            segmentRegister: "SS"
                         }
                     ]
                 },
@@ -305,8 +453,10 @@ define([
                     var instruction;
 
                     beforeEach(function (done) {
-                        assembler.assemble(scenario.assembly).done(function (buffer) {
-                            var view = new DataView(new Uint8Array(buffer).buffer);
+                        var preamble = "[BITS " + (scenario.is32BitCodeSegment ? 32 : 16) + "]\n";
+
+                        assembler.assemble(preamble + scenario.assembly).done(function (buffer) {
+                            var view = new Uint8Array(buffer);
                             machineCodeBuffer = buffer;
                             instruction = decoder.decode(view, 0, is32BitCodeSegment);
                             done();
@@ -370,7 +520,7 @@ define([
                                     });
                                 }
 
-                                if (data.displacement) {
+                                if (data.hasOwnProperty("displacement")) {
                                     it("should have '" + data.displacement + "' as the displacement", function () {
                                         /*jshint bitwise: false */
                                         expect(operand.displacement).to.equal(data.displacement & util.generateMask(data.displacementSize));
@@ -389,7 +539,7 @@ define([
                                     });
                                 }
 
-                                if (data.immediate) {
+                                if (data.hasOwnProperty("immediate")) {
                                     it("should have '" + data.immediate + "' as the immediate", function () {
                                         /*jshint bitwise: false */
                                         expect(operand.immed).to.equal(data.immediate & util.generateMask(data.immediateSize));

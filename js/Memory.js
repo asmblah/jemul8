@@ -57,6 +57,10 @@ define([
     }
 
     util.extend(Memory.prototype, {
+        getView: function () {
+            return this.legacyMemory.buffer;
+        },
+
         getSizeInBytes: function () {
             return this.sizeInBytes;
         },
