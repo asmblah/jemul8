@@ -25,13 +25,18 @@ define([
 			, "Register ctor :: error - constructor not called properly"
 		);
 
+		this.mask = util.generateMask(size);
 		this.name = name;
 		this.size = size;
 	}
 	util.extend(Register.prototype, {
+		getMask: function () {
+			return this.mask;
+		},
 		getName: function () {
 			return this.name;
-		}, getSize: function () {
+		},
+		getSize: function () {
 			return this.size;
 		}
 	});
