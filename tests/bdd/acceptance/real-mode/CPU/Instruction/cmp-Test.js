@@ -36,6 +36,11 @@ define([
             testSystem = null;
         });
 
+        /*
+         * Notes:
+         * - Subtracting larger no. from smaller no. will result in carry (so CF set)
+         */
+
         util.each([
             {
                 operand1: "ax",
@@ -44,6 +49,7 @@ define([
                     ax: 0
                 },
                 expectedFlags: {
+                    cf: 0, // Zero result does not result in a carry
                     sf: 0,
                     zf: 1, // Result of SUB is zero, so zero flag should be set
                     pf: util.getParity(0 - 0)
@@ -56,6 +62,7 @@ define([
                     ax: -10
                 },
                 expectedFlags: {
+                    cf: 1, // (-10 [unsigned, so 0xFFF6]) - (-1 [0xFFFF]) results in a carry
                     sf: 1, // Negative result
                     zf: 0, // Non-zero result
                     pf: util.getParity(-10 - (-1))
@@ -68,6 +75,7 @@ define([
                     ax: 10
                 },
                 expectedFlags: {
+                    cf: 1, // (10) - (-1 [unsigned, so 0xFFFF]) results in a carry
                     sf: 0, // Positive result
                     zf: 0, // Non-zero result
                     pf: util.getParity(10 - (-1))
@@ -81,6 +89,7 @@ define([
                     ax: -4
                 },
                 expectedFlags: {
+                    cf: 0, // (-4 [unsigned, so 0xFFFC]) - (-4 [0xFFFC]) - zero result does not result in a carry
                     sf: 0, // Positive result
                     zf: 1, // Zero result
                     pf: util.getParity(-4 - (-4))
