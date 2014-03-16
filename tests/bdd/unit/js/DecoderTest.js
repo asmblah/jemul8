@@ -368,8 +368,37 @@ define([
                 },
                 {
                     is32BitCodeSegment: false,
+                    is32BitOperandSize: false,
+                    is32BitAddressSize: true,
+                    // Force use of this form of "mov [esp+2], dword 0xe3dbffff"
+                    // 0x67 is address-size override
+                    assembly: "db 0x67, 0xc7, 0x44, 0x24, 0x02, 0xff, 0xff",
+                    expectedName: "MOV",
+                    expectedOperands: [
+                        {
+                            baseRegister: "ESP",
+                            indexRegister: null,
+                            displacement: 2,
+                            displacementSize: 4,
+                            isPointer: true,
+                            scale: 1,
+                            segmentRegister: "SS"
+                        },
+                        {
+                            immediate: 0xffff,
+                            immediateSize: 2,
+                            scale: 1,
+                            segmentRegister: "SS"
+                        }
+                    ]
+                },
+                {
+                    is32BitCodeSegment: true,
                     is32BitOperandSize: true,
-                    assembly: "mov [esp+2], dword 0xe3dbffff",
+                    is32BitAddressSize: true,
+                    // Force use of this form of "mov [esp+2], word 0xffff"
+                    // 0x67 is address-size override
+                    assembly: "db 0xc7, 0x44, 0x24, 0x02, 0xff, 0xff, 0xdb, 0xe3",
                     expectedName: "MOV",
                     expectedOperands: [
                         {
@@ -495,6 +524,16 @@ define([
                     it("should have the correct length", function () {
                         expect(instruction.length).to.equal(machineCodeBuffer.byteLength);
                     });
+
+                    if (scenario.is32BitAddressSize) {
+                        it("should have a 32-bit address size", function () {
+                            expect(instruction.addressSizeAttr).to.be.true;
+                        });
+                    } else {
+                        it("should have a 16-bit address size", function () {
+                            expect(instruction.addressSizeAttr).to.be.false;
+                        });
+                    }
 
                     if (scenario.is32BitOperandSize) {
                         it("should have a 32-bit operand size", function () {
