@@ -38,6 +38,7 @@ define([
 
         // Test in both modes so we check support for operand-size override prefix
         util.each([true, false], function (is32BitCodeSegment) {
+            /*jshint bitwise: false */
             var bits = is32BitCodeSegment ? 32 : 16,
                 registers;
 
@@ -47,31 +48,73 @@ define([
                         destination: "al",
                         count: "1",
                         setup: function () {
-                            registers.al.set(46);
+                            // Set al: also set higher bits to make sure they are untouched
+                            registers.eax.set(0xABCDEF00 | 46);
                         },
                         expectedRegisters: {
-                            al: 23
+                            eax: 0xABCDEF00 | 23,
+                            cf: 0 // 0 was shifted out last
+                        }
+                    },
+                    "shift ax right by immediate 1 to divide it by 2": {
+                        destination: "ax",
+                        count: "1",
+                        setup: function () {
+                            // Set ax: also set higher bits to make sure they are untouched
+                            registers.eax.set(0xABCD0000 | 400);
+                        },
+                        expectedRegisters: {
+                            eax: 0xABCD0000 | 200,
+                            cf: 0 // 0 was shifted out last
+                        }
+                    },
+                    "shift eax right by immediate 1 to divide it by 2": {
+                        destination: "eax",
+                        count: "1",
+                        setup: function () {
+                            registers.eax.set(100000);
+                        },
+                        expectedRegisters: {
+                            eax: 50000,
+                            cf: 0 // 0 was shifted out last
                         }
                     },
                     "shift al right by immediate 2 to divide it by 4": {
                         destination: "al",
                         count: "2",
                         setup: function () {
-                            registers.al.set(20);
+                            // Set al: also set higher bits to make sure they are untouched
+                            registers.eax.set(0xABCDEF00 | 20);
                         },
                         expectedRegisters: {
-                            al: 5
+                            eax: 0xABCDEF00 | 5,
+                            cf: 0 // 0 was shifted out last
+                        }
+                    },
+                    "shift bl right by immediate 3 to divide it by 8": {
+                        destination: "bl",
+                        count: "3",
+                        setup: function () {
+                            // Set bl: also set higher bits to make sure they are untouched
+                            registers.ebx.set(0xABCDEF00 | 28);
+                        },
+                        expectedRegisters: {
+                            ebx: 0xABCDEF00 | 3,
+                            cf: 1 // 1 was shifted out last
                         }
                     },
                     "shift bl right by cl(2) to divide it by 4": {
                         destination: "bl",
                         count: "cl",
                         setup: function () {
-                            registers.bl.set(40);
-                            registers.cl.set(2);
+                            // Set bl: also set higher bits to make sure they are untouched
+                            registers.ebx.set(0xABCDEF00 | 40);
+                            // Set cl: also set higher bits to make sure they are unused
+                            registers.ecx.set(0xABCDEF00 | 2);
                         },
                         expectedRegisters: {
-                            bl: 10
+                            ebx: 0xABCDEF00 | 10,
+                            cf: 0 // 0 was shifted out last
                         }
                     }
                 }, function (scenario, description) {
@@ -102,7 +145,7 @@ EOS
 
                         util.each(scenario.expectedRegisters, function (value, name) {
                             it("should leave the correct value in " + name, function () {
-                                expect(registers[name].get()).to.equal(value);
+                                expect(registers[name].get()).to.equal(value >>> 0);
                             });
                         });
                     });
