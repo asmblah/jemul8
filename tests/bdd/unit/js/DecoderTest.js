@@ -100,6 +100,22 @@ define([
                         }
                     ]
                 },
+                {
+                    is32BitCodeSegment: false,
+                    is32BitOperandSize: true,
+                    assembly: "call 0x3456:dword 0x4321ABCD",
+                    expectedName: "CALLF",
+                    expectedOperands: [
+                        {
+                            immediate: 0x4321ABCD,
+                            immediateSize: 4,
+                            highImmediate: 0x3456,
+                            highImmediateSize: 2,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ]
+                },
                 // Tests addressing method "C"
                 {
                     is32BitCodeSegment: false,
@@ -617,6 +633,25 @@ define([
 
                                     it("should have an immediate size of zero", function () {
                                         expect(operand.immedSize).to.equal(0);
+                                    });
+                                }
+
+                                if (data.hasOwnProperty("highImmediate")) {
+                                    it("should have '" + data.highImmediate + "' as the high immediate", function () {
+                                        /*jshint bitwise: false */
+                                        expect(operand.highImmed).to.equal(data.highImmediate & util.generateMask(data.highImmediateSize));
+                                    });
+
+                                    it("should have '" + data.highImmediateSize + "' as the high immediate size", function () {
+                                        expect(operand.highImmedSize).to.equal(data.highImmediateSize);
+                                    });
+                                } else {
+                                    it("should have a high immediate of zero", function () {
+                                        expect(operand.highImmed).to.equal(0);
+                                    });
+
+                                    it("should have a high immediate size of zero", function () {
+                                        expect(operand.highImmedSize).to.equal(0);
                                     });
                                 }
 

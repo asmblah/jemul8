@@ -39,6 +39,7 @@ define([
         describe("when under 16-bit real mode", function () {
             it("should be able to jump forward, within a few bytes", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
+[BITS 16]
 org 0x100
 ;; Implicit "jmp far"
 jmp 0x0000:0x010A
@@ -60,6 +61,7 @@ EOS
 
             it("should be able to jump backward, within a few bytes", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
+[BITS 16]
 org 0x100
 mov ax, 0
 
@@ -79,6 +81,36 @@ EOS
 
                 testSystem.execute(assembly).done(function () {
                     expect(system.getCPURegisters().ax.get()).to.equal(0x3214);
+                    done();
+                }).fail(function (exception) {
+                    done(exception);
+                });
+            });
+        });
+
+        describe("when under 32-bit (un)real mode", function () {
+            beforeEach(function () {
+                testSystem.on("pre-run", function () {
+                    system.getCPURegisters().cs.set32BitMode(true);
+                });
+            });
+
+            it("should be able to jump forward using a 32-bit offset", function (done) {
+                var assembly = util.heredoc(function (/*<<<EOS
+[BITS 32]
+org 0x100
+;; Implicit "jmp far"
+jmp 0x0000:dword 0x0001010A
+mov ax, 0x1234
+
+TIMES 0x0001010A-($-$$) DB 0
+mov ax, 0x4321
+hlt
+EOS
+*/) {});
+
+                testSystem.execute(assembly).done(function () {
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x4321);
                     done();
                 }).fail(function (exception) {
                     done(exception);

@@ -558,32 +558,13 @@ define([
                             case 0x0100: //"A":
                             // Immediate data to be read
                             case 0x0900: //"I":
-                                // 48-bit or 64-bit: split into 2 dwords
-                                /*if (size > 4) {
-                                    immediateExpression = "this.partials.read(decoderState, 4)"
-                                    immediateSizeExpression = "4";
-                                    highImmediateExpression = "this.partials.read(decoderState, (" + operandSizeExpression + ") - 4)";
-                                    highImmediateSizeExpression = "(" + operandSizeExpression + ") - 4";
-                                // Always sign-extend 8-bit immediates in operand2
-                                } else if (size === 1 && insn.operand1) {
-                                    size = insn.operand1.size;
-                                    operand.size = size;
-                                    operand.setImmediate(util.signExtend(
-                                        read(operand.offset, 1)
-                                        , 1
-                                        , size
-                                    ), size);
-                                    // Move offset pointer past the value just read
-                                    operand.offset += 1;
-                                } else {
-                                    operand.setImmediate(read(operand.offset, size), size);
-                                    // Move offset pointer past the value just read
-                                    operand.offset += size;
-                                }*/
-
                                 operandSizeLookup = LegacyDecoder.hsh_size_operand[typeCode];
 
-                                immediateExpression = "partials.read(decoderState, operandSizeExpression)";
+                                // Handle 48-bit or 64-bit immediates by splitting into 2 dwords
+                                highImmediateExpression = "(operandSizeExpression > 4 ? partials.read(decoderState, operandSizeExpression - 4) : 0)";
+                                highImmediateSizeExpression = "(operandSizeExpression > 4 ? operandSizeExpression - 4 : 0)";
+
+                                immediateExpression = "partials.read(decoderState, operandSizeExpression > 4 ? 4 : operandSizeExpression)";
 
                                 // Operand size can be known statically for some type codes
                                 if (operandSizeLookup[0] === operandSizeLookup[1] && index > 0) {
@@ -591,7 +572,7 @@ define([
                                     immediateExpression = "partials.signExtend(" + immediateExpression + ", " + staticOperandSize + ", instruction.operand1.size)";
                                     immediateSizeExpression = "instruction.operand1.size";
                                 } else {
-                                    immediateSizeExpression = "operandSizeExpression";
+                                    immediateSizeExpression = "(operandSizeExpression > 4 ? 4 : operandSizeExpression)";
                                 }
 
                                 break;
