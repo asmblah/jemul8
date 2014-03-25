@@ -2155,7 +2155,7 @@ define([
         // Set Byte if Less Than or Equal
         }, "SETLE": function (cpu) {
             // Condition met
-            if (cpu.ZF.get() && (cpu.SF.get() !== cpu.OF.get())) {
+            if (cpu.ZF.get() || (cpu.SF.get() !== cpu.OF.get())) {
                 this.operand1.write(1);
             } else {
                 this.operand1.write(0);

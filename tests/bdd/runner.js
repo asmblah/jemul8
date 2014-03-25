@@ -97,6 +97,7 @@ define({
         require([
             "bdd/acceptance/protected-mode/simpleTest",
             "bdd/acceptance/real-mode/CPU/Instruction/conditionalJump/withCmp/ja-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/conditionalSet/withCmp/setle-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/callf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/cmp-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/imul-Test",
