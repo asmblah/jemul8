@@ -70,15 +70,16 @@ define([
                     bl: 0
                 }
             }
-        }, function (scenario) {
-            // Test in both modes so we check support for operand-size override prefix
-            util.each([true, false], function (is32BitCodeSegment) {
-                describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
-                    describe("for 'cmp " + scenario.operand1 + ", " + scenario.operand2 + "; setle " + scenario.destination + "'", function () {
-                        var registers;
+        }, function (scenario, description) {
+            describe(description, function () {
+                // Test in both modes so we check support for operand-size override prefix
+                util.each([true, false], function (is32BitCodeSegment) {
+                    describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
+                        describe("for 'cmp " + scenario.operand1 + ", " + scenario.operand2 + "; setle " + scenario.destination + "'", function () {
+                            var registers;
 
-                        beforeEach(function (done) {
-                            var assembly = util.heredoc(function (/*<<<EOS
+                            beforeEach(function (done) {
+                                var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 [BITS ${bits}]
 cmp ${operand1}, ${operand2}
@@ -87,34 +88,35 @@ setle ${destination}
 hlt
 EOS
 */) {}, {destination: scenario.destination, operand1: scenario.operand1, operand2: scenario.operand2, bits: is32BitCodeSegment ? 32 : 16});
-                            registers = system.getCPURegisters();
+                                registers = system.getCPURegisters();
 
-                            testSystem.on("pre-run", function () {
-                                registers.cs.set32BitMode(is32BitCodeSegment);
+                                testSystem.on("pre-run", function () {
+                                    registers.cs.set32BitMode(is32BitCodeSegment);
+                                });
+
+                                if (scenario.setup) {
+                                    scenario.setup(registers);
+                                }
+
+                                util.each(scenario.registers, function (value, register) {
+                                    registers[register].set(value);
+                                });
+
+                                util.each(scenario.memory, function (options) {
+                                    system.write(options);
+                                });
+
+                                testSystem.execute(assembly).done(function () {
+                                    done();
+                                }).fail(function (exception) {
+                                    done(exception);
+                                });
                             });
 
-                            if (scenario.setup) {
-                                scenario.setup(registers);
-                            }
-
-                            util.each(scenario.registers, function (value, register) {
-                                registers[register].set(value);
-                            });
-
-                            util.each(scenario.memory, function (options) {
-                                system.write(options);
-                            });
-
-                            testSystem.execute(assembly).done(function () {
-                                done();
-                            }).fail(function (exception) {
-                                done(exception);
-                            });
-                        });
-
-                        util.each(scenario.expectedRegisters, function (expectedValue, register) {
-                            it("should set " + register + " correctly", function () {
-                                expect(registers[register].get()).to.equal(expectedValue);
+                            util.each(scenario.expectedRegisters, function (expectedValue, register) {
+                                it("should set " + register + " correctly", function () {
+                                    expect(registers[register].get()).to.equal(expectedValue);
+                                });
                             });
                         });
                     });
