@@ -116,6 +116,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/smsw-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/stos-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/test-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/xlat-Test",
             "bdd/acceptance/real-mode/CPU/SIB-Test",
             "bdd/acceptance/real-mode/IODevice/CMOS-Test",
             "bdd/acceptance/real-mode/IODevice/PIT-Test",
