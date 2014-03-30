@@ -67,6 +67,22 @@ define([
                 expectedRegisters: {
                     al: 21
                 }
+            },
+            "should look up the correct byte in memory when using ES as segment with effective base address 0x500": {
+                prefix: "es ",
+                registers: {
+                    es: 0x50,
+                    bx: 4321,
+                    al: 11
+                },
+                memory: [{
+                    to: (0x50 << 4) + 4321 + 11,
+                    data: 21,
+                    size: 1
+                }],
+                expectedRegisters: {
+                    al: 21
+                }
             }
         }, function (scenario, description) {
             describe(description, function () {
@@ -80,11 +96,11 @@ define([
                                 var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 [BITS ${bits}]
-xlat
+${prefix} xlat
 
 hlt
 EOS
-*/) {}, {bits: is32BitCodeSegment ? 32 : 16});
+*/) {}, {prefix: scenario.prefix || "", bits: is32BitCodeSegment ? 32 : 16});
                                 registers = system.getCPURegisters();
 
                                 testSystem.on("pre-run", function () {
