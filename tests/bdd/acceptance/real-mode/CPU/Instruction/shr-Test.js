@@ -72,11 +72,11 @@ define([
                         destination: "eax",
                         count: "1",
                         setup: function () {
-                            registers.eax.set(100000);
+                            registers.eax.set(0xFFFFFFFF);
                         },
                         expectedRegisters: {
-                            eax: 50000,
-                            cf: 0 // 0 was shifted out last
+                            eax: 0x7fffffff,
+                            cf: 1 // 1 was shifted out last
                         }
                     },
                     "shift al right by immediate 2 to divide it by 4": {

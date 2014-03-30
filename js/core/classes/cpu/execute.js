@@ -1879,10 +1879,10 @@ define([
 
             if (count === 0) { return; }
 
-            res = (op1 >> count) & this.operand1.mask;
+            res = (op1 >>> count) & this.operand1.mask;
             this.operand1.write(res);
 
-            cf = (op1 >> (count - 1)) & 0x1;
+            cf = (op1 >>> (count - 1)) & 0x1;
             // 32-bit
             if (operandSize === 4) {
                 // note, that of == result31 if count == 1 and
