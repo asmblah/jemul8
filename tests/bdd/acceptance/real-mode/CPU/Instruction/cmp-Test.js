@@ -18,6 +18,7 @@ define([
     "use strict";
 
     describe("CPU 'cmp' instruction", function () {
+        /*jshint bitwise: false */
         var system,
             testSystem;
 
@@ -41,11 +42,11 @@ define([
          * - Subtracting larger no. from smaller no. will result in carry (so CF set)
          */
 
-        util.each([
-            {
+        util.each({
+            "subtracting ax from itself when zero": {
                 operand1: "ax",
                 operand2: "ax",
-                setup: {
+                registers: {
                     ax: 0
                 },
                 expectedFlags: {
@@ -55,10 +56,10 @@ define([
                     pf: util.getParity(0 - 0)
                 }
             },
-            {
+            "subtracting negative sign-extended byte from negative word with negative result": {
                 operand1: "ax",
                 operand2: "byte -1",
-                setup: {
+                registers: {
                     ax: -10
                 },
                 expectedFlags: {
@@ -68,10 +69,10 @@ define([
                     pf: util.getParity(-10 - (-1))
                 }
             },
-            {
+            "subtracting negative sign-extended byte from positive word": {
                 operand1: "ax",
                 operand2: "byte -1",
-                setup: {
+                registers: {
                     ax: 10
                 },
                 expectedFlags: {
@@ -81,11 +82,10 @@ define([
                     pf: util.getParity(10 - (-1))
                 }
             },
-            // Subtraction of negative number that results in zero
-            {
+            "subtracting negative number that results in zero": {
                 operand1: "ax",
                 operand2: "byte -4",
-                setup: {
+                registers: {
                     ax: -4
                 },
                 expectedFlags: {
@@ -94,14 +94,91 @@ define([
                     zf: 1, // Zero result
                     pf: util.getParity(-4 - (-4))
                 }
+            },
+            "subtracting negative sign-extended byte from negative word with zero result": {
+                operand1: "ax",
+                operand2: "byte -1",
+                registers: {
+                    ax: -1
+                },
+                expectedFlags: {
+                    cf: 0,
+                    sf: 0,
+                    zf: 1, // Immediate should be sign-extended to word for AX and remain equal
+                    pf: 1
+                }
+            },
+            "subtracting positive dword from positive dword with positive result": {
+                operand1: "eax",
+                operand2: "ebx",
+                registers: {
+                    eax: 120100,
+                    ebx: 100000
+                },
+                expectedFlags: {
+                    cf: 0,
+                    sf: 0,
+                    zf: 0,
+                    pf: util.getParity(120100 - 100000)
+                }
+            },
+            "subtracting positive dword (reg) from positive dword (reg) with negative result": {
+                operand1: "eax",
+                operand2: "ebx",
+                registers: {
+                    eax: 120100,
+                    ebx: 120101
+                },
+                expectedFlags: {
+                    cf: 1,
+                    sf: 1,
+                    zf: 0,
+                    pf: util.getParity(120100 - 120101)
+                }
+            },
+            "subtracting positive dword (reg) from positive dword (mem) near limit, with positive result": {
+                operand1: "[0x12]",
+                operand2: "ebx",
+                registers: {
+                    ds: 0x300,
+                    ebx: 1
+                },
+                memory: [{
+                    to: (0x300 << 4) + 0x12,
+                    data: 0x7fffffff,
+                    size: 4
+                }],
+                expectedFlags: {
+                    cf: 0,
+                    sf: 0,
+                    zf: 0,
+                    pf: util.getParity(0x7fffffff - 1)
+                }
+            },
+            "subtracting positive dword (reg) from positive dword (mem) with negative result": {
+                operand1: "[0x12]",
+                operand2: "ebx",
+                registers: {
+                    ds: 0x300,
+                    ebx: 120101
+                },
+                memory: [{
+                    to: (0x300 << 4) + 0x12,
+                    data: 120100,
+                    size: 4
+                }],
+                expectedFlags: {
+                    cf: 1,
+                    sf: 1,
+                    zf: 0,
+                    pf: util.getParity(120100 - 120101)
+                }
             }
-        ], function (scenario) {
-            var setupSummary = JSON.stringify(scenario.setup).replace(/^\{|\}$/g, "");
-
-            // Test in both modes so we check support for operand-size override prefix
-            util.each([true, false], function (is32BitCodeSegment) {
-                describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
-                    describe("for 'cmp " + scenario.operand1 + ", " + scenario.operand2 + "' with " + setupSummary, function () {
+        }, function (scenario, description) {
+            describe(description, function () {
+                // Test in both modes so we check support for operand-size override prefix
+                util.each([true, false], function (is32BitCodeSegment) {
+                    describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
                         var registers;
 
                         beforeEach(function (done) {
@@ -119,8 +196,16 @@ EOS
                                 registers.cs.set32BitMode(is32BitCodeSegment);
                             });
 
-                            util.each(scenario.setup, function (value, register) {
+                            if (scenario.setup) {
+                                scenario.setup(registers);
+                            }
+
+                            util.each(scenario.registers, function (value, register) {
                                 registers[register].set(value);
+                            });
+
+                            util.each(scenario.memory, function (options) {
+                                system.write(options);
                             });
 
                             testSystem.execute(assembly).done(function () {
@@ -129,14 +214,6 @@ EOS
                                 done(exception);
                             });
                         });
-
-                        /*it("should clear cf", function () {
-                            expect(registers.cf.get()).to.equal(0);
-                        });
-
-                        it("should clear of", function () {
-                            expect(registers.of.get()).to.equal(0);
-                        });*/
 
                         util.each(scenario.expectedFlags, function (expectedValue, flag) {
                             it("should set " + flag + " correctly", function () {
