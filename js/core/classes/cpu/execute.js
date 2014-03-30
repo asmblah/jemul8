@@ -1127,8 +1127,6 @@ define([
             }
         // Load Full Pointer with SS
         }, "LSS": function (cpu) {
-            var farPointer = this.operand2.read();
-
             // 16-bit
             if (!this.operandSizeAttr) {
                 /*
@@ -1138,17 +1136,12 @@ define([
                  *      DW 5678h
                  *  ... will set AX=1234h, SS=5678h
                  */
-                // TODO: Remove this mask? (should be covered in .write())
-                this.operand1.write(farPointer & 0xFFFF);
-                // TODO: Remove this mask? (should be covered in .set())
-                cpu.SS.set((farPointer >> 16) & 0xFFFF);
-
-                // In Protected Mode, load the descriptor into the segment register
+                this.operand1.write(this.operand2.read(0, 2));
+                cpu.SS.set(this.operand2.read(2, 2));
             // 32-bit
             } else {
-                this.operand1.write(this.operand2.read());
-                util.panic("LSS :: Not implemented");
-                // In Protected Mode, load the descriptor into the segment register
+                this.operand1.write(this.operand2.read(0, 4));
+                cpu.SS.set(this.operand2.read(4, 2));
             }
         // Load Local Descriptor Table Register
         }, "LLDT": function (cpu) {
