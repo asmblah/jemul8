@@ -104,6 +104,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/jmpf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lea-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/lidt-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lmsw-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/mov-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/movs-Test",
