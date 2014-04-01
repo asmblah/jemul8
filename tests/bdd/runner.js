@@ -99,6 +99,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/conditionalJump/withCmp/ja-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/conditionalSet/withCmp/setle-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/adc-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/add-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/and-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/callf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/cmp-Test",
