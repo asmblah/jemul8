@@ -267,9 +267,15 @@ define([
     // Overflow Flag
     hsh_getOF[ "ADD" ] = hsh_getOF[ "ADC" ]
     = function (cpu) {
+        var mask = {
+            1: 0x80,
+            2: 0x8000,
+            4: 0x80000000
+        }[cpu.insnLast.operand1.size];
+
         return (((
             (cpu.valLast1 ^ cpu.resLast) & (cpu.valLast2 ^ cpu.resLast)
-        ) & 0x80000000) != 0) & 1;
+        ) & mask) != 0) & 1;
     };
     hsh_getOF[ "SUB" ] = hsh_getOF[ "SBB" ]
     = hsh_getOF[ "CMP" ] = hsh_getOF[ "CMPS" ]

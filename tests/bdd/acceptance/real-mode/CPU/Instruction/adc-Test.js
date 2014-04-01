@@ -38,7 +38,7 @@ define([
         });
 
         util.each({
-            "wrap past 0xffff and add carry when carry is 0": {
+            "16-bit wrap past 0xffff and add carry when carry is 0": {
                 is32BitCodeSegment: false,
                 operand1: "bx",
                 operand2: "ax",
@@ -54,7 +54,7 @@ define([
                     of: 0
                 }
             },
-            "wrap past 0xffff and add carry when carry is 1": {
+            "16-bit wrap past 0xffff and add carry when carry is 1": {
                 is32BitCodeSegment: false,
                 operand1: "bx",
                 operand2: "ax",
@@ -70,7 +70,7 @@ define([
                     of: 0
                 }
             },
-            "no wrap around when carry is 0": {
+            "16-bit no wrap around when carry is 0": {
                 is32BitCodeSegment: false,
                 operand1: "bx",
                 operand2: "ax",
@@ -86,7 +86,7 @@ define([
                     of: 0
                 }
             },
-            "no wrap around when carry is 1": {
+            "16-bit no wrap around when carry is 1": {
                 is32BitCodeSegment: false,
                 operand1: "bx",
                 operand2: "ax",
@@ -102,7 +102,7 @@ define([
                     of: 0
                 }
             },
-            "no wrap around when operands are zero and carry is 0": {
+            "16-bit no wrap around when operands are zero and carry is 0": {
                 is32BitCodeSegment: false,
                 operand1: "bx",
                 operand2: "ax",
@@ -118,7 +118,7 @@ define([
                     of: 0
                 }
             },
-            "no wrap around when operands are zero and carry is 1": {
+            "16-bit no wrap around when operands are zero and carry is 1": {
                 is32BitCodeSegment: false,
                 operand1: "bx",
                 operand2: "ax",
@@ -132,6 +132,38 @@ define([
                     bx: 1,
                     cf: 0, // No wrap around, so no carry
                     of: 0
+                }
+            },
+            "8-bit add when carry is 0": {
+                is32BitCodeSegment: false,
+                operand1: "bl",
+                operand2: "al",
+                registers: {
+                    al: -128 & 0xff,
+                    bl: -1 & 0xff,
+                    cf: 0
+                },
+                expectedRegisters: {
+                    al: -128 & 0xff,
+                    bl: 127,
+                    cf: 1, // Unsigned wrap around
+                    of: 1  // Signed wrap around
+                }
+            },
+            "8-bit add when carry is 1": {
+                is32BitCodeSegment: false,
+                operand1: "bl",
+                operand2: "al",
+                registers: {
+                    al: -128 & 0xff,
+                    bl: -1 & 0xff,
+                    cf: 1
+                },
+                expectedRegisters: {
+                    al: -128 & 0xff,
+                    bl: 128,
+                    cf: 1, // Unsigned wrap around
+                    of: 0  // No signed wrap around
                 }
             }
         }, function (scenario, description) {
