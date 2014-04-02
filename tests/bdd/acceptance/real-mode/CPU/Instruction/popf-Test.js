@@ -38,7 +38,7 @@ define([
         });
 
         util.each({
-            "16-bit pop into flags": {
+            "16-bit pop into flags of 0xabcd": {
                 is32BitCodeSegment: false,
                 registers: {
                     ss: 0x300,
@@ -50,8 +50,24 @@ define([
                     size: 2
                 }],
                 expectedRegisters: {
-                    flags: 0xabcd,
-                    eflags: 0x0000abcd // Ensure high word of eflags is left untouched
+                    flags: (0xabcd & 0x0fd5) | 2,
+                    eflags: (0x0000abcd & 0xffff0fd5) | 2 // Ensure high word of eflags is left untouched
+                }
+            },
+            "16-bit pop into flags of 0x0fd5": {
+                is32BitCodeSegment: false,
+                registers: {
+                    ss: 0x300,
+                    sp: 0x200
+                },
+                memory: [{
+                    to: (0x300 << 4) + 0x200,
+                    data: 0x0fd5,
+                    size: 2
+                }],
+                expectedRegisters: {
+                    flags: 0x0fd5 | 2,     // Bit 1 is reserved, always set
+                    eflags: 0x00000fd5 | 2 // Ensure high word of eflags is left untouched
                 }
             },
             "32-bit pop into eflags": {
@@ -66,8 +82,8 @@ define([
                     size: 4
                 }],
                 expectedRegisters: {
-                    flags: 0xbcde, // Might as well check low word too
-                    eflags: 0x4321bcde
+                    flags: (0xbcde & 0x7fd5) | 2, // Bit 1 is reserved, always set
+                    eflags: (0x4321bcde & 0x00037fd5) | 2
                 }
             }
         }, function (scenario, description) {

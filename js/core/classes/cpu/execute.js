@@ -1530,12 +1530,24 @@ define([
         //  POPF:  Pop 16-bit
         //  POPFD: Pop 32-bit
         }, "POPF": function (cpu) {
-            // NB: bits 16 and 17 (VM & RF) should not be affected by this
-            //    (TODO: mask... ^!)
-            var operandSize = this.operandSizeAttr ? 4 : 2;
+            var changeMask,
+                newFlags,
+                oldFlags,
+                inverseChangeMask;
 
-            // Always set all of EFLAGS (zero out high word if POPF)
-            cpu.EFLAGS.set(cpu.popStack(operandSize));
+            if (!this.operandSizeAttr) {
+                changeMask = 0xfd5;
+                inverseChangeMask = (~changeMask) & 0xFFFF;
+                newFlags = cpu.popStack(2);
+                oldFlags = cpu.FLAGS.get();
+                cpu.FLAGS.set((oldFlags & inverseChangeMask) | (newFlags & changeMask));
+            } else {
+                changeMask = 0x00037fd5;
+                inverseChangeMask = (~changeMask) & 0xFFFFFFFF;
+                newFlags = cpu.popStack(4);
+                oldFlags = cpu.FLAGS.get();
+                cpu.EFLAGS.set((oldFlags & inverseChangeMask) | (newFlags & changeMask));
+            }
         // Push data onto stack top (SS:SP)
         }, "PUSH": function (cpu) {
             var size = this.operandSizeAttr ? 4 : 2,
