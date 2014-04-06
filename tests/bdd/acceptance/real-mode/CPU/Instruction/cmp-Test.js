@@ -69,6 +69,36 @@ define([
                     pf: util.getParity(-10 - (-1))
                 }
             },
+            "subtracting negative byte from negative byte with negative result": {
+                operand1: "al",
+                operand2: "ah",
+                registers: {
+                    al: -10,
+                    ah: -2
+                },
+                expectedFlags: {
+                    cf: 1,
+                    of: 0, // No signed overflow
+                    sf: 1, // Negative result
+                    zf: 0, // Non-zero result
+                    pf: util.getParity(-10 - (-2))
+                }
+            },
+            "subtracting positive byte from negative byte with overflowing result": {
+                operand1: "al",
+                operand2: "ah",
+                registers: {
+                    al: -0x80 & 0xff,
+                    ah: 2
+                },
+                expectedFlags: {
+                    cf: 0,
+                    of: 1, // Signed overflow
+                    sf: 0, // Positive result after overflow
+                    zf: 0, // Non-zero result
+                    pf: util.getParity(-0x80 - 2)
+                }
+            },
             "subtracting negative sign-extended byte from positive word": {
                 operand1: "ax",
                 operand2: "byte -1",
