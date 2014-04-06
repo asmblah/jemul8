@@ -119,6 +119,9 @@ define([
             /*jshint bitwise: false */
             var res = 0;
 
+            // x86 parity only applies to the low 8 bits
+            num = num & 0xff;
+
             while (num) {
                 ++res;
                 // Loop will execute once for each bit set in num

@@ -44,6 +44,21 @@ define([
             });
         });
 
+        // Parity is 1 if the no. of set bits is even (only applies to first 8 bits)
+        describe("getParity()", function () {
+            util.each([
+                {number: 0, parity: 1},
+                {number: 1, parity: 0},
+                {number: 2, parity: 0},
+                {number: 3, parity: 1},
+                {number: parseInt("100000001", 2), parity: 0} // Odd no. of set bits because first is above low 8 bits
+            ], function (scenario) {
+                it("should return " + scenario.parity + " when number is " + scenario.number.toString(2) + "b", function () {
+                    expect(util.getParity(scenario.number)).to.equal(scenario.parity);
+                });
+            });
+        });
+
         describe("heredoc()", function () {
             util.each([
                 {
