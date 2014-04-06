@@ -191,6 +191,10 @@ define([
                 system.emit("interrupt", vector);
             });
 
+            system.cpu.on("exception", function (vector) {
+                system.emit("exception", vector);
+            });
+
             system.io.on("io read", function (port, length) {
                 system.emit("io read", port, length);
             });

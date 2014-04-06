@@ -487,6 +487,7 @@ define([
             // Divide by Zero (Divide Error)
             if (divisor === 0) {
                 cpu.exception(util.DE_EXCEPTION, 0);
+                return;
             }
 
             // Dividend is AX

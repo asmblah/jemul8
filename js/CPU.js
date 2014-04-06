@@ -39,6 +39,8 @@ define([
 ) {
     "use strict";
 
+    var DIVIDE_ERROR = 0;
+
     function CPU(system, io, memory, decoder, clock, options) {
         var registers = {};
 
@@ -348,6 +350,10 @@ define([
                     PE: registers.pe,
                     VM: registers.vm,
 
+                    exception: function (vector) {
+                        cpu.exception(vector);
+                    },
+
                     fetchRawDescriptor: function (selector, exceptionType) {
                         return cpu.fetchRawDescriptor(selector, exceptionType);
                     },
@@ -485,6 +491,10 @@ define([
 
     util.inherit(CPU).from(EventEmitter);
 
+    util.extend(CPU, {
+        DIVIDE_ERROR: DIVIDE_ERROR
+    });
+
     util.extend(CPU.prototype, {
         cycle: function () {
             /*global Uint8Array */
@@ -591,6 +601,14 @@ define([
             }
 
             return asm;
+        },
+
+        exception: function (vector) {
+            var cpu = this;
+
+            cpu.emit("exception", vector);
+
+            cpu.interrupt(vector);
         },
 
         fetchRawDescriptor: function (selector/*, exceptionType*/) {

@@ -10,9 +10,11 @@
 /*global define */
 define([
     "js/util",
+    "js/CPU",
     "tools/TestSystem"
 ], function (
     util,
+    CPU,
     TestSystem
 ) {
     "use strict";
@@ -71,13 +73,25 @@ define([
                     ax: 1,
                     dx: 9
                 }
+            },
+            "16-bit divide by zero": {
+                divisor: "bl",
+                registers: {
+                    ax: 4,
+                    bl: 0
+                },
+                expectedRegisters: {
+                    ax: 4 // Ensure ax is left unchanged
+                },
+                expectedExceptionVector: CPU.DIVIDE_ERROR
             }
         }, function (scenario, description) {
             describe(description, function () {
                 // Test in both modes so we check support for operand-size override prefix
                 util.each([true, false], function (is32BitCodeSegment) {
                     describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
-                        var registers;
+                        var exceptionVector,
+                            registers;
 
                         beforeEach(function (done) {
                             var assembly = util.heredoc(function (/*<<<EOS
@@ -106,6 +120,13 @@ EOS
                                 system.write(options);
                             });
 
+                            if (scenario.hasOwnProperty("expectedExceptionVector")) {
+                                system.on("exception", function (vector) {
+                                    exceptionVector = vector;
+                                    system.pause();
+                                });
+                            }
+
                             testSystem.execute(assembly).done(function () {
                                 done();
                             }).fail(function (exception) {
@@ -118,6 +139,12 @@ EOS
                                 expect(registers[name].get()).to.equal(value >>> 0);
                             });
                         });
+
+                        if (scenario.hasOwnProperty("expectedExceptionVector")) {
+                            it("should raise the expected CPU exception", function () {
+                                expect(exceptionVector).to.equal(scenario.expectedExceptionVector);
+                            });
+                        }
                     });
                 });
             });
