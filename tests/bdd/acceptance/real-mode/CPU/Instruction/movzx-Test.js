@@ -18,12 +18,14 @@ define([
     "use strict";
 
     describe("CPU 'movzx' move with zero-extend instruction", function () {
-        var system,
+        var registers,
+            system,
             testSystem;
 
         beforeEach(function (done) {
             testSystem = new TestSystem();
             system = testSystem.getSystem();
+            registers = system.getCPURegisters();
 
             testSystem.init().done(function () {
                 done();
@@ -32,6 +34,7 @@ define([
 
         afterEach(function () {
             system.stop();
+            registers = null;
             system = null;
             testSystem = null;
         });
@@ -103,8 +106,7 @@ movzx ${destination}, ${source}
 
 hlt
 EOS
-*/) {}, {destination: scenario.destination, source: scenario.source, sourceValue: scenario.sourceValue, bits: is32BitMode ? 32 : 16}),
-                                registers = system.getCPURegisters();
+*/) {}, {destination: scenario.destination, source: scenario.source, sourceValue: scenario.sourceValue, bits: is32BitMode ? 32 : 16});
 
                             testSystem.on("pre-run", function () {
                                 registers.cs.set32BitMode(is32BitMode);

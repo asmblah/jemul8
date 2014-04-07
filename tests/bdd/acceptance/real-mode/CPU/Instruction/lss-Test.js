@@ -19,12 +19,14 @@ define([
 
     describe("CPU 'lss' (load full pointer with SS) instruction", function () {
         /*jshint bitwise: false */
-        var system,
+        var registers,
+            system,
             testSystem;
 
         beforeEach(function (done) {
             testSystem = new TestSystem();
             system = testSystem.getSystem();
+            registers = system.getCPURegisters();
 
             testSystem.init().done(function () {
                 done();
@@ -33,6 +35,7 @@ define([
 
         afterEach(function () {
             system.stop();
+            registers = null;
             system = null;
             testSystem = null;
         });
@@ -83,8 +86,6 @@ define([
                 // Test in both modes so we check support for operand-size override prefix
                 util.each([true, false], function (is32BitCodeSegment) {
                     describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
-                        var registers;
-
                         beforeEach(function (done) {
                             var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
@@ -94,7 +95,6 @@ ${prefix} lss ${operand1}, ${operand2}
 hlt
 EOS
 */) {}, {operand1: scenario.operand1, operand2: scenario.operand2, prefix: scenario.prefix || "", bits: is32BitCodeSegment ? 32 : 16});
-                            registers = system.getCPURegisters();
 
                             testSystem.on("pre-run", function () {
                                 registers.cs.set32BitMode(is32BitCodeSegment);

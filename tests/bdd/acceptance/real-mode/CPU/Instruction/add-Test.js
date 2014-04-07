@@ -19,12 +19,14 @@ define([
 
     describe("CPU 'add' instruction", function () {
         /*jshint bitwise: false */
-        var system,
+        var registers,
+            system,
             testSystem;
 
         beforeEach(function (done) {
             testSystem = new TestSystem();
             system = testSystem.getSystem();
+            registers = system.getCPURegisters();
 
             testSystem.init().done(function () {
                 done();
@@ -33,6 +35,7 @@ define([
 
         afterEach(function () {
             system.stop();
+            registers = null;
             system = null;
             testSystem = null;
         });
@@ -139,8 +142,6 @@ define([
 
             describe("when code segment is " + (is32BitCodeSegment ? 32 : 16) + "-bit", function () {
                 describe(description, function () {
-                    var registers;
-
                     beforeEach(function (done) {
                         var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
@@ -150,7 +151,6 @@ add ${operand1}, ${operand2}
 hlt
 EOS
 */) {}, {operand1: scenario.operand1, operand2: scenario.operand2, bits: is32BitCodeSegment ? 32 : 16});
-                        registers = system.getCPURegisters();
 
                         testSystem.on("pre-run", function () {
                             registers.cs.set32BitMode(is32BitCodeSegment);

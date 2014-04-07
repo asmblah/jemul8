@@ -18,12 +18,14 @@ define([
     "use strict";
 
     describe("CPU 'stos' store byte/word/dword at (e)di instruction", function () {
-        var system,
+        var registers,
+            system,
             testSystem;
 
         beforeEach(function (done) {
             testSystem = new TestSystem();
             system = testSystem.getSystem();
+            registers = system.getCPURegisters();
 
             testSystem.init().done(function () {
                 done();
@@ -32,6 +34,7 @@ define([
 
         afterEach(function () {
             system.stop();
+            registers = null;
             system = null;
             testSystem = null;
         });
@@ -108,8 +111,7 @@ ${repeatPrefix}stos${suffix}
 
 hlt
 EOS
-*/) {}, {source: scenario.source, sourceValue: scenario.sourceValue, repeatPrefix: prefix + scenario.repeatPrefix, suffix: suffix, bits: sizing.is32BitDefaultSize ? 32 : 16}),
-                                registers = system.getCPURegisters();
+*/) {}, {source: scenario.source, sourceValue: scenario.sourceValue, repeatPrefix: prefix + scenario.repeatPrefix, suffix: suffix, bits: sizing.is32BitDefaultSize ? 32 : 16});
 
                             registers[sizing.is32BitAddressSize ? "edi" : "di"].set(scenario.initialAddress);
 
