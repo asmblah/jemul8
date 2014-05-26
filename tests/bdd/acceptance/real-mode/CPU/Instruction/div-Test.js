@@ -77,6 +77,22 @@ define([
                     dx: 9
                 }
             },
+            "32-bit divide of dx:ax 0xa320c3da by 14": {
+                divisor: "bx",
+                registers: {
+                    dx: 0xa320,
+                    ax: 0xc3da,
+                    bx: 14
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    ax: 0xc3da,
+                    dx: 0xa320,
+                    bx: 14
+                },
+                // Should overflow because quotient will not fit in ax
+                expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
             "16-bit divide by zero": {
                 divisor: "bl",
                 registers: {

@@ -507,6 +507,7 @@ define([
 
                 if (quotient !== quotient16) {
                     cpu.exception(util.DE_EXCEPTION, 0);
+                    return;
                 }
 
                 cpu.AX.set(quotient16); // Quotient
