@@ -82,7 +82,11 @@ define([
                 registers: {
                     dx: 0xa320,
                     ax: 0xc3da,
-                    bx: 14
+                    bx: 14,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
                 },
                 expectedRegisters: {
                     // Ensure registers are left unchanged
@@ -110,7 +114,11 @@ define([
                 divisor: "bl",
                 registers: {
                     ax: 4,
-                    bl: 0
+                    bl: 0,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
                 },
                 expectedRegisters: {
                     ax: 4 // Ensure ax is left unchanged
@@ -173,6 +181,11 @@ EOS
                         if (scenario.hasOwnProperty("expectedExceptionVector")) {
                             it("should raise the expected CPU exception", function () {
                                 expect(exceptionVector).to.equal(scenario.expectedExceptionVector);
+                            });
+
+                            it("should save the address of the divide instruction as the return address", function () {
+                                expect(registers.ss.readSegment(registers.sp.get(), 2)).to.equal(0x100);
+                                expect(registers.ss.readSegment(registers.sp.get() + 2, 2)).to.equal(0);
                             });
                         }
                     });

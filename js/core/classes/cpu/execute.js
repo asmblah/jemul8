@@ -486,7 +486,7 @@ define([
 
             // Divide by Zero (Divide Error)
             if (divisor === 0) {
-                cpu.exception(util.DE_EXCEPTION, 0);
+                cpu.exception(util.DE_EXCEPTION, 0, this);
                 return;
             }
 
@@ -506,7 +506,7 @@ define([
                 quotient16 = quotient & 0xFFFF;
 
                 if (quotient !== quotient16) {
-                    cpu.exception(util.DE_EXCEPTION, 0);
+                    cpu.exception(util.DE_EXCEPTION, 0, this);
                     return;
                 }
 

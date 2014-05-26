@@ -350,8 +350,8 @@ define([
                     PE: registers.pe,
                     VM: registers.vm,
 
-                    exception: function (vector) {
-                        cpu.exception(vector);
+                    exception: function (vector, code, instruction) {
+                        cpu.exception(vector, code, instruction);
                     },
 
                     fetchRawDescriptor: function (selector, exceptionType) {
@@ -603,12 +603,15 @@ define([
             return asm;
         },
 
-        exception: function (vector) {
-            var cpu = this;
+        exception: function (vector, code, instruction) {
+            var cpu = this,
+                registers = cpu.registers;
 
-            cpu.emit("exception", vector);
+            registers.eip.set(registers.eip.get() - instruction.length);
 
             cpu.interrupt(vector);
+
+            cpu.emit("exception", vector);
         },
 
         fetchRawDescriptor: function (selector/*, exceptionType*/) {
