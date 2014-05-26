@@ -93,6 +93,19 @@ define([
                 // Should overflow because quotient will not fit in ax
                 expectedExceptionVector: CPU.DIVIDE_ERROR
             },
+            "32-bit divide of dx:ax 0xa320c3da by 0xffff": {
+                divisor: "bx",
+                registers: {
+                    dx: 0xa320,
+                    ax: 0xc3da,
+                    bx: 0xffff
+                },
+                expectedRegisters: {
+                    ax: 0xa321, // Quotient:  0xa320c3da / 0xffff
+                    dx: 0x66fb, // Remainder: 0xa320c3da - (0xa321 * 0xffff)
+                    bx: 0xffff  // Ensure bx (divisor) is left unchanged
+                }
+            },
             "16-bit divide by zero": {
                 divisor: "bl",
                 registers: {

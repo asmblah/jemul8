@@ -499,7 +499,7 @@ define([
                 cpu.AH.set(dividend % divisor); // Remainder
             // Dividend is DX:AX
             } else if (sizeOperand == 2) {
-                dividend = (cpu.DX.get() << 16) | cpu.AX.get();
+                dividend = ((cpu.DX.get() << 16) | cpu.AX.get()) >>> 0;
                 // Truncate unsigned integer result (">>> 0") toward zero
                 quotient = (dividend / divisor) >>> 0;
                 remainder = (dividend % divisor) & 0xFFFF;
