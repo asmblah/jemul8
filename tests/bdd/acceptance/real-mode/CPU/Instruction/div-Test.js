@@ -43,6 +43,36 @@ define([
         });
 
         util.each({
+            "16-bit divide of ax 255 by 1 with no remainder": {
+                divisor: "dh",
+                registers: {
+                    ax: 255,
+                    dh: 1
+                },
+                expectedRegisters: {
+                    al: 255, // Quotient: 255
+                    ah: 0,   // No remainder
+                    dh: 1    // (Just check the divisor register is left untouched)
+                }
+            },
+            "16-bit divide of ax 0xffff by 1 with no remainder": {
+                divisor: "dh",
+                registers: {
+                    ax: 0xffff,
+                    dh: 1,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    ax: 0xffff,
+                    dh: 1
+                },
+                // Should overflow because quotient (0xffff) will not fit in al
+                expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
             "16-bit divide of ax 100 by 2 with no remainder": {
                 divisor: "bl",
                 registers: {

@@ -495,6 +495,12 @@ define([
                 dividend = cpu.AX.get();
                 // Truncate unsigned integer result (">>> 0") toward zero
                 quotient = (dividend / divisor) >>> 0;
+
+                if (quotient > 0xFF) {
+                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    return;
+                }
+
                 cpu.AL.set(quotient); // Quotient
                 cpu.AH.set(dividend % divisor); // Remainder
             // Dividend is DX:AX
