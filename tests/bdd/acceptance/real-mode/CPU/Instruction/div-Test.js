@@ -154,6 +154,25 @@ define([
                     ax: 4 // Ensure ax is left unchanged
                 },
                 expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
+            "32-bit divide of dx:ax by zero": {
+                divisor: "bx",
+                registers: {
+                    dx: 0x1234,
+                    ax: 0x4321,
+                    bx: 0,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    ax: 0x4321,
+                    dx: 0x1234,
+                    bx: 0
+                },
+                expectedExceptionVector: CPU.DIVIDE_ERROR
             }
         }, function (scenario, description) {
             describe(description, function () {
