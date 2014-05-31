@@ -63,7 +63,8 @@ define([
                 "/jemul8.js": basePath + "/jemul8.js",
                 "/demos": basePath + "/demos/",
                 "/js": basePath + "/js/",
-                "/modular": basePath + "/node_modules/modular-amd/"
+                "/modular": basePath + "/node_modules/modular-amd/",
+                "/vendor": basePath + "/vendor/"
             });
 
             // Ensure index.html is used as default
