@@ -153,6 +153,26 @@ define([
                     ebx: 0xfa2b3c4d  // Ensure ebx (divisor) is left unchanged
                 }
             },
+            "64-bit divide of edx:eax 0xa321bcde5def4321 by 15": {
+                divisor: "ecx",
+                registers: {
+                    edx: 0xa321bcde,
+                    eax: 0x5def4321,
+                    ecx: 15,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    eax: 0x5def4321,
+                    edx: 0xa321bcde,
+                    ecx: 15
+                },
+                // Should overflow because quotient will not fit in eax
+                expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
             "16-bit divide by zero": {
                 divisor: "bl",
                 registers: {

@@ -523,6 +523,12 @@ define([
                 dividend = new BigInteger(cpu.EDX.get().toString(16) + cpu.EAX.get().toString(16), 16);
                 divisor = new BigInteger(divisor.toString(16), 16);
                 quotient = dividend.divide(divisor);
+
+                if (quotient.toRadix(16).length > 8) {
+                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    return;
+                }
+
                 cpu.EAX.set(quotient.intValue());
                 cpu.EDX.set(dividend.mod(divisor).intValue());
             }
