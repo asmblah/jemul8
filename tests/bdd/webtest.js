@@ -101,7 +101,8 @@
         "/sinon": vendorPath + "/sinon/",
         "/sinon-chai": nodeModulesPath + "/sinon-chai/lib/",
         "/tools": bddPath + "/tools/",
-        "/unit": bddPath + "/unit/"
+        "/unit": bddPath + "/unit/",
+        "/vendor": vendorPath + "/"
     });
 
     app.get("/", function (request, response) {

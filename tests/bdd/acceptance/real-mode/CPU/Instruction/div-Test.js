@@ -140,6 +140,19 @@ define([
                     bx: 0xffff  // Ensure bx (divisor) is left unchanged
                 }
             },
+            "64-bit divide of edx:eax 0xa321bcde5def4321 by 0xfa2b3c4d": {
+                divisor: "ebx",
+                registers: {
+                    edx: 0xa321bcde,
+                    eax: 0x5def4321,
+                    ebx: 0xfa2b3c4d
+                },
+                expectedRegisters: {
+                    eax: 0xa6ef2646, // Quotient: 0xa321bcde5def4321 / 0xfa2b3c4d
+                    edx: 0x51465813, // Remainder: 0xa321bcde5def4321 - (0xa6ef2646 * 0xfa2b3c4d)
+                    ebx: 0xfa2b3c4d  // Ensure ebx (divisor) is left unchanged
+                }
+            },
             "16-bit divide by zero": {
                 divisor: "bl",
                 registers: {

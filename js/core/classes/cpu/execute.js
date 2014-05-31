@@ -16,11 +16,11 @@
 
 define([
     "../../util",
-    "../math/int64",
+    "vendor/jsbn/BigInteger",
     "../memory/buffer"
 ], function (
     util,
-    Int64,
+    BigInteger,
     Buffer
 ) {
     "use strict";
@@ -520,12 +520,11 @@ define([
                 cpu.DX.set(remainder); // Remainder
             // Dividend is EDX:EAX
             } else if (sizeOperand == 4) {
-                dividend = Int64.fromBits(cpu.EAX.get(), cpu.EDX.get());
-                divisor = Int64.fromNumber(divisor);
-                quotient = dividend.div(divisor);
-                cpu.EAX.set(quotient.getLowBits());
-                cpu.EDX.set(dividend.modulo(divisor).getLowBits());
-                util.warning("DIV insn :: setFlags needs to support Int64s");
+                dividend = new BigInteger(cpu.EDX.get().toString(16) + cpu.EAX.get().toString(16), 16);
+                divisor = new BigInteger(divisor.toString(16), 16);
+                quotient = dividend.divide(divisor);
+                cpu.EAX.set(quotient.intValue());
+                cpu.EDX.set(dividend.mod(divisor).intValue());
             }
         // Make Stack Frame (80188+)
         }, "ENTER": function (cpu) {
