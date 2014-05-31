@@ -186,6 +186,25 @@ define([
                     bx: 0
                 },
                 expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
+            "64-bit divide of edx:eax by zero": {
+                divisor: "ebx",
+                registers: {
+                    edx: 0xabcd1234,
+                    eax: 0xdcba4321,
+                    ebx: 0,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    eax: 0xdcba4321,
+                    edx: 0xabcd1234,
+                    ebx: 0
+                },
+                expectedExceptionVector: CPU.DIVIDE_ERROR
             }
         }, function (scenario, description) {
             describe(description, function () {
