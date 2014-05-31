@@ -55,24 +55,6 @@ define([
                     dh: 1    // (Just check the divisor register is left untouched)
                 }
             },
-            "16-bit divide of ax 0xffff by 1 with no remainder": {
-                divisor: "dh",
-                registers: {
-                    ax: 0xffff,
-                    dh: 1,
-
-                    // Set up the stack for the exception
-                    ss: 0xd000,
-                    esp: 0xe000
-                },
-                expectedRegisters: {
-                    // Ensure registers are left unchanged
-                    ax: 0xffff,
-                    dh: 1
-                },
-                // Should overflow because quotient (0xffff) will not fit in al
-                expectedExceptionVector: CPU.DIVIDE_ERROR
-            },
             "16-bit divide of ax 100 by 2 with no remainder": {
                 divisor: "bl",
                 registers: {
@@ -95,6 +77,24 @@ define([
                     ah: 9
                 }
             },
+            "16-bit divide of ax 0xffff by 1 with no remainder": {
+                divisor: "dh",
+                registers: {
+                    ax: 0xffff,
+                    dh: 1,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    ax: 0xffff,
+                    dh: 1
+                },
+                // Should overflow because quotient (0xffff) will not fit in al
+                expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
             "32-bit divide of dx:ax 21 by 12 with remainder": {
                 divisor: "bx",
                 registers: {
@@ -105,6 +105,19 @@ define([
                 expectedRegisters: {
                     ax: 1,
                     dx: 9
+                }
+            },
+            "32-bit divide of dx:ax 0xa320c3da by 0xffff": {
+                divisor: "bx",
+                registers: {
+                    dx: 0xa320,
+                    ax: 0xc3da,
+                    bx: 0xffff
+                },
+                expectedRegisters: {
+                    ax: 0xa321, // Quotient:  0xa320c3da / 0xffff
+                    dx: 0x66fb, // Remainder: 0xa320c3da - (0xa321 * 0xffff)
+                    bx: 0xffff  // Ensure bx (divisor) is left unchanged
                 }
             },
             "32-bit divide of dx:ax 0xa320c3da by 14": {
@@ -126,19 +139,6 @@ define([
                 },
                 // Should overflow because quotient will not fit in ax
                 expectedExceptionVector: CPU.DIVIDE_ERROR
-            },
-            "32-bit divide of dx:ax 0xa320c3da by 0xffff": {
-                divisor: "bx",
-                registers: {
-                    dx: 0xa320,
-                    ax: 0xc3da,
-                    bx: 0xffff
-                },
-                expectedRegisters: {
-                    ax: 0xa321, // Quotient:  0xa320c3da / 0xffff
-                    dx: 0x66fb, // Remainder: 0xa320c3da - (0xa321 * 0xffff)
-                    bx: 0xffff  // Ensure bx (divisor) is left unchanged
-                }
             },
             "64-bit divide of edx:eax 0xa321bcde5def4321 by 0xfa2b3c4d": {
                 divisor: "ebx",
