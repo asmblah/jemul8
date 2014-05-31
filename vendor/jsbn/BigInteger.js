@@ -1,5 +1,9 @@
 /*jshint ignore:start */
 define(function () {
+
+// Node.js compat
+var navigator = typeof window !== 'undefined' ? window.navigator : {appName: ''};
+
 // Copyright (c) 2005  Tom Wu
 // All Rights Reserved.
 // See "LICENSE" for details.
