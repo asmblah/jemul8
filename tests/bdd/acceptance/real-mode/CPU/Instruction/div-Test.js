@@ -140,6 +140,20 @@ define([
                 // Should overflow because quotient will not fit in ax
                 expectedExceptionVector: CPU.DIVIDE_ERROR
             },
+            // Check that zero-padded eax is handled correctly
+            "64-bit divide of edx:eax 0xa321bcde00004321 by 0xfa2b3c4d": {
+                divisor: "ebx",
+                registers: {
+                    edx: 0xa321bcde,
+                    eax: 0x00004321,
+                    ebx: 0xfa2b3c4d
+                },
+                expectedRegisters: {
+                    eax: 0xa6ef2645, // Quotient: 0xa321bcde00004321 / 0xfa2b3c4d
+                    edx: 0xed829460, // Remainder: 0xa321bcde00004321 - (0xa6ef2645 * 0xfa2b3c4d)
+                    ebx: 0xfa2b3c4d  // Ensure ebx (divisor) is left unchanged
+                }
+            },
             "64-bit divide of edx:eax 0xa321bcde5def4321 by 0xfa2b3c4d": {
                 divisor: "ebx",
                 registers: {

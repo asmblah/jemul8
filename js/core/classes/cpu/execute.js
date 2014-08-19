@@ -480,6 +480,7 @@ define([
             var sizeOperand = this.operand2.size,
                 dividend,
                 divisor = this.operand2.read(),
+                eaxHex,
                 quotient,
                 quotient16,
                 remainder;
@@ -520,7 +521,10 @@ define([
                 cpu.DX.set(remainder); // Remainder
             // Dividend is EDX:EAX
             } else if (sizeOperand == 4) {
-                dividend = new BigInteger(cpu.EDX.get().toString(16) + cpu.EAX.get().toString(16), 16);
+                // Format is EDX:EAX, EAX must be 8 hex digits long so zero-pad as needed
+                eaxHex = cpu.EAX.get().toString(16);
+                eaxHex = "00000000".substr(0, 8 - eaxHex.length) + eaxHex;
+                dividend = new BigInteger(cpu.EDX.get().toString(16) + eaxHex, 16);
                 divisor = new BigInteger(divisor.toString(16), 16);
                 quotient = dividend.divide(divisor);
 
