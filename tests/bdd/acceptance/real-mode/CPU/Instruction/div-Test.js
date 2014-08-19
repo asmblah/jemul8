@@ -173,7 +173,7 @@ define([
                 // Should overflow because quotient will not fit in eax
                 expectedExceptionVector: CPU.DIVIDE_ERROR
             },
-            "16-bit divide by zero": {
+            "16-bit divide of ax by zero": {
                 divisor: "bl",
                 registers: {
                     ax: 4,
