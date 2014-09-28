@@ -1850,7 +1850,7 @@ define([
         }, "SAHF": function (cpu) {
             // Mask out current values of Flags and replace with contents of AH
             // FIXME: Shouldn't be able to modify VM & IOPL - are they in low byte?
-            cpu.FLAGS.set((cpu.FLAGS.get() & 0xFF00) | cpu.AH.get());
+            cpu.FLAGS.set((cpu.FLAGS.get() & 0xFF2A) | (cpu.AH.get() & 0xD5));
         // Shift Logical Left
         // Shift Arithmetic Left (SAL - same instruction)
         }, "SHL": function (cpu) {

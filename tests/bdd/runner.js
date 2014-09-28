@@ -119,6 +119,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/popf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/push-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/pusha-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/sahf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/shr-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/sidt-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/smsw-Test",
