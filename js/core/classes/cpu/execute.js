@@ -638,8 +638,14 @@ define([
             // Dividend is DX:AX
             } else if (operandSize == 2) {
                 dividend = util.toSigned((cpu.DX.get() << 16) | cpu.AX.get(), 2 + 2);
-                // Integer result - truncated toward zero
-                quotient = util.truncateTowardZero(dividend / divisor);
+                // Integer result - truncated toward zero, keeping sign
+                quotient = (dividend / divisor) >> 0;
+
+                if (quotient < -32768 || quotient > 32767) {
+                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    return;
+                }
+
                 cpu.AX.set(quotient); // Quotient
                 cpu.DX.set(dividend % divisor); // Remainder
             // Dividend is EDX:EAX

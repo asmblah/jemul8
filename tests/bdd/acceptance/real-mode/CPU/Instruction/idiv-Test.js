@@ -114,7 +114,79 @@ define([
                     ax: -512,
                     dh: 2
                 },
-                // Should overflow because quotient (-128) will not fit in al
+                // Should overflow because quotient (-256) will not fit in al
+                expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
+            "32-bit divide of dx:ax +32767 by +1 with no remainder": {
+                divisor: "cx",
+                registers: {
+                    dx: 0,
+                    ax: 32767,
+                    cx: 1
+                },
+                expectedRegisters: {
+                    ax: 32767, // Quotient
+                    dx: 0,     // No remainder
+                    cx: 1      // (Just check the divisor register is left untouched)
+                }
+            },
+            "32-bit divide of dx:ax -16777215 by -1024 with remainder": {
+                divisor: "bx",
+                registers: {
+                    dx: -0xffffff >>> 16,
+                    ax: -0xffffff & 0xffff,
+                    bx: -1024
+                },
+                expectedRegisters: {
+                    ax: 16383, // Positive quotient because dividend and divisor both negative
+                    dx: -1023,  // Negative remainder (always same sign as dividend)
+                    bx: -1024  // (Just check the divisor register is left untouched)
+                }
+            },
+            "32-bit divide of dx:ax -16777215 by +512 with remainder": {
+                divisor: "bx",
+                registers: {
+                    dx: -0xffffff >>> 16,
+                    ax: -0xffffff & 0xffff,
+                    bx: 512
+                },
+                expectedRegisters: {
+                    ax: -32767, // Negative quotient because one operand was negative
+                    dx: -511,   // Negative remainder (always same sign as dividend)
+                    bx: 512     // (Just check the divisor register is left untouched)
+                }
+            },
+            "32-bit divide of dx:ax -8388608 by +256 with no remainder": {
+                divisor: "cx",
+                registers: {
+                    dx: -8388608 >> 16,
+                    ax: -8388608 & 0xffff,
+                    cx: 256
+                },
+                expectedRegisters: {
+                    ax: -32768, // Negative quotient because one operand was negative
+                    dx: 0,      // No remainder
+                    cx: 256     // (Just check the divisor register is left untouched)
+                }
+            },
+            "32-bit divide of dx:ax -8388864 by +256 with no remainder": {
+                divisor: "cx",
+                registers: {
+                    dx: -8388864 >> 16,
+                    ax: -8388864 & 0xffff,
+                    cx: 256,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    dx: -8388864 >> 16,
+                    ax: -8388864 & 0xffff,
+                    cx: 256
+                },
+                // Should overflow because quotient (-32769) will not fit in ax
                 expectedExceptionVector: CPU.DIVIDE_ERROR
             }
         }, function (scenario, description) {
