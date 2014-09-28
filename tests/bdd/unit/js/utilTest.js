@@ -175,5 +175,20 @@ EOS
                 });
             });
         });
+
+        describe("toSigned()", function () {
+            util.each([
+                {number: 0xff, sizeInBytes: 1, result: -1},
+                {number: 0xffff, sizeInBytes: 2, result: -1},
+                {number: 0xffffffff, sizeInBytes: 4, result: -1},
+                {number: 0xfffffffd, sizeInBytes: 4, result: -3}
+            ], function (scenario) {
+                describe("when the number is " + scenario.number + " of size " + scenario.size, function () {
+                    it("should give " + scenario.result + " as the result", function () {
+                        expect(util.toSigned(scenario.number, scenario.sizeInBytes)).to.equal(scenario.result);
+                    });
+                });
+            });
+        });
     });
 });

@@ -208,6 +208,24 @@ define([
             return Math.floor((ticks * USEC_PER_SECOND) / TICKS_PER_SECOND);
         },
 
+        toSigned: function (number, size) {
+            if (size === 4) {
+                if (number > 0x7FFFFFFF) {
+                    number -= 0xFFFFFFFF + 1;
+                }
+            } else if (size === 2) {
+                if (number > 0x7FFF) {
+                    number -= 0xFFFF + 1;
+                }
+            } else {
+                if (number > 0x7F) {
+                    number -= 0xFF + 1;
+                }
+            }
+
+            return number;
+        },
+
         microsecondsToTicks: function (usec) {
             return Math.floor((usec * TICKS_PER_SECOND) / USEC_PER_SECOND);
         },
