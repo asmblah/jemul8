@@ -19,12 +19,14 @@ define([
     "use strict";
 
     describe("CPU 'imul' (signed multiply) instruction", function () {
-        var system,
+        var registers,
+            system,
             testSystem;
 
         beforeEach(function (done) {
             testSystem = new TestSystem();
             system = testSystem.getSystem();
+            registers = system.getCPURegisters();
 
             testSystem.init().done(function () {
                 done();
@@ -33,12 +35,135 @@ define([
 
         afterEach(function () {
             system.stop();
+            registers = null;
             system = null;
             testSystem = null;
         });
 
         describe("when under 16-bit real mode", function () {
             describe("1-operand form", function () {
+                // Test in both modes so we check support for operand-size override prefix
+                util.each([true, false], function (is32BitCodeSegment) {
+                    /*jshint bitwise: false */
+                    var bits = is32BitCodeSegment ? 32 : 16;
+
+                    describe("when code segment is " + bits + "-bit", function () {
+                        util.each({
+                            "8-bit multiply of al by dh when result does not fit in al": {
+                                operand: "dh",
+                                registers: {
+                                    al: 0xb5,
+                                    dh: 0xf9
+                                },
+                                expectedRegisters: {
+                                    ax: util.toSigned(0xb5, 1) * util.toSigned(0xf9, 1),
+                                    // Carry and overflow flags should be set as result is greater
+                                    // than max signed 8-bit result (127)
+                                    cf: 1,
+                                    of: 1,
+
+                                    // Make sure divisor hasn't been touched
+                                    dh: 0xf9
+                                }
+                            },
+                            "16-bit multiply of ax by cx when result does not fit in ax": {
+                                operand: "cx",
+                                registers: {
+                                    ax: 0x46db,
+                                    cx: 0xeeeb
+                                },
+                                expectedRegisters: {
+                                    dx: (util.toSigned(0x46db, 2) * util.toSigned(0xeeeb, 2)) >>> 16,
+                                    ax: (util.toSigned(0x46db, 2) * util.toSigned(0xeeeb, 2)) & 0xffff,
+                                    // Carry and overflow flags should be set as result is greater
+                                    // than max signed 16-bit result (32767)
+                                    cf: 1,
+                                    of: 1,
+
+                                    // Make sure divisor hasn't been touched
+                                    cx: 0xeeeb
+                                }
+                            },
+                            "32-bit multiply of eax by ecx when result does fit in eax": {
+                                operand: "ecx",
+                                registers: {
+                                    eax: 0x1b6a6c,
+                                    ecx: 0xaa
+                                },
+                                expectedRegisters: {
+                                    edx: 0,
+                                    eax: 0x1234abb8,
+                                    // Carry and overflow flags should be clear as result is smaller
+                                    // than max signed 32-bit result (2147483647)
+                                    cf: 0,
+                                    of: 0,
+
+                                    // Make sure divisor hasn't been touched
+                                    ecx: 0xaa
+                                }
+                            },
+                            "32-bit multiply of eax by ecx when result does not fit in eax": {
+                                operand: "ecx",
+                                registers: {
+                                    eax: 0x543e5516,
+                                    ecx: 0xcc
+                                },
+                                expectedRegisters: {
+                                    edx: 0x43,
+                                    eax: 0x21abcd88,
+                                    // Carry and overflow flags should be clear as result is smaller
+                                    // than max signed 32-bit result (2147483647)
+                                    cf: 1,
+                                    of: 1,
+
+                                    // Make sure divisor hasn't been touched
+                                    ecx: 0xcc
+                                }
+                            }
+                        }, function (scenario, description) {
+                            describe(description, function () {
+                                beforeEach(function (done) {
+                                    var assembly = util.heredoc(function (/*<<<EOS
+[BITS ${bits}]
+org 0x100
+imul ${operand}
+hlt
+EOS
+*/) {}, {bits: bits, operand: scenario.operand});
+
+                                    testSystem.on("pre-run", function () {
+                                        registers.cs.set32BitMode(is32BitCodeSegment);
+                                    });
+
+                                    if (scenario.setup) {
+                                        scenario.setup(registers);
+                                    }
+
+                                    util.each(scenario.registers, function (value, register) {
+                                        registers[register].set(value);
+                                    });
+
+                                    util.each(scenario.memory, function (options) {
+                                        system.write(options);
+                                    });
+
+                                    testSystem.execute(assembly).done(function () {
+                                        done();
+                                    }).fail(function (exception) {
+                                        done(exception);
+                                    });
+                                });
+
+                                util.each(scenario.expectedRegisters, function (value, name) {
+                                    it("should leave the correct value in " + name, function () {
+                                        expect(registers[name].get()).to.equal(value >>> 0);
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+
                 util.each([
                     {
                         al: 32,

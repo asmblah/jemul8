@@ -1223,5 +1223,12 @@ BigInteger.prototype.square = bnSquare;
 // long longValue()
 // static BigInteger valueOf(long val)
 
+BigInteger.prototype.getHighIntValue = function () {
+  return parseInt(this.shiftRight(32).toRadix(16), 16) >>> 0;
+};
+BigInteger.prototype.getLowIntValue = function () {
+  return parseInt(this.and(new BigInteger('ffffffff', 16)).toRadix(16), 16) >>> 0;
+};
+
 return BigInteger;
 });

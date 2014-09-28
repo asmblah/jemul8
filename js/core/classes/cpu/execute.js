@@ -670,7 +670,7 @@ define([
                 highBits,
                 lowBits,
                 res,
-                isSignExtended;
+                significantBitsCarried;
 
             // IMUL r16, r/m16, imm16
             // IMUL r16, r/m16, imm8
@@ -695,11 +695,11 @@ define([
                     this.operand1.write(res);
                 // 64-bit product
                 } else {
-                    multiplicand = Int64.fromNumber(multiplicand);
-                    multiplier = Int64.fromNumber(multiplier);
+                    multiplicand = new BigInteger(multiplicand.toString(16), 16);
+                    multiplier = new BigInteger(multiplier.toString(16), 16);
                     res = multiplicand.multiply(multiplier);
-                    highBits = res.getHighBits();
-                    lowBits = res.getLowBits();
+                    highBits = res.getHighIntValue();
+                    lowBits = res.getLowIntValue();
                     this.operand1.write(lowBits);
                 }
             // 1-operand format is same as MUL instruction:
@@ -722,11 +722,11 @@ define([
                     cpu.AX.set(res & 0xFFFF);
                     highBits = res >> 16;
                 } else if (operandSize === 4) {
-                    multiplicand = Int64.fromNumber(util.toSigned(cpu.EAX.get(), operandSize));
-                    multiplier = Int64.fromNumber(util.toSigned(multiplier, operandSize));
+                    multiplicand = new BigInteger(util.toSigned(cpu.EAX.get(), operandSize).toString(16), 16);
+                    multiplier = new BigInteger(util.toSigned(multiplier, operandSize).toString(16), 16);
                     res = multiplicand.multiply(multiplier);
-                    highBits = res.getHighBits();
-                    lowBits = res.getLowBits();
+                    highBits = res.getHighIntValue();
+                    lowBits = res.getLowIntValue();
                     cpu.EAX.set(lowBits);
                     cpu.EDX.set(highBits);
                 }
@@ -738,18 +738,25 @@ define([
             //  into upper half of result. Cleared when result
             //  fits exactly in the lower half
             if (operandSize == 1) {
-                isSignExtended = !highBits && (res & 0x80);
+                significantBitsCarried = util.toSigned(cpu.AL.get(), 1) !== util.toSigned(cpu.AX.get(), 2);
             } else if (operandSize == 2) {
-                isSignExtended = !highBits && (res & 0x8000);
+                significantBitsCarried = util.toSigned(cpu.AX.get(), 2) !== util.toSigned((cpu.DX.get() << 16) | cpu.AX.get(), 4);
             } else if (operandSize == 4) {
-                isSignExtended = !highBits && (lowBits & 0x80000000);
+                significantBitsCarried =
+                    new BigInteger(util.toSigned(cpu.EAX.get(), 2).toString(16), 16)
+                        .toRadix(16) !==
+                    new BigInteger(util.toSigned(cpu.EDX.get(), 2).toString(16), 16)
+                        .shiftLeft(32)
+                        .or(new BigInteger(util.toSigned(cpu.EAX.get(), 2).toString(16), 16))
+                        .toRadix(16);
+
                 util.warning("IMUL :: setFlags needs to support Int64s");
             }
             // Lazy flags
             setFlags(this, cpu, multiplicand, multiplier, res);
 
             // Explicit flags
-            if (isSignExtended) {
+            if (significantBitsCarried) {
                 cpu.OF.set();
                 cpu.CF.set();
             } else {
