@@ -61,12 +61,16 @@ define([
         }, "AAM": function (cpu) {
             // Val1 will almost always be 0Ah (10d), meaning to adjust for base-10 / decimal.
             var val1 = this.operand1.read(),
-                AL = cpu.AL.get(),
-                res = cpu.AH.get() * val1 + AL;
+                AL = cpu.AL.get();
 
-            cpu.AH.set((AL / 10) >> 0);
-            cpu.AL.set(AL % 10);
-            setFlags_Op1(this, cpu, val1, res);
+            if (val1 === 0) {
+                cpu.exception(util.DE_EXCEPTION, 0, this);
+                return;
+            }
+
+            cpu.AH.set((AL / val1) >> 0);
+            cpu.AL.set(AL % val1);
+            setFlags_Op1(this, cpu, val1, cpu.AX.get());
         // ASCII adjust AL after Subtraction
         //    TODO: how to handle other flags? Intel docs say undefined,
         //    but other sources say should be handled just as for other insns
