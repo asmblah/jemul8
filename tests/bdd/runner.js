@@ -104,6 +104,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/and-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/callf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/cmp-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/cmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/div-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/idiv-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/imul-Test",
