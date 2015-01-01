@@ -112,6 +112,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lahf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lea-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/les-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lidt-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lmsw-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lss-Test",
