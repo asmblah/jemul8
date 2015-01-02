@@ -109,6 +109,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/idiv-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/imul-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/jmpf-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/jmpn-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/jmps-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lahf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/lea-Test",
