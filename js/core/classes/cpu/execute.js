@@ -1960,29 +1960,25 @@ define([
         // Shift Arithmetic Right (with signed divide)
         }, "SAR": function (cpu) {
             var operandSize = this.operand1.size,
-                op1 = this.operand1.read(),
+                op1 = util.toSigned(this.operand1.read(), operandSize),
                 count = this.operand2.read(),
                 res,
                 cf;
 
             count &= 0x1F; // Use only 5 LSBs
 
-            if (count === 0) { return; }
-
-            res = op1 >> count;
+            res = (op1 >> count) & this.operand1.mask;
             this.operand1.write(res);
 
             cf = (op1 >> (count - 1)) & 0x1;
-
-            res &= this.operand1.mask;
-
-            this.operand1.write(res);
 
             // Lazy flags
             setFlags(this, cpu, op1, count, res);
 
             // Explicit flags
-            cpu.OF.setBin(0); // Signed overflow cannot happen in SAR
+            if (count === 1) {
+                cpu.OF.setBin(0);
+            }
             cpu.CF.setBin(cf);
         // Integer Subtraction with Borrow
         }, "SBB": function (cpu) {
