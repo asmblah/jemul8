@@ -41,7 +41,7 @@ define([
         });
 
         util.each({
-            "8-bit compare of single character": {
+            "8-bit compare of single character when identical": {
                 is32BitCodeSegment: false,
                 size: "b",
                 registers: {
@@ -75,6 +75,47 @@ define([
                     expected: "y",
                     from: (0x900 << 4) + 0x200,
                     as: "string",
+                    size: 1
+                }]
+            },
+            "8-bit compare of single character when result is negative": {
+                is32BitCodeSegment: false,
+                size: "b",
+                registers: {
+                    df: 0,
+                    ds: 0x800,
+                    si: 0x100,
+                    es: 0x900,
+                    di: 0x200
+                },
+                memory: [{
+                    to: (0x800 << 4) + 0x100,
+                    data: 0x26,
+                    size: 1
+                }, {
+                    to: (0x900 << 4) + 0x200,
+                    data: 0x36,
+                    size: 1
+                }],
+                expectedRegisters: {
+                    ds: 0x800,
+                    si: 0x101, // Source index register should have been incremented by one
+                    es: 0x900,
+                    di: 0x201, // Destination index register should have been incremented by one
+                    pf: util.getParity(0x26 - 0x36),
+                    sf: 1,     // Result of (0x26 - 0x36) is negative
+                    zf: 0      // Characters differ
+                },
+                // Ensure data is not modified
+                expectedMemory: [{
+                    expected: 0x26,
+                    from: (0x800 << 4) + 0x100,
+                    as: "number",
+                    size: 1
+                }, {
+                    expected: 0x36,
+                    from: (0x900 << 4) + 0x200,
+                    as: "number",
                     size: 1
                 }]
             }
