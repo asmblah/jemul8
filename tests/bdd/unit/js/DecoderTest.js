@@ -512,6 +512,27 @@ define([
                             segmentRegister: "ES"
                         }
                     ]
+                },
+                // Word-size string scan without overriding source segment (DS as default)
+                {
+                    is32BitCodeSegment: false,
+                    assembly: "scasw",
+                    expectedName: "SCAS",
+                    expectedOperands: [
+                        {
+                            baseRegister: "AX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            baseRegister: "DI",
+                            indexRegister: null,
+                            isPointer: true,
+                            scale: 1,
+                            segmentRegister: "ES"
+                        }
+                    ]
                 }
             ], function (scenario) {
                 var is32BitCodeSegment = scenario.is32BitCodeSegment,

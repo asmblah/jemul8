@@ -240,7 +240,7 @@ define([
         0xA0: ["MOV", ["AL",O|b]],      0xA1: ["MOV", ["eAX",O|v]],         0xA2: ["MOV", [O|b,"AL"]],      0xA3: ["MOV", [O|v,"eAX"]],
         0xA4: ["MOVS", [X|b,Y|b]],      0xA5: ["MOVS", [X|v,Y|v]],          0xA6: ["CMPS", [X|b,Y|b]],      0xA7: ["CMPS", [X|v,Y|v]],
         0xA8: ["TEST", ["AL",I|b]],     0xA9: ["TEST", ["eAX",I|v]],        0xAA: ["STOS", [Y|b,"AL"]],     0xAB: ["STOS", [Y|v,"eAX"]],
-        0xAC: ["LODS", ["AL",X|b]],     0xAD: ["LODS", ["eAX",X|v]],        0xAE: ["SCAS", ["AL",Y|b]],     0xAF: ["SCAS", ["eAX",X|v]],
+        0xAC: ["LODS", ["AL",X|b]],     0xAD: ["LODS", ["eAX",X|v]],        0xAE: ["SCAS", ["AL",Y|b]],     0xAF: ["SCAS", ["eAX",Y|v]],
         // 0x0B
         0xB0: ["MOV", ["AL",I|b]],      0xB1: ["MOV", ["CL",I|b]],          0xB2: ["MOV", ["DL",I|b]],      0xB3: ["MOV", ["BL",I|b]],
         0xB4: ["MOV", ["AH",I|b]],      0xB5: ["MOV", ["CH",I|b]],          0xB6: ["MOV", ["DH",I|b]],      0xB7: ["MOV", ["BH",I|b]],
