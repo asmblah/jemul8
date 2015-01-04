@@ -2219,7 +2219,16 @@ define([
             this.operand1.write(cpu.IDTR.base, 2, 4);  // Base 32- or 24-bit
         // Shift Left - Double Precision
         }, "SHLD": function (cpu) {
-            util.panic("Execute (SHLD) :: unsupported");
+            var dest = this.operand1.read(),
+                source = this.operand2.read(),
+                count = this.operand3.read(),
+                res = (dest << count) | (source >>> (this.operand2.size * 8 - count));
+
+            this.operand1.write(res);
+
+            setFlags(this, cpu, dest, source, res);
+
+            cpu.CF.setBin((dest >>> (this.operand1.size * 8 - count)) & 1);
         // Shift Right - Double Precision
         }, "SHRD": function (cpu) {
             util.panic("Execute (SHRD) :: unsupported");
