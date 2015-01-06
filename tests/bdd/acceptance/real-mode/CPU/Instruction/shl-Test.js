@@ -41,6 +41,23 @@ define([
         });
 
         util.each({
+            "6 << 0 = 20": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "0",
+                registers: {
+                    bx: 6,
+
+                    of: 1 // Set OF to ensure it is unaffected (not a 1-bit shift)
+                },
+                expectedRegisters: {
+                    bx: 6,
+                    cf: 0, // Last bit shifted out
+
+                    of: 1, // Should be set (see above)
+                    sf: 0  // Positive result
+                }
+            },
             "5 << 2 = 20": {
                 is32BitCodeSegment: false,
                 operand1: "bx",

@@ -1877,6 +1877,11 @@ define([
                 msbs,
                 res = dest << count;
 
+            // Don't affect flags if count is zero
+            if (count === 0) {
+                return;
+            }
+
             this.operand1.write(res);
 
             setFlags(this, cpu, dest, count, res);
