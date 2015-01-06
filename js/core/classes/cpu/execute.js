@@ -1887,6 +1887,8 @@ define([
             if (count === 1) {
                 msbs = (dest >>> (this.operand1.size * 8 - 2)) & 3;
                 cpu.OF.setBin(msbs === 1 || msbs === 2);
+            } else {
+                cpu.OF.clear();
             }
         // Shift Logical Right (with UNsigned divide)
         }, "SHR": function (cpu) {

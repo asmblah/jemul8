@@ -48,13 +48,13 @@ define([
                 registers: {
                     bx: 5,
 
-                    of: 1 // Set OF to ensure it is unaffected (not a 1-bit shift)
+                    of: 1 // Set OF to ensure it is cleared (not a 1-bit shift)
                 },
                 expectedRegisters: {
                     bx: 20,
                     cf: 0, // Last bit shifted out
 
-                    of: 1,
+                    of: 0, // Should be cleared (see above)
                     sf: 0  // Positive result
                 }
             },
