@@ -1965,6 +1965,11 @@ define([
                 res,
                 cf;
 
+            // Don't modify flags if count is zero
+            if (count === 0) {
+                return;
+            }
+
             count &= 0x1F; // Use only 5 LSBs
 
             res = (op1 >> count) & this.operand1.mask;

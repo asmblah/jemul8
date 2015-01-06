@@ -111,6 +111,21 @@ define([
                     of: 1,
                     sf: 1
                 }
+            },
+            "shift by zero bits should not affect flags": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "cl",
+                registers: {
+                    cl: 0,
+
+                    flags: 0xffff
+                },
+                expectedRegisters: {
+                    cl: 0,
+
+                    flags: 0xffff
+                }
             }
         }, function (scenario, description) {
             var is32BitCodeSegment = scenario.is32BitCodeSegment;
