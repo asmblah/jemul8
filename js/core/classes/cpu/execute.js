@@ -1871,53 +1871,23 @@ define([
         // Shift Logical Left
         // Shift Arithmetic Left (SAL - same instruction)
         }, "SHL": function (cpu) {
-            var operandSize = this.operand1.size,
-                op1 = this.operand1.read(),
+            var cf,
+                dest = this.operand1.read(),
                 count = this.operand2.read(),
-                res,
-                of = 0,
-                cf = 0;
-
-            count &= 0x1F; // Use only 5 LSBs
-
-            if (count === 0) { return; }
-
-            // 32-bit
-            if (operandSize === 4) {
-                // Count < 32, since only lower 5 bits used
-                res = (op1 << count);
-                cf = (op1 >> (32 - count)) & 0x1;
-                of = cf ^ (res >> 31);
-            // 16-bit
-            } else if (operandSize === 2) {
-                if (count <= 16) {
-                    res = (op1 << count);
-                    cf = (op1 >> (16 - count)) & 0x1;
-                    of = cf ^ (res >> 15); // of = cf ^ result15
-                } else {
-                    res = 0;
-                }
-            // 8-bit
-            } else {
-                if (count <= 8) {
-                    res = (op1 << count);
-                    cf = (op1 >> (8 - count)) & 0x1;
-                    of = cf ^ (res >> 7);
-                } else {
-                    res = 0;
-                }
-            }
-
-            res &= this.operand1.mask;
+                msbs,
+                res = dest << count;
 
             this.operand1.write(res);
 
-            // Lazy flags
-            setFlags(this, cpu, op1, count, res);
+            setFlags(this, cpu, dest, count, res);
 
-            // Explicit flags
-            cpu.OF.setBin(of);
+            cf = (dest >>> (this.operand1.size * 8 - count)) & 1;
             cpu.CF.setBin(cf);
+
+            if (count === 1) {
+                msbs = (dest >>> (this.operand1.size * 8 - 2)) & 3;
+                cpu.OF.setBin(msbs === 1 || msbs === 2);
+            }
         // Shift Logical Right (with UNsigned divide)
         }, "SHR": function (cpu) {
             var operandSize = this.operand1.size,
