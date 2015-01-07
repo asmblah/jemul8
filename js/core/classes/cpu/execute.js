@@ -1691,56 +1691,25 @@ define([
                 val = this.operand1.read(),
                 count = this.operand2.read(),
                 res,
-                cf,
-                of;
+                cf;
 
-            if (operandSize === 4) {
-                count &= 0x1f;
-            } else if (operandSize === 2) {
-                count = (count & 0x1f) % 17;
-            } else {
-                count = (count & 0x1f) % 9;
+            if (count === 0) {
+                return;
             }
 
-            if (count === 0) { return; }
-
-            if (count === 1) {
-                res = (val << 1) | cpu.CF.get();
-            } else {
-                // 32-bit
-                if (operandSize === 4) {
-                    res = (val << count) | (cpu.CF.get() << (count - 1))
-                        | (val >> (33 - count));
-                // 16-bit
-                } else if (operandSize === 2) {
-                    if (count === 16) {
-                        res = (cpu.CF.get() << 15) | (val >> 1);
-                    } else {
-                        res = (val << count) | (cpu.CF.get() << (count - 1))
-                            | (val >> (17 - count));
-                    }
-                // 8-bit
-                } else {
-                    res = (val << count) | (cpu.CF.get() << (count - 1))
-                        | (val >> (9 - count));
-                }
-            }
+            res = val << count;
+            // Or-in CF
+            res |= cpu.CF.get() << (count - 1);
+            res |= (val >>> (operandSize * 8 - count + 1));
 
             this.operand1.write(res);
 
-            if (operandSize === 4) {
-                cf = (val >> (32 - count)) & 0x1;
-                of = cf ^ (res >> 31); // of = cf ^ result31
-            } else if (operandSize === 2) {
-                cf = (val >> (16 - count)) & 0x1;
-                of = cf ^ (res >> 15); // of = cf ^ result15
-            } else {
-                cf = (val >> (8 - count)) & 0x01;
-                of = cf ^ (res >> 7);  // of = cf ^ result7
-            }
-
+            cf = (val >>> (operandSize * 8 - count)) & 1;
             cpu.CF.setBin(cf);
-            cpu.OF.setBin(of);
+
+            if (count === 1) {
+                cpu.OF.setBin(cf ^ (res >>> (operandSize * 8 - count - 1)) & 1);
+            }
         // Rotate Bits Right with Carry Flag
         }, "RCR": function (cpu) {
             var operandSize = this.operand1.size,
