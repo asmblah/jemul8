@@ -1718,45 +1718,27 @@ define([
                 val = this.operand1.read(),
                 count = this.operand2.read(),
                 res,
-                cf,
-                of;
+                cf;
 
-            if (operandSize === 4) {
-                count &= 0x1f;
-            } else if (operandSize === 2) {
-                count = (count & 0x1f) % 17;
-            } else {
-                count = (count & 0x1f) % 9;
+            count = (count & 0x1f) % (operandSize * 8 + 1);
+
+            if (count === 0) {
+                return;
             }
 
-            if (count === 0) { return; }
-
-            if (operandSize === 2) {
-                res = (val >> count)
-                    | (cpu.CF.get() << (16 - count))
-                    | (val << (17 - count));
-            } else {
-                if (count === 1) {
-                    res = (val >> 1) | (cpu.CF.get() << 31);
-                } else {
-                    res = (val >> count)
-                        | (cpu.CF.get() << (32 - count))
-                        | (val << (33 - count));
-                }
-            }
+            res = val >>> count;
+            // Or-in CF
+            res |= cpu.CF.get() << (operandSize * 8 - count);
+            res |= (val << (operandSize * 8 - count + 1));
 
             this.operand1.write(res);
 
-            if (operandSize === 2) {
-                cf = (val >> (count - 1)) & 0x1;
-                of = ((((res << 1) ^ res) & 0xFFFF) >> 15) & 0x1; // of = result15 ^ result14
-            } else {
-                cf = (val >> (count - 1)) & 0x1;
-                of = ((res << 1) ^ res) >> 31; // of = result30 ^ result31
-            }
-
+            cf = (val >>> (count - 1)) & 1;
             cpu.CF.setBin(cf);
-            cpu.OF.setBin(of);
+
+            if (count === 1) {
+                cpu.OF.setBin((((res << 1) ^ res) >>> (operandSize * 8 - 1)) & 1);
+            }
         // Return (Near) from Procedure
         }, "RETN": function (cpu) {
             if (!this.operandSizeAttr) {
