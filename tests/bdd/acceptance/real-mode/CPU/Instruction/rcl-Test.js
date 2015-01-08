@@ -108,6 +108,57 @@ define([
                     cf: 1, // CF should be left with zero from the 2nd MSB
                     of: 1  // Should be set (see above)
                 }
+            },
+            "0xc8a7 << 0xff = 0": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "0xff",
+                registers: {
+                    bx: 0xc8a7,
+
+                    cf: 1, // Set CF to ensure it is shifted into LSB
+                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                },
+                expectedRegisters: {
+                    bx: 0xf914,
+
+                    cf: 1, // CF should be left with one
+                    of: 1  // Should be set (see above)
+                }
+            },
+            "8-bit rotates should be modulo 9": {
+                is32BitCodeSegment: false,
+                operand1: "bl",
+                operand2: "10",
+                registers: {
+                    bl: parseInt("00110101", 2),
+
+                    cf: 1, // Set CF to ensure it is shifted into LSB
+                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                },
+                expectedRegisters: {
+                    bl: parseInt("01101011", 2),
+
+                    cf: 0, // CF should be left with zero
+                    of: 1  // Should be set (see above)
+                }
+            },
+            "16-bit rotates should be modulo 17": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "18",
+                registers: {
+                    bx: parseInt("0011010111110101", 2),
+
+                    cf: 1, // Set CF to ensure it is shifted into LSB
+                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                },
+                expectedRegisters: {
+                    bx: parseInt("0110101111101011", 2),
+
+                    cf: 0, // CF should be left with zero
+                    of: 1  // Should be set (see above)
+                }
             }
         }, function (scenario, description) {
             var is32BitCodeSegment = scenario.is32BitCodeSegment;

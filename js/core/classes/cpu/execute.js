@@ -1693,6 +1693,8 @@ define([
                 res,
                 cf;
 
+            count = (count & 0x1f) % (operandSize * 8 + 1);
+
             if (count === 0) {
                 return;
             }
