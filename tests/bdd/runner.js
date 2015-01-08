@@ -127,6 +127,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/pusha-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/rcl-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/rol-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/ror-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/sahf-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/sar-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/scas-Test",
