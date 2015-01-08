@@ -1654,37 +1654,26 @@ define([
             cpu.CF.setBin(cf);
         // Rotate Bits Right
         }, "ROR": function (cpu) {
-            // Fast right-rotation using masks instead of a loop
-            var bits = this.operand1.read(),
-                numBitsIn = this.operand1.size * 8;
-            // Modulo, because shifting by bit-length of operand (eg. 16/32) is same as shifting by zero
-            //    (NB: was changed to & as 011111b is 31, bitwise-AND should be faster/cheaper than modulo ( in Chrome),
-            //        however after testing modulo % is actually faster (in TM) )
-            var numBitsShift = this.operand2.read() % numBitsIn,
-                numBitsRemaining = numBitsIn - numBitsShift,
-                bitsRemaining = bits >> numBitsShift,
-                bitsShiftedOut = (bits & ((1 << numBitsShift) - 1)) << numBitsRemaining;
+            var operandSize = this.operand1.size,
+                val = this.operand1.read(),
+                count = this.operand2.read(),
+                res,
+                cf;
 
-            var res = bitsRemaining | bitsShiftedOut;
-            this.operand1.write(res);
-            // Carry Flag is set to MSB of bits shifted out ( if this had been a loop,
-            //    the last bit shifted off the right and onto the left would be this one )
-            var cf = bitsShiftedOut & (1 << numBitsShift);
-            cpu.CF.setBin(cf);
+            count = (count & 0x1f) % (operandSize * 8);
 
-
-
-            // Perform same op as a string to verify
-            var str = bits.toString(2),
-                out,
-                res2;
-            while (str.length < numBitsIn) { str = "0" + str; }
-            out = str.substr(str.length - numBitsShift, numBitsShift);
-            res2 = out + str.substr(0, str.length - numBitsShift);
-
-            if (res2.length !== numBitsIn || res !== parseInt(res2, 2)) {
-                util.panic("ROR :: Result mismatch");
+            if (count === 0) {
+                return;
             }
+
+            res = val >>> count;
+            res |= (val << (operandSize * 8 - count));
+
+            this.operand1.write(res);
+
+            cf = (val >>> (count - 1)) & 1;
+            cpu.CF.setBin(cf);
+            cpu.OF.setBin((((res << 1) ^ res) >>> (operandSize * 8 - 1)) & 1);
         // Rotate Bits Left with Carry Flag
         }, "RCL": function (cpu) {
             var operandSize = this.operand1.size,

@@ -48,12 +48,31 @@ define([
                 registers: {
                     bl: parseInt("10111010", 2),
 
-                    of: 1 // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                    cf: 1, // Set CF to ensure it is unaffected (zero rotate)
+                    of: 1  // Set OF to ensure it is unaffected (zero rotate)
                 },
                 expectedRegisters: {
                     bl: parseInt("10111010", 2),
 
+                    cf: 1, // Should be set (see above)
                     of: 1  // Should be set (see above)
+                }
+            },
+            "10111011b >> 1 = 11011101b": {
+                is32BitCodeSegment: false,
+                operand1: "bl",
+                operand2: "1",
+                registers: {
+                    bl: parseInt("10111011", 2),
+
+                    cf: 0, // Set CF to ensure it is set (LSB -> MSB)
+                    of: 1  // Set OF to ensure it is cleared (XOR of MSBs)
+                },
+                expectedRegisters: {
+                    bl: parseInt("11011101", 2),
+
+                    cf: 1, // Should be set (see above)
+                    of: 0  // XOR of MSBs
                 }
             },
             "10111010b >> 2 = 10101110b": {
@@ -63,12 +82,14 @@ define([
                 registers: {
                     bl: parseInt("10111010", 2),
 
-                    of: 1 // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                    cf: 1, // Set CF to ensure it is unaffected (not a 1-bit rotate)
+                    of: 0  // Clear OF to ensure it is set (XOR of MSBs)
                 },
                 expectedRegisters: {
                     bl: parseInt("10101110", 2),
 
-                    of: 1  // Should be set (see above)
+                    cf: 1, // Should be set (see above)
+                    of: 1  // XOR of MSBs
                 }
             }
         }, function (scenario, description) {
