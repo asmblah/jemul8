@@ -83,13 +83,13 @@ define([
                     bl: parseInt("10111010", 2),
 
                     cf: 0, // Clear CF to ensure it is shifted into MSB
-                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate, XOR would otherwise be 0)
+                    of: 1  // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bl: parseInt("00101110", 2),
 
                     cf: 1, // CF should be left with one from the 2nd LSB
-                    of: 1  // Should be set (see above)
+                    of: 0  // Should be clear (see above)
                 }
             },
             "rotate count should be masked to only the 5 LSBs": {

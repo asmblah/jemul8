@@ -1700,10 +1700,7 @@ define([
 
             cf = (val >>> (operandSize * 8 - count)) & 1;
             cpu.CF.setBin(cf);
-
-            if (count === 1) {
-                cpu.OF.setBin(cf ^ (res >>> (operandSize * 8 - count - 1)) & 1);
-            }
+            cpu.OF.setBin((cf ^ (res >>> (operandSize * 8 - 1))) & 1);
         // Rotate Bits Right with Carry Flag
         }, "RCR": function (cpu) {
             var operandSize = this.operand1.size,
@@ -1728,9 +1725,7 @@ define([
             cf = (val >>> (count - 1)) & 1;
             cpu.CF.setBin(cf);
 
-            if (count === 1) {
-                cpu.OF.setBin((((res << 1) ^ res) >>> (operandSize * 8 - 1)) & 1);
-            }
+            cpu.OF.setBin((((res << 1) ^ res) >>> (operandSize * 8 - 1)) & 1);
         // Return (Near) from Procedure
         }, "RETN": function (cpu) {
             if (!this.operandSizeAttr) {

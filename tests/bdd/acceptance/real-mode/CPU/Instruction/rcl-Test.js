@@ -66,13 +66,13 @@ define([
                     bl: parseInt("10111010", 2),
 
                     cf: 1, // Set CF to ensure it is shifted into LSB
-                    of: 1  // Set OF to ensure it is cleared (1-bit rotate: CF XOR MSB)
+                    of: 0  // Clear OF to ensure it is set (1-bit rotate: CF XOR MSB)
                 },
                 expectedRegisters: {
                     bl: parseInt("01110101", 2),
 
                     cf: 1, // CF should be left with one from the 1st MSB
-                    of: 0  // Should be cleared (see above)
+                    of: 1  // Should be set (see above)
                 }
             },
             "10111010b << 2 = 11101011b": {
@@ -100,13 +100,13 @@ define([
                     bl: parseInt("10111010", 2),
 
                     cf: 1, // Set CF to ensure it is shifted into LSB
-                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                    of: 1  // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bl: parseInt("11010110", 2),
 
                     cf: 1, // CF should be left with zero from the 2nd MSB
-                    of: 1  // Should be set (see above)
+                    of: 0  // Should be cleared (see above)
                 }
             },
             "0xc8a7 << 0xff = 0": {
@@ -117,13 +117,13 @@ define([
                     bx: 0xc8a7,
 
                     cf: 1, // Set CF to ensure it is shifted into LSB
-                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                    of: 1  // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bx: 0xf914,
 
                     cf: 1, // CF should be left with one
-                    of: 1  // Should be set (see above)
+                    of: 0  // Should be cleared (see above)
                 }
             },
             "8-bit rotates should be modulo 9": {
@@ -134,13 +134,13 @@ define([
                     bl: parseInt("00110101", 2),
 
                     cf: 1, // Set CF to ensure it is shifted into LSB
-                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                    of: 1  // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bl: parseInt("01101011", 2),
 
                     cf: 0, // CF should be left with zero
-                    of: 1  // Should be set (see above)
+                    of: 0  // Should be cleared
                 }
             },
             "16-bit rotates should be modulo 17": {
@@ -151,13 +151,13 @@ define([
                     bx: parseInt("0011010111110101", 2),
 
                     cf: 1, // Set CF to ensure it is shifted into LSB
-                    of: 1  // Set OF to ensure it is unaffected (not a 1-bit rotate)
+                    of: 1  // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bx: parseInt("0110101111101011", 2),
 
                     cf: 0, // CF should be left with zero
-                    of: 1  // Should be set (see above)
+                    of: 0  // Should be cleared
                 }
             }
         }, function (scenario, description) {
