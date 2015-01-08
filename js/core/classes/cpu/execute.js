@@ -1635,23 +1635,26 @@ define([
             }
         // Rotate Bits Left
         }, "ROL": function (cpu) {
-            // Fast left-rotation using masks instead of a loop
-            var bits = this.operand1.read(),
-                numBitsIn = this.operand1.size * 8,
-                // Modulo, because shifting by bit-length of operand (eg. 16/32) is same as shifting by zero
-                numBitsShift = this.operand2.read() % numBitsIn,
-                numBitsRemaining = numBitsIn - numBitsShift,
-                bitsRemaining = (bits & ((1 << numBitsRemaining) - 1)) << numBitsShift,
-                bitsShiftedOut = bits >> numBitsRemaining,
-                res,
-                cf;
+            var cf,
+                operandSize = this.operand1.size,
+                val = this.operand1.read(),
+                count = this.operand2.read(),
+                res;
 
-            res = bitsRemaining | bitsShiftedOut;
+            count = (count & 0x1f) % (operandSize * 8);
+
+            if (count === 0) {
+                return;
+            }
+
+            res = val << count;
+            res |= (val >>> (operandSize * 8 - count));
+
             this.operand1.write(res);
-            // Carry Flag is set to LSB of bits shifted out (if this had been a loop,
-            //    the last bit shifted off the left and onto the right would be this one)
-            cf = bitsShiftedOut & 0x01;
+
+            cf = res & 1;
             cpu.CF.setBin(cf);
+            cpu.OF.setBin(((res >>> (operandSize * 8 - 1)) & 1) ^ cf);
         // Rotate Bits Right
         }, "ROR": function (cpu) {
             var operandSize = this.operand1.size,
