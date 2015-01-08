@@ -65,7 +65,7 @@ define([
                 registers: {
                     bl: parseInt("10111011", 2),
 
-                    cf: 0, // Set CF to ensure it is set (LSB -> MSB)
+                    cf: 0, // Clear CF to ensure it is set (LSB -> MSB)
                     of: 1  // Set OF to ensure it is cleared (XOR of MSBs)
                 },
                 expectedRegisters: {
@@ -82,7 +82,7 @@ define([
                 registers: {
                     bl: parseInt("10111010", 2),
 
-                    cf: 1, // Set CF to ensure it is unaffected (not a 1-bit rotate)
+                    cf: 0, // Clear CF to ensure it is set (LSB -> MSB)
                     of: 0  // Clear OF to ensure it is set (XOR of MSBs)
                 },
                 expectedRegisters: {
