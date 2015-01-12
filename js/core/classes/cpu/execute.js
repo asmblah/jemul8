@@ -15,10 +15,12 @@
 /*global define, require */
 
 define([
+    "js/util",
     "../../util",
     "vendor/jsbn/BigInteger",
     "../memory/buffer"
 ], function (
+    newUtil,
     util,
     BigInteger,
     Buffer
@@ -460,11 +462,31 @@ define([
             cpu.OF.clear(); // Undocumented flag modification
             cpu.SF.setBin(cpu.AL.get() >= 0x80);
             cpu.ZF.setBin(cpu.AL.get() === 0);
-            // [Bochs] set_PF_base(AL);
+            cpu.PF.setBin(newUtil.getParity(cpu.AL.get()));
             cpu.CF.setBin(tmpCF);
         // Decimal Adjust for Subtraction
         }, "DAS": function (cpu) {
-            util.panic("Execute (DAS) :: unsupported");
+            var al = cpu.AL.get(),
+                cf = 0;
+
+            if ((al & 0x0f) > 0x09 || cpu.AF.get()) {
+                cf = (cpu.AL.get() < 0x06) || cpu.CF.get();
+                cpu.AL.set(cpu.AL.get() - 0x06);
+                cpu.AF.set();
+            } else {
+                cpu.AF.clear();
+            }
+
+            if ((al > 0x99) || cpu.CF.get()) {
+                cpu.AL.set(cpu.AL.get() - 0x60);
+                cf = 1;
+            }
+
+            cpu.OF.clear();
+            cpu.SF.setBin(cpu.AL.get() >= 0x80);
+            cpu.ZF.setBin(cpu.AL.get() === 0);
+            cpu.PF.setBin(newUtil.getParity(cpu.AL.get()));
+            cpu.CF.setBin(cf);
         // Decrement
         }, "DEC": function (cpu) {
             // NB: Addition and subtraction handle two's complement the same way
