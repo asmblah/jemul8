@@ -103,7 +103,7 @@ define([
         //if (val > 1) { debugger; }
     };
     LazyFlag.prototype.toggle = function () {
-        this.set(!this.get());
+        this.setBin(!this.get());
     };
 
     /* =========== Lazy Flags evaluation =========== */
