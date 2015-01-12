@@ -48,13 +48,13 @@ define([
                 registers: {
                     bx: -9,
 
-                    of: 1 // Set OF to ensure it is unaffected (not a 1-bit shift)
+                    of: 1 // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bx: -3 & 0xffff,
                     cf: 1, // Last bit shifted out
 
-                    of: 1,
+                    of: 0,
                     sf: 1
                 }
             },
@@ -66,7 +66,7 @@ define([
                     bx: 0xdfb9,
                     cl: 0xff,
 
-                    of: 0 // Clear OF to ensure it is unaffected (not a 1-bit shift)
+                    of: 1 // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bx: 0xffff,
@@ -84,7 +84,7 @@ define([
                     bx: 0x7fff,
                     cl: 2,
 
-                    of: 0 // Clear OF to ensure it is unaffected (not a 1-bit shift)
+                    of: 1 // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bx: 0x1fff,
@@ -102,13 +102,13 @@ define([
                     bx: 0xffc9,
                     cl: 7,
 
-                    of: 1 // Set OF to ensure it is unaffected (not a 1-bit shift)
+                    of: 1 // Set OF to ensure it is cleared
                 },
                 expectedRegisters: {
                     bx: 0xffff,
                     cf: 1, // Last bit shifted out
 
-                    of: 1,
+                    of: 0,
                     sf: 1
                 }
             },
