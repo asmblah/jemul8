@@ -1967,7 +1967,7 @@ define([
                 //  the value in AL/(E)AX is compared with the chars in string,
                 //  so only needs to be read once
                 val1 = this.operand1.read(),
-                val2,
+                val2 = 0,
                 edi = DI.get(),
                 len,
                 // When DF set, decrement (scan in reverse direction)

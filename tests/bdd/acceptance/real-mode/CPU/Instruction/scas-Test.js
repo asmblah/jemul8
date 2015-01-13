@@ -68,6 +68,68 @@ define([
                     as: "string",
                     size: 1
                 }]
+            },
+            "8-bit scan for single byte with #REPNE prefix": {
+                is32BitCodeSegment: false,
+                prefix: "repne ",
+                size: "b",
+                registers: {
+                    al: "l".charCodeAt(0),
+                    cx: 7,
+                    df: 0,
+                    es: 0x900,
+                    di: 0x200
+                },
+                memory: [{
+                    to: (0x900 << 4) + 0x200,
+                    data: "welcome"
+                }],
+                expectedRegisters: {
+                    al: "l".charCodeAt(0), // Accumulator should be left unchanged
+                    cx: 4,
+                    es: 0x900,
+                    di: 0x203, // Destination index register should point to "c"
+                    sf: 0,     // Result is positive (zero)
+                    zf: 1      // Characters are equal
+                },
+                // Ensure data is not modified
+                expectedMemory: [{
+                    expected: "welcome",
+                    from: (0x900 << 4) + 0x200,
+                    as: "string",
+                    size: 7
+                }]
+            },
+            "8-bit scan for single byte with #REPNE prefix when CX is zero": {
+                is32BitCodeSegment: false,
+                prefix: "repne ",
+                size: "b",
+                registers: {
+                    al: "l".charCodeAt(0),
+                    cx: 0,
+                    df: 0,
+                    es: 0x900,
+                    di: 0x200
+                },
+                memory: [{
+                    to: (0x900 << 4) + 0x200,
+                    data: "welcome"
+                }],
+                expectedRegisters: {
+                    al: "l".charCodeAt(0), // Accumulator should be left unchanged
+                    cx: 0,
+                    es: 0x900,
+                    di: 0x200,
+                    sf: 0,     // Result is positive (zero)
+                    zf: 0      // Characters are not equal, no comparison occurred
+                },
+                // Ensure data is not modified
+                expectedMemory: [{
+                    expected: "welcome",
+                    from: (0x900 << 4) + 0x200,
+                    as: "string",
+                    size: 7
+                }]
             }
         }, function (scenario, description) {
             var is32BitCodeSegment = scenario.is32BitCodeSegment;
@@ -78,11 +140,11 @@ define([
                         var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 [BITS ${bits}]
-scas${size}
+${prefix}scas${size}
 
 hlt
 EOS
-*/) {}, {size: scenario.size, bits: is32BitCodeSegment ? 32 : 16});
+*/) {}, {prefix: scenario.prefix || "", size: scenario.size, bits: is32BitCodeSegment ? 32 : 16});
 
                         testSystem.on("pre-run", function () {
                             registers.cs.set32BitMode(is32BitCodeSegment);
