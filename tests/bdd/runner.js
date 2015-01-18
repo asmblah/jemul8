@@ -134,6 +134,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/rol-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/ror-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/sahf-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/salc-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/sar-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/scas-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/shl-Test",
