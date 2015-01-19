@@ -1418,7 +1418,7 @@ define([
             }
         // Move with Sign Extend
         }, "MOVSX": function (cpu) {
-            this.operand1.write(this.operand2.read() & this.operand1.mask);
+            this.operand1.write(this.operand2.signExtend(this.operand1.size) & this.operand1.mask);
         // Move with Zero Extend
         }, "MOVZX": function (cpu) {
             this.operand1.write(this.operand2.read() & this.operand1.mask);

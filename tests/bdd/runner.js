@@ -123,6 +123,7 @@ define({
             "bdd/acceptance/real-mode/CPU/Instruction/lss-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/mov-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/movs-Test",
+            "bdd/acceptance/real-mode/CPU/Instruction/movsx-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/movzx-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/out-Test",
             "bdd/acceptance/real-mode/CPU/Instruction/pop-Test",
