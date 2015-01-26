@@ -53,6 +53,9 @@ define([
                             call[1](event);
                         }
                     });
+                },
+                getElementById: function () {
+                    return {};
                 }
             };
             generateScancode = sinon.spy();
@@ -127,6 +130,7 @@ define([
             {keyName: "KEY_7", keyCode: 55, keyIndex: 53},
             {keyName: "KEY_8", keyCode: 56, keyIndex: 54},
             {keyName: "KEY_9", keyCode: 57, keyIndex: 55},
+            {keyName: "KEY_SEMICOLON", keyCode: 186, keyIndex: 62},
             {keyName: "KEY_ESC", keyCode: 27, keyIndex: 56},
             {keyName: "KEY_SPACE", keyCode: 32, keyIndex: 57},
             {keyName: "KEY_PERIOD", keyCode: 190, keyIndex: 60},
