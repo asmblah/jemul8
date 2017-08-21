@@ -21,6 +21,64 @@ define([
         var system,
             testSystem;
 
+        describe("when there is one 1.44M 3.5in drive", function () {
+            beforeEach(function (done) {
+                testSystem = new TestSystem({
+                    floppy: [
+                        {
+                            driveType: 'FDD_350HD',
+                            diskType: 'FLOPPY_NONE'
+                        }
+                    ]
+                });
+                system = testSystem.getSystem();
+
+                testSystem.init().done(function () {
+                    done();
+                });
+            });
+
+            afterEach(function () {
+                system.stop();
+                system = null;
+                testSystem = null;
+            });
+
+            describe("in register 0x10 (Floppy Drive Type)", function () {
+                beforeEach(function (done) {
+                    var assembly = util.heredoc(function (/*<<<EOS
+;; Write to index port
+mov dx, 0x70
+mov al, 0x10
+out dx, al
+
+;; Read CMOS register 0x15 to get low byte
+mov dx, 0x71
+in al, dx
+
+hlt
+EOS
+*/) {});
+
+                    testSystem.execute(assembly).done(function () {
+                        done();
+                    }).fail(function (exception) {
+                        done(exception);
+                    });
+                });
+
+                it("should report 0x4 for First Floppy Disk Drive Type (350HD)", function () {
+                    /*jshint bitwise: false */
+                    expect(system.getCPURegisters().al.get() >>> 4).to.equal(4);
+                });
+
+                it("should report 0x0 for Second Floppy Disk Drive Type", function () {
+                    /*jshint bitwise: false */
+                    expect(system.getCPURegisters().al.get() & 0xf).to.equal(0);
+                });
+            });
+        });
+
         util.each([
             {
                 // 1KB of total memory

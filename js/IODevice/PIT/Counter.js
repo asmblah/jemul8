@@ -17,7 +17,9 @@ define([
 ) {
     "use strict";
 
-    var INTERRUPT_ON_TERMINAL_COUNT = 0,
+    var BINARY_MODE = 0,
+        BCD_MODE = 1,
+        INTERRUPT_ON_TERMINAL_COUNT = 0,
         HARDWARE_TRIGGERED_ONE_SHOT = 1,
         RATE_GENERATOR = 2,
         SQUARE_WAVE_GENERATOR = 3,
@@ -25,48 +27,103 @@ define([
         HARDWARE_TRIGGERED_STROBE = 5,
         MODE_HIGH = 0,
         MODE_LOW = 1,
-        READ_LOAD_INTERNAL_CONTROL_REG = 0,
+        READ_LOAD_LATCH_COUNT = 0,
         READ_LOAD_LSB_ONLY = 1,
         READ_LOAD_MSB_ONLY = 2,
         READ_LOAD_LSB_THEN_MSB = 3;
 
     // Constructor / pre-init
-    function Counter(system) {
+    function Counter(system, timer) {
+        var counter = this;
+
         EventEmitter.call(this);
 
+        this.binaryOrBCD = null;
         this.count = 0;
         this.enabled = false;
         this.halfLoadedCount = false;
+        this.latchedCount = 0;
         this.mode = MODE_LOW;
         this.operatingMode = null;
         this.previousTicks = null;
         this.readLoadMode = null;
         this.system = system;
-        this.timer = system.createTimer();
-        this.type = null;
+        this.timer = timer;
+
+        this.timer.on("elapse", function () {
+            onElapse(counter);
+        });
     }
 
     util.inherit(Counter).from(EventEmitter);
 
+    util.extend(Counter, {
+        BINARY_MODE: BINARY_MODE,
+        BCD_MODE: BCD_MODE,
+
+        INTERRUPT_ON_TERMINAL_COUNT: INTERRUPT_ON_TERMINAL_COUNT,
+        HARDWARE_TRIGGERED_ONE_SHOT: HARDWARE_TRIGGERED_ONE_SHOT,
+        RATE_GENERATOR: RATE_GENERATOR,
+        SQUARE_WAVE_GENERATOR: SQUARE_WAVE_GENERATOR,
+        SOFTWARE_TRIGGERED_STROBE: SOFTWARE_TRIGGERED_STROBE,
+        HARDWARE_TRIGGERED_STROBE: HARDWARE_TRIGGERED_STROBE,
+
+        READ_LOAD_LATCH_COUNT: READ_LOAD_LATCH_COUNT,
+        READ_LOAD_LSB_ONLY: READ_LOAD_LSB_ONLY,
+        READ_LOAD_MSB_ONLY: READ_LOAD_MSB_ONLY,
+        READ_LOAD_LSB_THEN_MSB: READ_LOAD_LSB_THEN_MSB
+    });
+
     util.extend(Counter.prototype, {
-        configure: function (type, operatingMode, readLoadMode) {
+        configure: function (binaryOrBCD, operatingMode, readLoadMode) {
             var counter = this;
 
+            counter.binaryOrBCD = binaryOrBCD;
             counter.enabled = false;
             counter.halfLoadedCount = false;
             counter.operatingMode = operatingMode;
             counter.readLoadMode = readLoadMode;
-            counter.type = type;
+
+            if (readLoadMode === READ_LOAD_LATCH_COUNT) {
+                counter.latchedCount = counter.count;
+            }
         },
 
-        init: function () {
+        receiveHalfCount: function () {
+            /*jshint bitwise: false */
             var counter = this;
 
-            counter.timer.on("elapse", function () {
-                onElapse(counter);
-            });
+            if (counter.readLoadMode === READ_LOAD_LSB_ONLY) {
+                return this.count & 0xff;
+            }
 
-            return counter;
+            if (counter.readLoadMode === READ_LOAD_MSB_ONLY) {
+                return this.count >>> 8;
+            }
+
+            if (counter.readLoadMode === READ_LOAD_LSB_THEN_MSB) {
+                if (counter.halfLoadedCount) {
+                    counter.halfLoadedCount = false;
+
+                    return counter.count >>> 8;
+                }
+
+                counter.halfLoadedCount = true;
+
+                return counter.count & 0xff;
+            }
+
+            if (counter.readLoadMode === READ_LOAD_LATCH_COUNT) {
+                if (counter.halfLoadedCount) {
+                    counter.halfLoadedCount = false;
+
+                    return counter.latchedCount >>> 8;
+                }
+
+                counter.halfLoadedCount = true;
+
+                return counter.latchedCount & 0xff;
+            }
         },
 
         sendHalfCount: function (halfCount) {
@@ -89,6 +146,10 @@ define([
                 counter.previousTicks = counter.system.getTicksNow();
                 counter.timer.triggerAtTicks(counter.previousTicks + 1);
             }
+        },
+
+        setCount: function (count) {
+            this.count = count;
         }
     });
 

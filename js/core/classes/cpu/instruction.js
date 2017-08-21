@@ -124,8 +124,8 @@ get_prefixes:
             if (Decoder.opcodeHasModRM32[byt]) {
                 bytModRM = read(offset++, 1);
                 //mod = bytModRM & 0xC0;                // Mod field is first 2 bits (but leave unshifted)
-                mod = bytModRM >> 6;          // Mod field is first 2 bits
-                nnn = (bytModRM >> 3) & 0x07; // Reg field is second 3 bits (Reg 2)
+                mod = bytModRM >>> 6;          // Mod field is first 2 bits
+                nnn = (bytModRM >>> 3) & 0x07; // Reg field is second 3 bits (Reg 2)
                 rm = bytModRM & 0x07;         // Register/Memory field is last 3 bits (Reg 1)
             } else {
                 mod = nnn = rm = 0;
@@ -172,8 +172,6 @@ get_prefixes:
                 // Get offset after finishing decode (move past Operand's bytes)
                 offset = insn.operand1.offset;
 
-                setSegment(decoder, insn, insn.operand1);
-
                 // Check whether Instruction uses a second Operand
                 if (dataOpcode[1].length > 1) {
                     insn.operand2 = Operand.decode(
@@ -189,10 +187,6 @@ get_prefixes:
                     // Get offset after finishing decode (move past Operand's bytes)
                     offset = insn.operand2.offset;
 
-                    if (insn.segreg === decoder.DS) {
-                        setSegment(decoder, insn, insn.operand2);
-                    }
-
                     // Check whether Instruction uses a third Operand
                     if (dataOpcode[1].length > 2) {
                         insn.operand3 = Operand.decode(
@@ -207,10 +201,6 @@ get_prefixes:
                         );
                         // Get offset after finishing decode (move past Operand's bytes)
                         offset = insn.operand3.offset;
-
-                        if (insn.segreg === decoder.DS) {
-                            setSegment(decoder, insn, insn.operand3);
-                        }
                     }
                 }
             }
@@ -283,24 +273,6 @@ get_prefixes:
             return this.lenBytes;
         }
     });
-
-    function setSegment(decoder, insn, operand) {
-        // [Intel] The default segment register is SS for the effective
-        //  addresses containing a BP or SP index, DS for other effective addresses
-        if (operand.isPointer && (
-                operand.reg === decoder.BP ||
-                operand.reg === decoder.EBP ||
-                operand.reg === decoder.SP ||
-                operand.reg === decoder.ESP
-            )) {
-
-            if (insn.segreg !== decoder.SS) {
-                debugger;
-                util.panic("setSegment() :: Shouldn't be needed");
-            }
-            // insn.segreg = decoder.SS;
-        }
-    }
 
     // Exports
     return Instruction;

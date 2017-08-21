@@ -25,21 +25,27 @@
         "url": "http://github.com/asmblah/jemul8/issues"
     },
     "main": "index",
-    "bin": "bin/jemul8",
+    "bin": {
+        "jemul8": "bin/jemul8",
+        "jemul8-server": "bin/server"
+    },
     "scripts": {
         "test": "node tests/bdd/index.js",
         "webtest": "node tests/bdd/webtest.js"
     },
     "dependencies": {
         "modular-amd": "0.1.x",
-        "node-getopt": "0.2.x"
+        "node-getopt": "0.2.x",
+        "ws": "0.4.*"
     },
     "devDependencies": {
         "chai": "1.7.x",
         "express": "3.2.x",
-        "mocha": "1.14.x",
+        "mocha": "^3.5.0",
+        "setimmediate": "^1.0.5",
+        "sinon": "^3.2.0",
         "sinon-chai": "2.4.x",
-        "tmp": "0.0.21"
+        "tmp": "0.0.33"
     },
     "engines": {
         "node": ">=0.6",

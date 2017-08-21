@@ -195,6 +195,10 @@ define([
                 system.emit("exception", vector);
             });
 
+            system.cpu.on("halt", function (vector) {
+                system.emit("halt", vector);
+            });
+
             system.io.on("io read", function (port, length) {
                 system.emit("io read", port, length);
             });
@@ -293,6 +297,10 @@ define([
             system.emit("pause");
 
             return system;
+        },
+
+        purgePage: function (page) {
+            this.cpu.purgePage(page);
         },
 
         raiseHLDA: function () {

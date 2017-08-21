@@ -26,11 +26,8 @@ define([
     "use strict";
 
     // Constructor / pre-init
-    function PIT(system, io, memory, options) {
-        var counter0 = new Counter(system).init(),
-            counter1 = new Counter(system).init(),
-            counter2 = new Counter(system).init(),
-            pit = this;
+    function PIT(system, io, memory, counter0, counter1, counter2, options) {
+        var pit = this;
 
         IODevice.call(this, "PIT", system, io, memory, options);
 
@@ -79,8 +76,7 @@ define([
         ioRead: function (port) {
             var pit = this;
 
-            pit.system.debug("PIT.ioRead() :: Unsupported read of port " + util.hexify(port));
-            return 0xFF;
+            return pit.counters[port - 0x0040].receiveHalfCount();
         },
 
         ioWrite: function (port, value) {
@@ -98,9 +94,9 @@ define([
                     var counterIndex = (value >> 6) & 0x02,
                         operatingMode = (value >> 1) & 0x07,
                         readLoadMode = (value >> 4) & 0x03,
-                        type = value & 1;
+                        binaryOrBCD = value & 1;
 
-                    pit.counters[counterIndex].configure(type, operatingMode, readLoadMode);
+                    pit.counters[counterIndex].configure(binaryOrBCD, operatingMode, readLoadMode);
                 }());
 
                 return;

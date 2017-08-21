@@ -40,7 +40,12 @@ define([
             ramView = new Uint8Array(1 * 1024 * 1024);
             stubIO = {};
             stubMemory = {
+                disablePaging: sinon.stub(),
+                enablePaging: sinon.stub(),
                 getView: function () {},
+                linearToPhysical: function (linearAddress) {
+                    return linearAddress;
+                },
                 readLinear: function (linearAddress, size) {
                     if (size === 1) {
                         return ramView.getUint8(linearAddress);
@@ -50,6 +55,7 @@ define([
                         return ramView.getUint32(linearAddress, true);
                     }
                 },
+                setPageDirectoryAddress: sinon.stub(),
                 writeLinear: function (linearAddress, value, size) {
                     if (size === 1) {
                         ramView.setUint8(linearAddress, value);
@@ -71,6 +77,15 @@ define([
             decoder.bindCPU(cpu);
             cpu.init();
             cpu.reset();
+        });
+
+        afterEach(function () {
+            cpu.stop();
+            assembler = null;
+            clock = null;
+            cpu = null;
+            decoder = null;
+            ramView = null;
         });
 
         describe("when executing just a 'hlt' instruction", function () {

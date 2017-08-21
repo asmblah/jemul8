@@ -385,7 +385,7 @@ define([
 					+ util.format("hex", keyboard.state.last_mouse_command) + ")");
 			}
 		} else {
-			keyboard.state.expecting_mouse_parameter = 0;
+			keyboard.state.expecting_mouse_parameter = false;
 			keyboard.state.last_mouse_command = val;
 
 			// Test for wrap mode first
@@ -654,8 +654,8 @@ define([
 			, aux_output_buffer: 0x00
 			, /* byte */last_comm: 0
 			, expecting_port60h: false
-			, expecting_mouse_parameter: new Register("EXP_MOUSE_PARAM", 1)
-			, last_mouse_command: new Register("LAST_MOUSE_CMD", 1)
+			, expecting_mouse_parameter: false
+			, last_mouse_command: 0
 			, timer_pending: false
 			, irq1_requested: false
 			, irq12_requested: false
@@ -699,7 +699,7 @@ define([
 		state.outb = 0;
 
 		state.kbd_clock_enabled = true;
-		state.aux_clock_enabled = 0;
+		state.aux_clock_enabled = false;
 		state.allow_irq1 = 1;
 		state.allow_irq12 = 1;
 		state.kbd_output_buffer = 0x00;
@@ -708,7 +708,7 @@ define([
 		state.expecting_port60h = false;
 		state.irq1_requested = false;
 		state.irq12_requested = false;
-		state.expecting_mouse_parameter = 0;
+		state.expecting_mouse_parameter = false;
 		state.bat_in_progress = 0;
 		state.scancodes_translate = 1;
 
@@ -945,14 +945,14 @@ define([
 		var state = this.state, old_enabled;
 
 		if (!val) {
-			state.aux_clock_enabled = false;
+			this.cntrlr.keyboard.state.aux_clock_enabled = false;
 		} else {
 			// Is another byte waiting to be sent from the keyboard?
-			old_enabled = state.aux_clock_enabled;
-			state.aux_clock_enabled = true;
+			old_enabled = this.cntrlr.keyboard.state.aux_clock_enabled;
+			this.cntrlr.keyboard.state.aux_clock_enabled = true;
 
 			// Enable timer if switching from disabled -> enabled
-			if (!old_enabled && state.outb === 0) {
+			if (!old_enabled && this.cntrlr.keyboard.state.outb === 0) {
 				this.cntrlr.activateTimer();
 			}
 		}
@@ -965,24 +965,24 @@ define([
 
 		// See if we need to queue this byte from the controller
 		//	(even for mouse bytes)
-		if (state.outb) {
-			if (state.sizeQueue >= KBD_CONTROLLER_QSIZE) {
+		if (this.cntrlr.keyboard.state.outb) {
+			if (this.cntrlr.keyboard.state.sizeQueue >= KBD_CONTROLLER_QSIZE) {
 				util.panic("Mouse.enqueueCntrlr(" + util.format("hex", data)
 					+ ") :: state.queue full!");
 			}
-			state.queue[ state.sizeQueue++ ] = data;
-			state.sourceQueue = 1;
+			this.cntrlr.keyboard.state.queue[ this.cntrlr.keyboard.state.sizeQueue++ ] = data;
+			this.cntrlr.keyboard.state.sourceQueue = 1;
 			return;
 		}
 
 		/** The queue is empty **/
 
-		state.aux_output_buffer = data;
-		state.outb = 1;
-		state.auxb = 1;
-		state.inpb = 0;
-		if (state.allow_irq12) {
-			state.irq12_requested = true;
+		this.cntrlr.keyboard.state.aux_output_buffer = data;
+		this.cntrlr.keyboard.state.outb = 1;
+		this.cntrlr.keyboard.state.auxb = 1;
+		this.cntrlr.keyboard.state.inpb = 0;
+		if (this.cntrlr.keyboard.state.allow_irq12) {
+			this.cntrlr.keyboard.state.irq12_requested = true;
 		}
 	};
 	// Based on [bx_keyb_c::mouse_enQ_packet]
@@ -1022,7 +1022,7 @@ define([
 		] = data;
 		++this.bufInternal.num_elements;
 
-		if (!this.cntrlr.state.outb && this.cntrlr.state.aux_clock_enabled) {
+		if (!this.cntrlr.keyboard.state.outb && this.cntrlr.keyboard.state.aux_clock_enabled) {
 			this.cntrlr.activateTimer();
 			util.debug("Mouse.enqueueData(...) :: Activating timer...");
 			return;
@@ -1092,7 +1092,62 @@ define([
 	//	& send it to the guest OS, etc.
 	// Based on [bx_keyb_c::mouse_motion]
 	Mouse.prototype.motion = function (delta_x, delta_y, delta_z, button_state) {
-		// ...
+ 		var force_enq = 0;
+
+		// don't generate interrupts if we are in remote mode.
+		if (this.state.mode == MOUSE_MODE_REMOTE) {
+			// is there any point in doing any work if we don't act on the result
+			// so go home.
+			return;
+		}
+
+		// Note: enable only applies in STREAM MODE.
+		if (this.state.enable==0) {
+			return;
+		}
+
+		// scale down the motion
+		if ((delta_x < -1) || (delta_x > 1)) {
+			delta_x /= 2;
+		}
+		if ((delta_y < -1) || (delta_y > 1)) {
+			delta_y /= 2;
+		}
+
+		if (!this.state.im_mode) {
+			delta_z = 0;
+		}
+
+		if ((delta_x==0) && (delta_y==0) && (delta_z==0) && (this.state.button_status == (button_state & 0x7))) {
+			util.debug(("Ignoring useless mouse_motion call:"));
+			util.debug(("This should be fixed in the gui code."));
+			return;
+		}
+
+		if ((this.state.button_status != (button_state & 0x7)) || delta_z) {
+			force_enq=1;
+		}
+
+		this.state.button_status = button_state & 0x7;
+
+		if (delta_x>255) { delta_x=255; }
+		if (delta_y>255) { delta_y=255; }
+		if (delta_x<-256) { delta_x=-256; }
+		if (delta_y<-256) { delta_y=-256; }
+
+		this.state.delayed_dx+=delta_x;
+		this.state.delayed_dy+=delta_y;
+		this.state.delayed_dz = delta_z;
+
+		if ((this.state.delayed_dx>255) ||
+			(this.state.delayed_dx<-256) ||
+			(this.state.delayed_dy>255) ||
+			(this.state.delayed_dy<-256)
+		) {
+			force_enq=1;
+		}
+
+		this.createPacket(force_enq);
 	};
 
 	// KeyboardCntrlr controller's I/O read operations' handler routine
@@ -1271,7 +1326,7 @@ define([
 					break;
 				case 0xD4: // Write to mouse
 					// [Bochs] I don't think this enables the AUX clock
-					// [Bochs] mouse.setClockEnabled(true); // enable aux clock line
+					device.mouse.setClockEnabled(true); // enable aux clock line
 					device.sendToMouse(val);
 					// [Bochs] ??? should I reset to previous value of aux enable?
 					break;

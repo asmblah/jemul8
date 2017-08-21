@@ -96,10 +96,10 @@ define([
 				dword2 = raw.dword2;
 
 			// Access Rights byte
-			ARByte       = dword2 >> 8;
-			this.present = (ARByte >> 7) & 0x1;
-			this.dpl     = (ARByte >> 5) & 0x3;
-			this.segment = (ARByte >> 4) & 0x1;
+			ARByte       = (dword2 >>> 8) & 0xFF;
+			this.present = (ARByte >>> 7) & 0x1;
+			this.dpl     = (ARByte >>> 5) & 0x3;
+			this.segment = (ARByte >>> 4) & 0x1;
 			this.type    = (ARByte & 0xF);
 			this.accessType = util.ACCESS_INVALID; // Start out invalid
 
@@ -127,8 +127,8 @@ define([
 				case util.DESC_286_INTERRUPT_GATE:
 				case util.DESC_286_TRAP_GATE:
 					// param count only used for call gate
-					this.param_count   = dword2 & 0x1F;
-					this.destSelector = dword1 >> 16;
+					this.paramCount   = dword2 & 0x1F;
+					this.destSelector = dword1 >>> 16;
 					this.destOffset   = dword1 & 0xFFFF;
 					this.accessType = util.ACCESS_VALID_CACHE;
 					break;
@@ -137,10 +137,10 @@ define([
 				case util.DESC_386_INTERRUPT_GATE:
 				case util.DESC_386_TRAP_GATE:
 					// param count only used for call gate
-					this.param_count   = dword2 & 0x1f;
-					this.dest_selector = dword1 >> 16;
-					this.dest_offset   = (dword2 & 0xffff0000) |
-						(dword1 & 0x0000ffff);
+					this.paramCount   = dword2 & 0x1f;
+					this.destSelector = dword1 >>> 16;
+					this.destOffset   = ((dword2 & 0xffff0000) |
+						(dword1 & 0x0000ffff)) >>> 0;
 					this.accessType = util.ACCESS_VALID_CACHE;
 					break;
 
@@ -155,7 +155,7 @@ define([
 				case util.DESC_SYS_SEGMENT_AVAIL_386_TSS:
 				case util.DESC_SYS_SEGMENT_BUSY_386_TSS:
 					limit = (dword1 & 0xFFFF) | (dword2 & 0x000F0000);
-					this.base  = (dword1 >> 16)
+					this.base  = (dword1 >>> 16)
 						| ((dword2 & 0xff) << 16)
 						| (dword2 & 0xff000000);
 					this.use4KPages = (dword2 & 0x00800000) > 0;
@@ -178,6 +178,10 @@ define([
 
 			return this;
 		},
+		isBusyTSSDescriptor: function () {
+            return this.type === util.DESC_SYS_SEGMENT_BUSY_286_TSS ||
+                this.type === util.DESC_SYS_SEGMENT_BUSY_386_TSS;
+		},
 		// Is segment's descriptor valid or not
 		isValid: function () {
 			return this.accessType !== util.ACCESS_INVALID;
@@ -191,28 +195,34 @@ define([
 			return this.present;
 		},
 		isCodeSegment: function () {
-			return (this.type >> 3) & 0x1;
+			return (this.type >>> 3) & 0x1;
 		},
 		isCodeSegmentConforming: function () {
-			return (this.type >> 2) & 0x1;
+			return (this.type >>> 2) & 0x1;
 		},
 		isCodeSegmentNonConforming: function () {
 			return !this.isCodeSegmentConforming();
 		},
 		isCodeSegmentReadable: function () {
-			return (this.type >> 1) & 0x1;
+			return (this.type >>> 1) & 0x1;
 		},
 		isDataSegment: function () {
 			return !this.isCodeSegment();
 		},
 		isDataSegmentExpandDown: function () {
-			return (this.type >> 2) & 0x1;
+			return (this.type >>> 2) & 0x1;
 		},
 		isDataSegmentWriteable: function () {
-			return (this.type >> 1) & 0x1;
+			return (this.type >>> 1) & 0x1;
 		},
 		isSegmentAccessed: function () {
 			return this.type & 0x1;
+		},
+		isTSSDescriptor: function () {
+			return this.type === util.DESC_SYS_SEGMENT_AVAIL_286_TSS ||
+				this.type === util.DESC_SYS_SEGMENT_BUSY_286_TSS ||
+                this.type === util.DESC_SYS_SEGMENT_AVAIL_386_TSS ||
+                this.type === util.DESC_SYS_SEGMENT_BUSY_386_TSS;
 		},
 		// Build/extract Access Rights byte for descriptor
 		getARByte: function () {
@@ -223,9 +233,9 @@ define([
 		},
 		// Update descriptor's Access Rights fields
 		setARByte: function (val) {
-			this.present = (val >> 7) & 0x01;
-			this.dpl = (val >> 5) & 0x03;
-			this.segment = (val >> 4) & 0x01;
+			this.present = (val >>> 7) & 0x01;
+			this.dpl = (val >>> 5) & 0x03;
+			this.segment = (val >>> 4) & 0x01;
 			this.type = val & 0x0F;
 
 			return this;

@@ -21,10 +21,13 @@ define([
 ) {
     "use strict";
 
-    var DEFAULT_MEMORY_MEGABYTES = 32;
+    var DEFAULT_MEMORY_MEGABYTES = 128;
 
     function Memory(memoryAllocator, options) {
+        this.cpu = null;
         this.options = options || {};
+        this.pageDirectoryAddress = 0;
+        this.pagingEnabled = false;
         this.sizeInBytes = (this.options.kilobytes || DEFAULT_MEMORY_MEGABYTES * 1024) * 1024;
         this.system = null;
 
@@ -38,9 +41,26 @@ define([
 
             machine = {
                 cpu: {
+                    exception: function (vector, code) {
+                        memory.cpu.exception(vector, code);
+                    },
+                    CR2: {
+                        get: function () {
+                            return memory.cpu.registers.cr2.get();
+                        },
+                        set: function (value) {
+                            memory.cpu.registers.cr2.set(value);
+                        }
+                    },
+                    CR3: {
+                        get: function () {
+                            return memory.pageDirectoryAddress;
+                        }
+                    },
                     PG: {
                         get: function () {
-                            return 0;
+                            /*jshint bitwise: false */
+                            return memory.pagingEnabled & 1;
                         }
                     }
                 },
@@ -57,6 +77,14 @@ define([
     }
 
     util.extend(Memory.prototype, {
+        disablePaging: function () {
+            this.pagingEnabled = false;
+        },
+
+        enablePaging: function () {
+            this.pagingEnabled = true;
+        },
+
         getView: function () {
             return this.legacyMemory.buffer;
         },
@@ -105,20 +133,54 @@ define([
             }, memory.legacyMemory.machine.vga);
         },
 
+        setCPU: function (cpu) {
+            this.cpu = cpu;
+        },
+
+        setPageDirectoryAddress: function (address) {
+            this.pageDirectoryAddress = address;
+        },
+
         setSystem: function (system) {
             this.system = system;
         },
 
         writeLinear: function (linearAddress, value, size) {
-            this.legacyMemory.writeLinear(linearAddress, value, size);
+            /*jshint bitwise: false */
+            var memory = this,
+                page = linearAddress >>> 9;
+
+            /*if (134 >= linearAddress && 134 < linearAddress + size) {
+                debugger;
+            }*/
+
+            memory.system.purgePage(page);
+
+            memory.legacyMemory.writeLinear(linearAddress, value, size);
         },
 
         writePhysical: function (physicalAddress, value, size) {
-            this.legacyMemory.writePhysical(physicalAddress, value, size);
+            /*jshint bitwise: false */
+            var memory = this,
+                page = physicalAddress >>> 9;
+
+            memory.system.purgePage(page);
+
+            memory.legacyMemory.writePhysical(physicalAddress, value, size);
         },
 
-        writePhysicalBlock: function (physicalAddress, fromBuffer, size) {
-            this.legacyMemory.writePhysicalBlock(physicalAddress, fromBuffer, size);
+        writePhysicalBlock: function (physicalAddress, fromBuffer) {
+            /*jshint bitwise: false */
+            var memory = this,
+                startPage = physicalAddress >>> 9,
+                endPage = (physicalAddress + fromBuffer.byteLength - 1) >>> 9,
+                page;
+
+            for (page = startPage; page <= endPage; page++) {
+                memory.system.purgePage(page);
+            }
+
+            this.legacyMemory.writePhysicalBlock(physicalAddress, fromBuffer);
         }
     });
 

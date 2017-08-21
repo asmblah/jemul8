@@ -63,6 +63,10 @@ define([
             return emulator;
         },
 
+        read: function (options) {
+            return this.system.read(options);
+        },
+
         reset: function (options) {
             this.system.reset(options);
         },

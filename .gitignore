@@ -16,3 +16,6 @@ Hiew726w
 
 # NPM dependencies
 /node_modules
+
+# Local testing
+/vm-mount

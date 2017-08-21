@@ -41,6 +41,7 @@ define([
         },
 
         get: function () {
+            /*jslint bitwise: true */
             return this.value >>> 0;
         },
 
@@ -61,7 +62,7 @@ define([
             /*jslint bitwise: true */
 
             // Mask out bits of value outside Register's bit-width
-            this.value = (val & this.mask);
+            this.value = (val & this.mask) >>> 0;
         }
     });
 

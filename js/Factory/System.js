@@ -14,6 +14,7 @@ define([
     "js/util",
     "js/Clock",
     "js/IODevice/CMOS",
+    "js/IODevice/PIT/Counter",
     "js/CPU",
     "js/Decoder",
     "js/IODevice/DMA",
@@ -34,6 +35,7 @@ define([
     util,
     Clock,
     CMOS,
+    Counter,
     CPU,
     Decoder,
     DMA,
@@ -91,6 +93,7 @@ define([
             decoder = new Decoder();
             cpu = new CPU(system, io, memory, decoder, clock, options[CPU_OPTIONS]);
             decoder.bindCPU(cpu);
+            memory.setCPU(cpu);
 
             dma = new DMA(system, io, memory, options[DMA_OPTIONS]);
             pic = new PIC(system, io, memory, options[PIC_OPTIONS]);
@@ -105,7 +108,17 @@ define([
             dma.register(fdc);
             io.register(new GuestToHost(system, io, memory, options[CMOS_OPTIONS]));
             io.register(pic);
-            io.register(new PIT(system, io, memory, options[PIT_OPTIONS]));
+
+            io.register(new PIT(
+                system,
+                io,
+                memory,
+                new Counter(system, system.createTimer()),
+                new Counter(system, system.createTimer()),
+                new Counter(system, system.createTimer()),
+                options[PIT_OPTIONS]
+            ));
+
             io.register(new PS2(system, io, memory, options[PS2_OPTIONS]));
             vga = new VGA(system, io, memory, options[VGA_OPTIONS]);
             io.register(vga);

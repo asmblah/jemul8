@@ -73,6 +73,8 @@ define([
                 } else {
                     registers[0x14].set(registers[0x14].get() & 0x3e);
                 }
+
+                registers[0x14].set(registers[0x14].get() | 4);
             });
 
             registers[0x15].set(BASE_MEMORY_IN_K & 0xFF);
@@ -104,7 +106,7 @@ define([
                 util.get(romPath).done(function (buffer) {
                     cmos.system.write({
                         data: buffer,
-                        to: 0xF0000
+                        to: 0xF0000 //(1 << 19)
                     });
                     promise.resolve();
                 });

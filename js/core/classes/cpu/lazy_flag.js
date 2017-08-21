@@ -166,8 +166,9 @@ define([
                 this.value = this.hsh_get[ cpu.insnLast.getName() ](cpu);
             } else {
                 //debugger;
-                util.warning("Cannot calculate value for lazy-flag " + this.name
-                    + ", leaving unchanged (this needs fixing!!!)");
+                /*util.warning("Cannot calculate value for lazy-flag " + this.name
+                    + ", leaving unchanged (this needs fixing!!!)");*/
+                this.value = 0;
             }
 
             // Flag is no longer dirty; clear dirty bit in Register
@@ -179,6 +180,11 @@ define([
 
     // Carry Flag
     hsh_getCF[ "ADD" ] = function (cpu) {
+        // FIXME: Will these numbers always be true floats, or eg. 0xffff for -1?
+
+        //no they will not! eg. 'ADD' instruction handler in execute.js &s with 0xffffffff (will mask off JS sign bits), so this is wrong
+        //need to add tests for 'add' instruction
+
         return (cpu.resLast < cpu.valLast1) & 1;
     };
     hsh_getCF[ "ADC" ] = function (cpu) {
@@ -187,11 +193,13 @@ define([
             return hsh_getCF[ "ADD" ](cpu);
         }
 
+        // FIXME: Will these numbers always be true floats, or eg. 0xffff for -1?
         return (cpu.resLast <= cpu.valLast1) & 1;
     };
     hsh_getCF[ "SUB" ]
     = hsh_getCF[ "CMP" ] = hsh_getCF[ "CMPS" ]
     = hsh_getCF[ "SCAS" ] = function (cpu) {
+        // FIXME: Will these numbers always be true floats, or eg. 0xffff for -1?
         return (cpu.valLast1 < cpu.valLast2) & 1;
     };
     hsh_getCF[ "SBB" ] = function (cpu) {
@@ -205,6 +213,7 @@ define([
             return hsh_getCF[ "SUB" ](cpu);
         }
 
+        // FIXME: Will these numbers always be true floats, or eg. 0xffff for -1?
         if (sizeOperand === 4) {
             return ((op1 < res) || (op2 === 0xFFFFFFFF)) & 1;
         } else if (sizeOperand === 2) {

@@ -120,12 +120,46 @@ define([
     //  - if paging disabled, no translation is performed
     Memory.prototype.linearToPhysical = function (addrLinear) {
         var cpu = this.machine.cpu,
-            addrPhysical = addrLinear;
+            addrPhysical = addrLinear,
+            memory = this;
 
         // Paging enabled - need to translate Linear address to Physical address
         //  by way of Paging table
         if (cpu.PG.get()) {
-            util.panic("Memory.linearToPhysical() :: No paging support yet.");
+            // util.panic("Memory.linearToPhysical() :: No paging support yet.");
+
+            (function () {
+                // debugger;
+                // var top20Mask = ~0xfff >>> 0,
+                //     pageDirectoryIndex = addrLinear >>> 22,
+                //     pageTableIndex = (addrLinear >>> 12) & 0x3ff,
+                //     pageDirectoryPhysicalAddress = (cpu.CR3.get() & 0xfffff000) >>> 0,
+                //     pageDirectoryEntry = memory.readPhysical(pageDirectoryPhysicalAddress + pageDirectoryIndex * 4, 4),
+                //     pageTableEntry = memory.readPhysical((pageDirectoryEntry & top20Mask) + pageTableIndex * 4, 4),
+                //     pagePhysicalAddress = (pageTableEntry & top20Mask) >>> 0;
+                var pageDirectoryPhysicalAddress = (cpu.CR3.get() & 0xfffff000) >>> 0,
+                    pageDirectoryEntryPhysicalAddress = pageDirectoryPhysicalAddress | ((addrLinear & 0xffc00000) >>> 20),
+                    pageDirectoryEntry = memory.readPhysical(pageDirectoryEntryPhysicalAddress, 4);
+
+                if ((pageDirectoryEntry & 1) === 0) {
+                    // Not present
+                    cpu.CR2.set(addrLinear);
+                    cpu.exception(util.PF_EXCEPTION, 1);
+                }
+
+                var pageTableEntryPhysicalAddress = (pageDirectoryEntry & 0xfffff000) | ((addrLinear & 0x003ff000) >>> 10),
+                    pageTableEntry = memory.readPhysical(pageTableEntryPhysicalAddress, 4);
+
+                if ((pageTableEntry & 1) === 0) {
+                    // Not present
+                    cpu.CR2.set(addrLinear);
+                    cpu.exception(util.PF_EXCEPTION, 1);
+                }
+
+                var pagePhysicalAddress = (pageTableEntry & 0xfffff000) >>> 0;
+
+                addrPhysical = (pagePhysicalAddress + ((addrLinear & 0xfff) >>> 0) >>> 0);
+            }());
         }
 
         return addrPhysical;
@@ -165,7 +199,7 @@ define([
         // Read/write memory buffer
         if (buf) {
             if (size === 1) {
-                return buf.getUint8(addrA20, true);
+                return buf.getUint8(addrA20);
             }
             if (size === 2) {
                 return buf.getUint16(addrA20, true);
@@ -173,8 +207,14 @@ define([
             if (size === 4) {
                 return buf.getUint32(addrA20, true);
             }
+            if (size === 6) {
+                return {
+                    low32: buf.getUint32(addrA20, true),
+                    high16: buf.getUint16(addrA20 + 4, true)
+                };
+            }
 
-            util.panic("Data length > 4");
+            util.panic("Data length > 6");
             return 0;
         }
 
@@ -205,7 +245,7 @@ define([
         // Read/write memory buffer
         if (buf) {
             if (size === 1) {
-                buf.setUint8(addrA20, val, true);
+                buf.setUint8(addrA20, val);
             } else if (size === 2) {
                 buf.setUint16(addrA20, val, true);
             } else if (size === 4) {
@@ -311,7 +351,7 @@ define([
         var machine = this.machine,
             mem = this,
         // Apply A20 mask to physical address
-            addrA20 = addrPhysical & machine.maskA20,
+            addrA20 = (addrPhysical & machine.maskA20) >>> 0,
         // Determine whether we are in CMOS ROM
             isBIOS = (addrA20 >= (~BIOS_MASK >>> 0)),
             buf = null,

@@ -17,7 +17,7 @@ define([
 ) {
     "use strict";
 
-    describe("CPU 'pop' instruction", function () {
+    describe("CPU 'shrd' (shift right with double precision) instruction", function () {
         /*jshint bitwise: false */
         var registers,
             system,
@@ -41,57 +41,52 @@ define([
         });
 
         util.each({
-            "pop word [si+1] in 16-bit segment": {
+            "bx:ax >>> 4": {
                 is32BitCodeSegment: false,
-                operand: "word [si+1]",
+                dest: "ax",
+                source: "bx",
+                count: "4",
                 registers: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10,
-
-                    si: 0x50
+                    ax: parseInt("0101011101110101", 2),
+                    bx: parseInt("1110001101001111", 2),
                 },
-                memory: [{
-                    to: (0x400 << 4) + 0x10,
-                    data: 0x5678,
-                    size: 2
-                }],
                 expectedRegisters: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10 + 2,
+                    ax: parseInt("1111010101110111", 2),
+                    bx: parseInt("1110001101001111", 2), // Source should be left unchanged
 
-                    si: 0x50
-                },
-                expectedMemory: [{
-                    from: (0x400 << 4) + 0x10,
-                    size: 2,
-                    expected: 0x5678
-                }]
+                    cf: 0 // Last bit shifted out of dest operand
+                }
             },
-            "pop es in 32-bit segment": {
-                is32BitCodeSegment: true,
-                operand: "es",
+            "bx:ax >>> 5": {
+                is32BitCodeSegment: false,
+                dest: "ax",
+                source: "bx",
+                count: "5",
                 registers: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10,
-
-                    si: 0x50
+                    ax: parseInt("0101011101110101", 2),
+                    bx: parseInt("1110001101001111", 2),
                 },
-                memory: [{
-                    to: (0x400 << 4) + 0x10,
-                    data: 0x56789123,
-                    size: 4
-                }],
                 expectedRegisters: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10 + 4,
+                    ax: parseInt("0111101010111011", 2),
+                    bx: parseInt("1110001101001111", 2), // Source should be left unchanged
 
-                    si: 0x50,
+                    cf: 1 // Last bit shifted out of dest operand
+                }
+            },
+            "ebx:eax >>> 6": {
+                is32BitCodeSegment: false,
+                dest: "eax",
+                source: "ebx",
+                count: "6",
+                registers: {
+                    eax: parseInt("01010111011101010100101111001011", 2),
+                    ebx: parseInt("11100011010011110100011110000111", 2),
+                },
+                expectedRegisters: {
+                    eax: parseInt("00011101010111011101010100101111", 2),
+                    ebx: parseInt("11100011010011110100011110000111", 2), // Source should be left unchanged
 
-                    es: 0x9123
+                    cf: 0 // Last bit shifted out of dest operand
                 }
             }
         }, function (scenario, description) {
@@ -103,11 +98,11 @@ define([
                         var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 [BITS ${bits}]
-pop ${operand}
+shrd ${dest}, ${source}, ${count}
 
 hlt
 EOS
-*/) {}, {operand: scenario.operand, bits: is32BitCodeSegment ? 32 : 16});
+*/) {}, {source: scenario.source, dest: scenario.dest, count: scenario.count, bits: is32BitCodeSegment ? 32 : 16});
 
                         testSystem.on("pre-run", function () {
                             registers.cs.set32BitMode(is32BitCodeSegment);

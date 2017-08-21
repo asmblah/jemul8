@@ -505,7 +505,7 @@ define([
 
                     multicastIndex = ethernetFrame.getDestinationMAC().getMulticastIndex();
 
-                    if (!(ne2k.multicastHash[multicastIndex >> 3] & (1 << (multicastIndex & 0x7)))) {
+                    if (!(ne2k.multicastHash[multicastIndex >>> 3] & (1 << (multicastIndex & 0x7)))) {
                         return;
                     }
                 // Otherwise we need an exact MAC address match for us to receive the frame
@@ -529,7 +529,7 @@ define([
             }
             packetHeader[1] = nextPage; // Pointer to next page
             packetHeader[2] = (length + 4) & 0xFF; // Low-byte of length
-            packetHeader[3] = (length + 4) >> 8; // High-byte of length
+            packetHeader[3] = (length + 4) >>> 8; // High-byte of length
 
             // Copy packet header and payload into memory
             startOffset = ne2k.currentPage.get() * 256 - NE2K_MEMORY_START;
@@ -871,7 +871,7 @@ define([
             case 0xD: // TCR
                 // Test Loop Mode (not supported)
                 if (value & 0x06) {
-                    ne2k.tcr.loopbackControl.set((value & 0x06) >> 1);
+                    ne2k.tcr.loopbackControl.set((value & 0x06) >>> 1);
                 } else {
                     ne2k.tcr.loopbackControl.clear();
                 }
@@ -898,7 +898,7 @@ define([
                 ne2k.dcr.longAddress = !!(value & 0x04);
                 ne2k.dcr.loopbackSelect = !!(value & 0x08);
                 ne2k.dcr.autoRemoveRXPackets = !!(value & 0x10);
-                ne2k.dcr.fifoSize.set((value & 0x50) >> 5);
+                ne2k.dcr.fifoSize.set((value & 0x50) >>> 5);
                 break;
             case 0xF: // IMR
                 ne2k.imr.enablePacketReceiveInterrupt = !!(value & 0x01);

@@ -15,20 +15,23 @@ define([
 ) {
     "use strict";
 
+    var slice = [].slice;
+
     function EventEmitter() {
         this.listeners = {};
     }
 
     util.extend(EventEmitter.prototype, {
-        emit: function (eventName) {
-            var args = [].slice.call(arguments, 1),
-                eventEmitter = this,
+        emit: function (eventName, arg1, arg2, arg3) {
+            var eventEmitter = this,
+                i,
+                length,
                 listeners = eventEmitter.listeners[eventName];
 
             if (listeners) {
-                util.each(listeners, function (listener) {
-                    listener.callback.apply(eventEmitter, args);
-                });
+                for (i = 0, length = listeners.length; i < length; i++) {
+                    listeners[i].callback.call(eventEmitter, arg1, arg2, arg3);
+                }
             }
 
             return eventEmitter;
@@ -70,7 +73,7 @@ define([
             if (filter) {
                 callback = (function (callback) {
                     return function () {
-                        var actualArgs = [].slice.call(arguments),
+                        var actualArgs = slice.call(arguments),
                             match = true;
 
                         util.each(filter, function (expectedArg, index) {

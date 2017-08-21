@@ -255,10 +255,10 @@ define([
         // 0x0D
             // Shift Group 2 (1A)
         /*      #EXT_2 [E|b,"1"]                #EXT_2 [E|v,"1"]                    #EXT_2 [E|b,"CL"]               #EXT_2 [E|v,"CL"] */
-        0xD4: ["AAM", [I|b]],           0xD5: ["AAD", [I|b]],               0xD6: ["#RESERVED"],            0xD7: ["XLAT"],
+        0xD4: ["AAM", [I|b]],           0xD5: ["AAD", [I|b]],               0xD6: ["SALC"],            0xD7: ["XLAT"],
             // ESC (Escape to coprocessor instruction set)
-        0xD8: ["#RESERVED"],            0xD9: ["#RESERVED"],                0xDA: ["#RESERVED"],            0xDB: ["#RESERVED"],
-        0xDC: ["#RESERVED"],            0xDD: ["#RESERVED"],                0xDE: ["#RESERVED"],            0xDF: ["#RESERVED"],
+        0xD8: ["#FPU"],            0xD9: ["#FPU"],                0xDA: ["#FPU"],            0xDB: ["#FPU"],
+        0xDC: ["#FPU"],            0xDD: ["#FPU"],                0xDE: ["#FPU"],            0xDF: ["#FPU"],
         // 0x0E
         0xE0: ["LOOPNE", [J|b]],        0xE1: ["LOOPE",[J|b]],              0xE2: ["LOOP",[J|b]],           0xE3: ["JCXZ",[J|b]],
         0xE4: ["IN", ["AL",I|b]],       0xE5: ["IN", ["eAX",I|b]],          0xE6: ["OUT", [I|b,"AL"]],      0xE7: ["OUT", [I|b,"eAX"]],
@@ -318,16 +318,20 @@ define([
         0x188: ["JS", [J|v]],           0x189: ["JNS", [J|v]],              0x18A: ["JP", [J|v]],           0x18B: ["JNP", [J|v]],
         0x18C: ["JL", [J|v]],           0x18D: ["JNL", [J|v]],              0x18E: ["JLE", [J|v]],          0x18F: ["JNLE", [J|v]],
 
-        /** ===== GAP - TODO here!! ===== **/
+        // 0x190
+        0x190: ["SETO", [E|b]],         0x191: ["SETNO", [E|b]],            0x192: ["SETB", [E|b]],         0x193: ["SETNB", [E|b]],
+        0x194: ["SETE", [E|b]],         0x195: ["SETNE", [E|b]],            0x196: ["SETBE", [E|b]],        0x197: ["SETNBE", [E|b]],
+        0x198: ["SETS", [E|b]],         0x199: ["SETNS", [E|b]],            0x19A: ["SETP", [E|b]],         0x19B: ["SETNP", [E|b]],
+        0x19C: ["SETL", [E|b]],         0x19D: ["SETNL", [E|b]],            0x19E: ["SETLE", [E|b]],        0x19F: ["SETNLE", [E|b]],
 
         // 0x0F 0xA0 -> 0x0F 0xAF
         0x1A0: ["PUSH", ["FS"]],        0x1A1: ["POP", ["FS"]],             0x1A2: ["CPUID"],               0x1A3: ["BT", [E|v,G|v]],
         0x1A4: ["SHLD", [E|v,G|v,I|b]], 0x1A5: ["SHLD", [E|v,G|v,"CL"]],    0x1A6: ["???"],                 0x1A7: ["???"],
         0x1A8: ["PUSH", ["GS"]],        0x1A9: ["POP", ["GS"]],             0x1AA: ["RSM"],                 0x1AB: ["BTS", [E|v,G|v]],
-        0x1AC: ["SHRD", [E|v,G|v,I|b]], 0x1AD: ["SHRD", [E|v,G|v,"CL"]],    0x1AE: "#Grp15",                0x1AF: ["IMUL", [G|v,E|v]],
+        0x1AC: ["SHRD", [E|v,G|v,I|b]], 0x1AD: ["SHRD", [E|v,G|v,"CL"]],    0x1AE: ["#Grp15"],              0x1AF: ["IMUL", [G|v,E|v]],
 
         // 0x0F 0xB0 -> 0x0F 0xBF
-        0x1B0: ["CMPXCHG", [E|b,G|b]],  0x1B1: ["CMPXCHG", [E|v,G|v]],      0x1B2: ["LSS", [M|p]],          0x1B3: ["BTR", [E|v,G|v]],
+        0x1B0: ["CMPXCHG", [E|b,G|b]],  0x1B1: ["CMPXCHG", [E|v,G|v]],      0x1B2: ["LSS", [G|v, M|p]],     0x1B3: ["BTR", [E|v,G|v]],
         0x1B4: ["LFS", [G|v,M|p]],      0x1B5: ["LGS", [G|v,M|p]],          0x1B6: ["MOVZX", [G|v,E|b]],    0x1B7: ["MOVZX", [G|v,E|w]],
         0x1B8: ["???", [G|v,E|v]],      0x1B9: ["???", [G|v,E|v]],          0x1BA: ["???", [E|v,I|b]],      0x1BB: ["BTC", [E|v,G|v]],
         0x1BC: ["BSF", [G|v,E|v]],      0x1BD: ["BSR", [G|v,E|v]],          0x1BE: ["MOVSX", [G|v,E|b]],    0x1BF: ["MOVSX", [G|v,E|w]]
@@ -421,8 +425,8 @@ define([
     /* ====== Ext. group 8 - Two-byte opcode extensions ====== */
     base = 0x1BA << 3; // 0x0F 0xBA
     hsh[base | 0x00] = ["???"];             hsh[base | 0x01] = ["???"];             hsh[base | 0x02] = ["???"];
-    hsh[base | 0x03] = ["???"];             hsh[base | 0x04] = ["BT"];              hsh[base | 0x05] = ["BTS"];
-    hsh[base | 0x06] = ["BTR"];             hsh[base | 0x07] = ["BTC"];
+    hsh[base | 0x03] = ["???"];             hsh[base | 0x04] = ["BT", [E|v, I|b]];  hsh[base | 0x05] = ["BTS", [E|v, I|b]];
+    hsh[base | 0x06] = ["BTR", [E|v, I|b]]; hsh[base | 0x07] = ["BTC", [E|v, I|b]];
     /* ====== /Ext. group 8 - Two-byte opcode extensions ====== */
 
     /* ====== Ext. group 8 - Two-byte opcode extensions ====== */

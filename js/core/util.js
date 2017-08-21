@@ -131,7 +131,7 @@ define([
             return num;
 
         }, truncateTowardZero: function (num) {
-            return num >> 0;
+            return num >>> 0;
         }
     });
 
@@ -388,7 +388,7 @@ define([
     util.signExtend = function (num, length, lengthTo) {
         var numBits = length * 8, numBitsTo = lengthTo * 8;
         // Sign bit set
-        if (num >> (numBits - 1)) {
+        if (num >>> (numBits - 1)) {
             // TODO: Convert "<<" to Math.pow() or multiply? May overflow
             //    the JavaScript 32-bit limit...
             return num | ((Math.pow(2, numBitsTo - numBits) - 1) << numBits);
@@ -439,9 +439,16 @@ define([
             assert: function (cond, msg) {}
             , info: function (msg) {}
             , debug: function (msg) {}
-            , warning: function (msg) {}
-            , problem: function (msg) {}
-            , panic: function (msg) {}
+            , warning: function (msg) {
+                console.warn(msg);
+            }
+            , problem: function (msg) {
+                console.error(msg);
+            }
+            , panic: function (msg) {
+                alert(msg);
+                throw new Error(msg);
+            }
         });
     }
 

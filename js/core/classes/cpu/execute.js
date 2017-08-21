@@ -18,12 +18,14 @@ define([
     "js/util",
     "../../util",
     "vendor/jsbn/BigInteger",
-    "../memory/buffer"
+    "../memory/buffer",
+    "./descriptor"
 ], function (
     newUtil,
     util,
     BigInteger,
-    Buffer
+    Buffer,
+    Descriptor
 ) {
     "use strict";
 
@@ -37,18 +39,21 @@ define([
         // TODO: how to handle other flags? Intel docs say undefined,
         //       but other sources say should be handled just as for other insns
         "AAA": function (cpu) {
-            var AL = cpu.AL.get();
-
-            if (((AL & 0x0F) > 9) || (cpu.AF.get())) {
-                cpu.AL.set((AL + 6) & 0x0F);
-                cpu.AH.set(cpu.AH.get() + 1);
-                cpu.CF.set();
+            if (((cpu.AL.get() & 0x0F) > 9) || (cpu.AF.get())) {
+                cpu.AX.set(cpu.AX.get() + 0x106);
                 cpu.AF.set();
+                cpu.CF.set();
             } else {
-                cpu.AL.set(AL & 0x0F);
-                cpu.CF.clear();
                 cpu.AF.clear();
+                cpu.CF.clear();
             }
+
+            cpu.AL.set(cpu.AL.get() & 0x0f);
+
+            cpu.OF.clear();
+            cpu.SF.clear();
+            cpu.ZF.setBin(cpu.AL.get() === 0);
+            cpu.PF.setBin(newUtil.getParity(cpu.AL.get()));
         // ASCII adjust AX before Division
         }, "AAD": function (cpu) {
             // Val1 will almost always be 0Ah (10d), meaning to adjust for base-10 / decimal.
@@ -66,7 +71,7 @@ define([
                 AL = cpu.AL.get();
 
             if (val1 === 0) {
-                cpu.exception(util.DE_EXCEPTION, 0, this);
+                cpu.exception(util.DE_EXCEPTION, null);
                 return;
             }
 
@@ -77,18 +82,21 @@ define([
         //    TODO: how to handle other flags? Intel docs say undefined,
         //    but other sources say should be handled just as for other insns
         }, "AAS": function (cpu) {
-            var AL = cpu.AL.get();
-
-            if (((AL & 0x0F) > 9) || (cpu.AF.get())) {
-                cpu.AL.set((AL - 6) & 0x0F);
-                cpu.AH.set(cpu.AH.get() - 1);
-                cpu.CF.set();
+            if (((cpu.AL.get() & 0x0F) > 9) || (cpu.AF.get())) {
+                cpu.AX.set(cpu.AX.get() - 0x106);
                 cpu.AF.set();
+                cpu.CF.set();
             } else {
-                cpu.AL.set(AL & 0x0F);
                 cpu.CF.clear();
                 cpu.AF.clear();
             }
+
+            cpu.AL.set(cpu.AL.get() & 0x0f);
+
+            cpu.OF.clear();
+            cpu.SF.clear();
+            cpu.ZF.setBin(cpu.AL.get() === 0);
+            cpu.PF.setBin(newUtil.getParity(cpu.AL.get()));
         // Add with Carry
         }, "ADC": function (cpu) {
             var val1 = this.operand1.read(),
@@ -229,26 +237,108 @@ define([
         }, "CALLF": function (cpu) {
             // NB: Do not interpret as signed; cannot have
             //     an absolute EIP that is negative
-            var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
+            var callerTR,
+                IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
                 operandSize = IP.getSize(),
-                cs_eip = this.operand1.read();
+                address = this.operand1.readSelectorAndOffset(),
+                tssBase;
+
+            if (cpu.PE.get()) {
+                cpu.TDR.set(address.selector);
+
+                if (cpu.TDR.cache.isTSSDescriptor()) {
+                    if (cpu.TDR.cache.isBusyTSSDescriptor()) {
+                        cpu.exception(util.GP_EXCEPTION, 0);
+                    }
+
+                    callerTR = cpu.TR.get();
+
+                    // Save current register state in current task's TSS
+                    tssBase = cpu.TR.cache.base;
+                    cpu.machine.mem.writeLinear(tssBase + 0x20, cpu.EIP.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x24, cpu.EFLAGS.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x28, cpu.EAX.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x2C, cpu.ECX.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x30, cpu.EDX.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x34, cpu.EBX.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x38, cpu.ESP.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x3C, cpu.EBP.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x40, cpu.ESI.get(), 4);
+                    cpu.machine.mem.writeLinear(tssBase + 0x44, cpu.EDI.get(), 4);
+
+                    cpu.machine.mem.writeLinear(tssBase + 0x48, cpu.ES.get(), 2);
+                    cpu.machine.mem.writeLinear(tssBase + 0x4C, cpu.CS.get(), 2);
+                    cpu.machine.mem.writeLinear(tssBase + 0x50, cpu.SS.get(), 2);
+                    cpu.machine.mem.writeLinear(tssBase + 0x54, cpu.DS.get(), 2);
+                    cpu.machine.mem.writeLinear(tssBase + 0x58, cpu.FS.get(), 2);
+                    cpu.machine.mem.writeLinear(tssBase + 0x5C, cpu.GS.get(), 2);
+
+                    // TODO: Privilege checks on target TSS
+
+                    // Load Task Register with the called (new) task
+                    cpu.TR.set(address.selector);
+
+                    // Mark target (called) TSS segment descriptor as busy
+                    var offset = cpu.GDTR.base + cpu.TR.selector.index * 8;
+                    var byte5 = cpu.machine.mem.readLinear(offset + 5, 1);
+                    byte5 |= 2; // Set second bit (Busy bit)
+                    cpu.machine.mem.writeLinear(offset + 5, byte5, 1);
+
+                    // Store calling (current) task's TR in the Link field of the called task
+                    // (will be used by IRET for returning to the caller)
+                    // cpu.machine.mem.writeLinear(cpu.GDTR.base + cpu.TR.selector.index * 8, callerTR, 4);
+                    cpu.machine.mem.writeLinear(cpu.TR.base, callerTR, 2);
+
+                    // Load called task's register state
+                    tssBase = cpu.TR.cache.base;
+                    cpu.EIP.set(cpu.machine.mem.readLinear(tssBase + 0x20, 4));
+                    cpu.EFLAGS.set(cpu.machine.mem.readLinear(tssBase + 0x24, 4));
+                    cpu.EAX.set(cpu.machine.mem.readLinear(tssBase + 0x28, 4));
+                    cpu.ECX.set(cpu.machine.mem.readLinear(tssBase + 0x2C, 4));
+                    cpu.EDX.set(cpu.machine.mem.readLinear(tssBase + 0x30, 4));
+                    cpu.EBX.set(cpu.machine.mem.readLinear(tssBase + 0x34, 4));
+                    cpu.ESP.set(cpu.machine.mem.readLinear(tssBase + 0x38, 4));
+                    cpu.EBP.set(cpu.machine.mem.readLinear(tssBase + 0x3C, 4));
+                    cpu.ESI.set(cpu.machine.mem.readLinear(tssBase + 0x40, 4));
+                    cpu.EDI.set(cpu.machine.mem.readLinear(tssBase + 0x44, 4));
+
+                    cpu.ES.set(cpu.machine.mem.readLinear(tssBase + 0x48, 2));
+                    cpu.CS.set(cpu.machine.mem.readLinear(tssBase + 0x4C, 2));
+                    cpu.SS.set(cpu.machine.mem.readLinear(tssBase + 0x50, 2));
+                    cpu.DS.set(cpu.machine.mem.readLinear(tssBase + 0x54, 2));
+                    cpu.FS.set(cpu.machine.mem.readLinear(tssBase + 0x58, 2));
+                    cpu.GS.set(cpu.machine.mem.readLinear(tssBase + 0x5C, 2));
+
+                    // Set Task Switched flag to indicate that a task switch has occurred
+                    cpu.TS.set();
+
+                    // Set Nested Task flag, as this task was called from another
+                    cpu.NT.set();
+
+                    return;
+                }
+            }
 
             // Push CS:IP so return can come back
+            // FIXME: Should these also be pushed for a TSS far call?
             cpu.pushStack(cpu.CS.get(), 2);
             cpu.pushStack(IP.get(), operandSize);
 
-            // 32-bit pointer
-            if (operandSize === 2) {
-                cpu.CS.set(cs_eip >> 16);
-                cpu.EIP.set(cs_eip & 0xFFFF);
-            // 48-bit pointer (NOT 64-bit; even though EIP is 32-bit,
-            //    CS is still 16-bit)
-            } else {
-                jemul8.panic("Needs to use new method of reading > 4 byte values");
+            cpu.CS.set(address.selector);
+            cpu.EIP.set(address.offset);
 
-                cpu.CS.set(cs_eip >> 32);
-                cpu.EIP.set(cs_eip & 0xFFFFFFFF);
-            }
+            // // 32-bit pointer
+            // if (operandSize === 2) {
+            //     cpu.CS.set(cs_eip >>> 16);
+            //     cpu.EIP.set(cs_eip & 0xFFFF);
+            // // 48-bit pointer (NOT 64-bit; even though EIP is 32-bit,
+            // //    CS is still 16-bit)
+            // } else {
+            //     jemul8.panic("Needs to use new method of reading > 4 byte values");
+            //
+            //     cpu.CS.set(cs_eip >>> 32);
+            //     cpu.EIP.set(cs_eip & 0xFFFFFFFF);
+            // }
         // Unconditional Near (16/32-bit) Call
         //  - within current segment/"intrasegment" call
         //  - may be absolute, or relative to next Instruction
@@ -272,11 +362,11 @@ define([
 
             // CBW: Sign-extend AL into AH
             if (!this.operandSizeAttr) {
-                cpu.AH.set((cpu.AL.get() >> 7) ? 0xFF : 0x00);
+                cpu.AH.set((cpu.AL.get() >>> 7) ? 0xFF : 0x00);
             // CWDE: Sign-extend AX into high word of EAX
             } else {
                 ax = cpu.AX.get();
-                cpu.EAX.set(((ax >> 15) ? 0xFFFF0000 : 0x0000) | ax);
+                cpu.EAX.set(((ax >>> 15) ? 0xFFFF0000 : 0x0000) | ax);
             }
         // Clear Carry flag
         }, "CLC": function (cpu) {
@@ -425,7 +515,34 @@ define([
             setFlags(this, cpu, val1, val2, res);
         // Get Processor identification information
         }, "CPUID": function (cpu) {
-            util.panic("Execute (CPUID) :: unsupported");
+            //util.panic("Execute (CPUID) :: unsupported");
+            var eax = cpu.EAX.get(),
+                family,
+                features = 0,
+                model,
+                stepping;
+
+            //features |= 1; // Support x87 FPU
+
+            if (eax === 0) {
+                cpu.EAX.set(0x80000001); // No cache/TLB support yet
+                cpu.EBX.set(0x756e6547); // "Genu", with G in the low nibble of BL
+                cpu.EDX.set(0x49656e69); // "ineI", with i in the low nibble of DL
+                cpu.ECX.set(0x6c65746e); // "ntel", with n in the low nibble of CL
+            } else if (eax === 1) {
+                family = 4;
+                model = 2;
+                stepping = 3;
+                cpu.EAX.set((family << 8) | (model << 4) | stepping);
+                cpu.EDX.set(features);
+            // Get Highest Extended Function Supported
+            } else if (eax === 0x80000000) {
+                cpu.EAX.set(0x80000001);
+            // Extended Processor Info and Feature Bits
+            } else if (eax === 0x80000001) {
+                cpu.ECX.set(0);
+                cpu.EDX.set(features);
+            }
         // Convert Word to Dword (CWD), or Dword to Quadword (CDQ)
         }, "CWD": function (cpu) {
             // Sign-extend AX into DX:AX
@@ -513,7 +630,7 @@ define([
 
             // Divide by Zero (Divide Error)
             if (divisor === 0) {
-                cpu.exception(util.DE_EXCEPTION, 0, this);
+                cpu.exception(util.DE_EXCEPTION, null);
                 return;
             }
 
@@ -524,7 +641,7 @@ define([
                 quotient = (dividend / divisor) >>> 0;
 
                 if (quotient > 0xFF) {
-                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
 
@@ -539,7 +656,7 @@ define([
                 quotient16 = quotient & 0xFFFF;
 
                 if (quotient !== quotient16) {
-                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
 
@@ -555,7 +672,7 @@ define([
                 quotient = dividend.divide(divisor);
 
                 if (quotient.toRadix(16).length > 8) {
-                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
 
@@ -640,11 +757,12 @@ define([
             var operandSize = this.operand1.size,
                 dividend,
                 divisor = util.toSigned(this.operand1.read(), operandSize),
+                eaxHex,
                 quotient;
 
             // Divide by Zero (Divide Error)
             if (divisor === 0) {
-                cpu.exception(util.DE_EXCEPTION);
+                cpu.exception(util.DE_EXCEPTION, null);
                 return;
             }
 
@@ -655,7 +773,7 @@ define([
                 quotient = (dividend / divisor) >> 0;
 
                 if (quotient < -128 || quotient > 127) {
-                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
 
@@ -668,20 +786,37 @@ define([
                 quotient = (dividend / divisor) >> 0;
 
                 if (quotient < -32768 || quotient > 32767) {
-                    cpu.exception(util.DE_EXCEPTION, 0, this);
+                    cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
 
                 cpu.AX.set(quotient); // Quotient
                 cpu.DX.set(dividend % divisor); // Remainder
             // Dividend is EDX:EAX
-            } else if (operandSize == 4) {
+            /*} else if (operandSize == 4) {
                 util.warning("IDIV :: 64-bit SIGNED divide needs testing");
                 dividend = Int64.fromBits(cpu.EAX.get(), cpu.EDX.get());
                 divisor = Int64.fromNumber(divisor);
                 quotient = dividend.div(divisor);
                 cpu.EAX.set(quotient.getLowBits());
                 cpu.EDX.set(dividend.modulo(divisor).getLowBits());
+            }*/
+            // Dividend is EDX:EAX
+            } else if (operandSize == 4) {
+                // Format is EDX:EAX, EAX must be 8 hex digits long so zero-pad as needed
+                eaxHex = cpu.EAX.get().toString(16);
+                eaxHex = "00000000".substr(0, 8 - eaxHex.length) + eaxHex;
+                dividend = new BigInteger(cpu.EDX.get().toString(16) + eaxHex, 16);
+                divisor = new BigInteger(divisor.toString(16), 16);
+                quotient = dividend.divide(divisor);
+
+                if (quotient.toRadix(16).length > 8) {
+                    cpu.exception(util.DE_EXCEPTION, null);
+                    return;
+                }
+
+                cpu.EAX.set(quotient.intValue());
+                cpu.EDX.set(dividend.mod(divisor).intValue());
             }
         // Signed Multiply
         // - See http://faydoc.tripod.com/cpu/imul.htm
@@ -772,7 +907,7 @@ define([
                         .or(new BigInteger(util.toSigned(cpu.EAX.get(), 2).toString(16), 16))
                         .toRadix(16);
 
-                util.warning("IMUL :: setFlags needs to support Int64s");
+                //util.warning("IMUL :: setFlags needs to support Int64s");
             }
             // Lazy flags
             setFlags(this, cpu, multiplicand, multiplier, res);
@@ -848,9 +983,13 @@ define([
             }
         // Software-generated interrupt
         }, "INT": function (cpu) {
-            // Should this ever support 32-bit?
+            // // Should this ever support 32-bit?
+            // if (this.operandSizeAttr) {
+            //     jemul8.warning("32-bit interrupt handling not tested yet");
+            //     debugger;
+            // }
             if (this.operandSizeAttr) {
-                jemul8.warning("32-bit interrupt handling not tested yet");
+                console.warn('32-bit interrupt handling not tested yet');
             }
 
             cpu.interrupt(
@@ -877,10 +1016,10 @@ define([
         }, "INVD": function (cpu) {
             util.warning("INVD :: Not fully implemented");
 
-            cpu.flushInstructionCaches();
+            cpu.purgeAllPages();
         // Invalidate Translation Look-Aside Buffer (TLB) Entry (486+)
         }, "INVLPG": function (cpu) {
-            util.panic("Execute (INVLPG) :: Unsupported - no paging support yet");
+            console.log("Execute (INVLPG) :: Unsupported - no paging support yet");
         // Perform a far return after Interrupt handling
         //  NB: not used by internal Hypervisor Interrupt Service Routines, for speed
         //  as (E)FLAGS register never needs to be restored after their exec (it is unaffected)
@@ -980,7 +1119,7 @@ define([
         // Jump if Register ECX is Zero (386+)
         //  (NB: this conditional jump has no inverse)
         }, "JCXZ": function (cpu) {
-            var CX = (this.operandSizeAttr ? cpu.ECX : cpu.CX);
+            var CX = (this.addressSizeAttr ? cpu.ECX : cpu.CX);
 
             // Quickly skip if condition not met
             if (CX.get() === 0) {
@@ -992,18 +1131,29 @@ define([
         }, "JMPF": function (cpu) {
             // NB: Do not interpret as signed; cannot have
             //     an absolute EIP that is negative
-            var low32 = this.operand1.read();
+            var address = this.operand1.readSelectorAndOffset();
 
-            // 32-bit pointer
-            if (!this.operandSizeAttr) {
-                cpu.CS.set(low32 >> 16);
-                cpu.EIP.set(low32 & 0xFFFF);
-            // 48-bit pointer (NOT 64-bit; even though EIP is 32-bit,
-            //  CS is still 16-bit)
-            } else {
-                cpu.CS.set(this.operand1.highImmed);
-                cpu.EIP.set(low32);
-            }
+            // console.log(address);
+
+            cpu.CS.set(address.selector);
+            cpu.EIP.set(address.offset);
+
+            // // 32-bit pointer
+            // if (!this.operandSizeAttr) {
+            //     cpu.CS.set(address >> 16);
+            //     cpu.EIP.set(address & 0xFFFF);
+            // // 48-bit pointer (NOT 64-bit; even though EIP is 32-bit,
+            // //  CS is still 16-bit)
+            // } else {
+            //     // TODO: Make this method of reading > 32-bit values cleaner
+            //     if (this.operand1.isPointer) {
+            //         cpu.CS.set(address.high16);
+            //         cpu.EIP.set(address.low32);
+            //     } else {
+            //         cpu.CS.set(this.operand1.highImmed);
+            //         cpu.EIP.set(address);
+            //     }
+            // }
         // Unconditional Near (16/32-bit) Jump
         //    - may be absolute, or relative to next Instruction
         }, "JMPN": function (cpu) {
@@ -1014,7 +1164,7 @@ define([
             if (this.operand1.isRelativeJump) {
                 ip = (IP.get() + ip) & IP.getMask();
             }
-            cpu.EIP.set(ip);
+            cpu.EIP.set(ip & IP.getMask());
         // Unconditional Short (8-bit) Jump, relative to next Instruction
         }, "JMPS": function (cpu) {
             var IP = this.operandSizeAttr ? cpu.EIP : cpu.IP,
@@ -1029,7 +1179,10 @@ define([
             cpu.AH.set(cpu.FLAGS.get() & 0xFF);
         // Load Access Rights Byte
         }, "LAR": function (cpu) {
-            util.panic("Execute (LAR) :: unsupported");
+            // FIXME
+            cpu.ZF.clear();
+
+            util.problem("Execute (LAR) :: unsupported");
         // Load Effective Address
         }, "LEA": function (cpu) {
             // Just compute the Memory Address of the 2nd Operand
@@ -1053,8 +1206,9 @@ define([
             operandBP.set(value);
         // Load Global Descriptor Table Register
         }, "LGDT": function (cpu) {
+            //debugger;
             //util.panic("Execute (LGDT) :: unsupported");
-            util.warning("LGDT :: Protected mode support incomplete");
+            //util.warning("LGDT :: Protected mode support incomplete");
 
             //cpu.GDTR.set(this.operand1.read());
 
@@ -1072,7 +1226,7 @@ define([
         // Load Interrupt Descriptor Table Register
         }, "LIDT": function (cpu) {
             //util.panic("Execute (LIDT) :: unsupported");
-            util.warning("LIDT :: Protected mode support incomplete");
+            //util.warning("LIDT :: Protected mode support incomplete");
 
             //cpu.IDTR.set(this.operand1.read());
 
@@ -1207,7 +1361,17 @@ define([
             }
         // Load Local Descriptor Table Register
         }, "LLDT": function (cpu) {
-            util.panic("Execute (LLDT) :: unsupported");
+            var base;
+            // LDTR m16 & 32 - always 48-bit (6 bytes)
+            cpu.LDTR.limit = this.operand1.read(0, 2); // Limit always 16-bit
+            base = this.operand1.read(2, 4);           // Base 32- or 24-bit
+
+            // 16-bit
+            if (!this.operandSizeAttr) {
+                base &= 0x00FFFFFF; // Only use 24-bits
+            }
+            // Base is 32-bit in 32-bit OpSize, 24-bit in 16-bit OpSize
+            cpu.LDTR.base = base;
         // Load Machine Status Word
         }, "LMSW": function (cpu) {
             var msw = this.operand1.read();
@@ -1242,7 +1406,7 @@ define([
 
                 SI.set(esi + delta);
             // Repeat CX times
-            } else if (this.repeat === "#REP/REPE") {
+            } else {
                 util.warning("REP LODS - Pointless instruction?");
 
                 len = CX.get() + 1;
@@ -1258,9 +1422,6 @@ define([
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
                 CX.set(len);
-            } else {
-                util.problem("Execute (LODS) ::"
-                    + " invalid string repeat operation/prefix.");
             }
         // Loop Control with CX Counter
         }, "LOOP": function (cpu) {
@@ -1273,7 +1434,7 @@ define([
 
             // Loop round by jumping to the address in operand1,
             //  if counter has not yet reached zero
-            if (count !== 0) {
+            if (regCount.get() !== 0) {
                 branchRelative(this, cpu);
             }
         // Loop Control with CX Counter
@@ -1287,7 +1448,7 @@ define([
 
             // Loop round by jumping to the address in operand1,
             //  if counter has not yet reached zero
-            if (count !== 0 && cpu.ZF.get()) {
+            if (regCount.get() !== 0 && cpu.ZF.get()) {
                 branchRelative(this, cpu);
             }
         // Loop Control with CX Counter
@@ -1301,7 +1462,7 @@ define([
 
             // Loop round by jumping to the address in operand1,
             //  if counter has not yet reached zero
-            if (count !== 0 && !cpu.ZF.get()) {
+            if (CX.get() !== 0 && !cpu.ZF.get()) {
                 branchRelative(this, cpu);
             }
         // Load Segment Limit
@@ -1309,7 +1470,19 @@ define([
             util.panic("Execute (LSL) :: unsupported");
         // Load Task Register
         }, "LTR": function (cpu) {
-            util.panic("Execute (LTR) :: unsupported");
+            if (!cpu.PE.get()) {
+                // TODO: Check for V8086 mode?
+
+                cpu.exception(util.UD_EXCEPTION, null);
+            }
+
+            cpu.TR.set(this.operand1.read());
+
+            // Mark TSS segment descriptor as busy
+            var offset = cpu.GDTR.base + cpu.TR.selector.index * 8;
+            var byte5 = cpu.machine.mem.readLinear(offset + 5, 1);
+            byte5 |= 2; // Set second bit (Busy bit)
+            cpu.machine.mem.writeLinear(offset + 5, byte5, 1);
         // Move (Copy) data
         }, "MOV": function (cpu) {
             this.operand1.write(this.operand2.read());
@@ -1341,7 +1514,7 @@ define([
                 SI.set(esi + delta);
                 DI.set(edi + delta);
             // Repeat CX times
-            } else if (this.repeat === "#REP/REPE") {
+            } else {
                 len = CX.get() * operandSize;
                 esi = SI.get();
                 edi = DI.get();
@@ -1351,7 +1524,7 @@ define([
                 //        with ArrayBuffer.set(...) behaviour
                 // FIXME: Check copy does not cross a mapping boundary
                 // FIXME: Check copy addresses do not wrap during copy!
-                /*linear = this.operand1.getSegReg().virtualToLinear(esi);
+                linear = this.operand1.getSegReg().virtualToLinear(esi);
                 physical = cpu.machine.mem.linearToPhysical(linear);
                 accessor1 = cpu.machine.mem.mapPhysical(
                     physical, operandSize
@@ -1361,7 +1534,7 @@ define([
                 physical = cpu.machine.mem.linearToPhysical(linear);
                 accessor2 = cpu.machine.mem.mapPhysical(
                     physical, operandSize
-                );*/
+                );
 
                 // Only valid for copies from buffer->buffer (unfortunately
                 //  means eg. DRAM->VRAM copies cannot be accelerated,
@@ -1412,16 +1585,13 @@ define([
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
                 CX.set(len);
-            } else {
-                // Otherwise must have been #REPNE (#REPNZ)
-                util.problem("Instruction.execute() :: MOVS - #REPNE invalid");
             }
         // Move with Sign Extend
         }, "MOVSX": function (cpu) {
             this.operand1.write(this.operand2.signExtend(this.operand1.size) & this.operand1.mask);
         // Move with Zero Extend
         }, "MOVZX": function (cpu) {
-            this.operand1.write(this.operand2.read() & this.operand1.mask);
+            this.operand1.write(this.operand2.read());
         // UNsigned Multiply
         }, "MUL": function (cpu) {
             var operandSize = this.operand2.size,
@@ -1439,14 +1609,23 @@ define([
                 cpu.DX.set(res >> 16); // Result written to DX:AX
                 cpu.AX.set(res & 0xFFFF);
                 highBits = res >> 16;
-            } else if (operandSize == 4) {
+            /*} else if (operandSize == 4) {
                 multiplicand = Int64.fromNumber(multiplicand);
                 multiplier = Int64.fromNumber(multiplier);
                 res = multiplicand.multiply(multiplier);
                 highBits = res.getHighBits();
                 cpu.EAX.set(res.getLowBits());
                 cpu.EDX.set(highBits);
-                util.warning("MUL insn :: setFlags needs to support Int64s");
+                util.warning("MUL insn :: setFlags needs to support Int64s");*/
+            // Dividend is EDX:EAX
+            } else if (operandSize == 4) {
+                multiplicand = new BigInteger(multiplicand.toString(16), 16);
+                multiplier = new BigInteger(multiplier.toString(16), 16);
+                res = multiplicand.multiply(multiplier);
+
+                highBits = res.getHighIntValue();
+                cpu.EAX.set(res.getLowIntValue());
+                cpu.EDX.set(highBits);
             }
 
             // Lazy flags
@@ -1491,11 +1670,12 @@ define([
         }, "NOT": function (cpu) {
             // NB: There is a NOT in the extensions table
             //     that has no operands... ???? :S ???? AX??
+            var val = this.operand1.read(),
+                res = (~val) & this.operand1.mask;
 
-            // Note use of bitwise inversion operator tilde "~"
-            this.operand1.write(~this.operand1.read());
+            this.operand1.write(res);
 
-            /** NB: No flags affected by NOT **/
+            //setFlags_Op1(this, cpu, val, res);
         // Logical OR
         }, "OR": function (cpu) {
             // Bitwise op needs unsigned operands
@@ -1564,7 +1744,9 @@ define([
             }
         // Pop a value from the Stack (SS:SP)
         }, "POP": function (cpu) {
-            this.operand1.write(cpu.popStack(this.operand1.size));
+            var size = this.operandSizeAttr ? 4 : 2;
+
+            this.operand1.write(cpu.popStack(size));
         // Pop all General Registers
         }, "POPA": function (cpu) {
             // POPA
@@ -1592,7 +1774,7 @@ define([
         //  POPF:  Pop 16-bit
         //  POPFD: Pop 32-bit
         }, "POPF": function (cpu) {
-            var changeMask,
+            /*var changeMask,
                 newFlags,
                 oldFlags,
                 inverseChangeMask;
@@ -1609,6 +1791,16 @@ define([
                 newFlags = cpu.popStack(4);
                 oldFlags = cpu.FLAGS.get();
                 cpu.EFLAGS.set((oldFlags & inverseChangeMask) | (newFlags & changeMask));
+            }*/
+
+            var newFlags;
+
+            if (!this.operandSizeAttr) {
+                newFlags = cpu.popStack(2);
+                cpu.FLAGS.set(newFlags);
+            } else {
+                newFlags = cpu.popStack(4);
+                cpu.EFLAGS.set(newFlags);
             }
         // Push data onto stack top (SS:SP)
         }, "PUSH": function (cpu) {
@@ -1647,7 +1839,6 @@ define([
             }
         // Push Flags Register onto Stack
         }, "PUSHF": function (cpu) {
-
             // PUSHF
             if (!this.operandSizeAttr) {
                 cpu.pushStack(cpu.FLAGS.get(), 2);
@@ -1844,12 +2035,16 @@ define([
                 dest = this.operand1.read(),
                 count = this.operand2.read(),
                 msbs,
-                res = dest << count;
+                res;
+
+            count &= 0x1F; // Use only 5 LSBs
 
             // Don't affect flags if count is zero
             if (count === 0) {
                 return;
             }
+
+            res = (dest << count) & this.operand1.mask;
 
             this.operand1.write(res);
 
@@ -2182,7 +2377,17 @@ define([
             cpu.CF.setBin((dest >>> (this.operand1.size * 8 - count)) & 1);
         // Shift Right - Double Precision
         }, "SHRD": function (cpu) {
-            util.panic("Execute (SHRD) :: unsupported");
+            var dest = this.operand1.read(),
+                source = this.operand2.read(),
+                count = this.operand3.read() & 0xF,
+                res = (source << (this.operand1.size * 8 - count)) | (dest >>> count);
+
+            this.operand1.write(res);
+
+            setFlags(this, cpu, dest, source, res);
+
+            cpu.CF.setBin((dest >> (count - 1)) & 0x1);
+            cpu.CF.setBin((((res << 1) ^ res) >> 15) & 0x1); // of = result14 ^ result15
         // Store Local Descriptor Table Register
         }, "SLDT": function (cpu) {
             util.panic("Execute (SLDT) :: unsupported");
@@ -2223,7 +2428,7 @@ define([
 
                 DI.set(edi + delta);
             // Repeat CX times
-            } else if (this.repeat === "#REP/REPE") {
+            } else {
                 len = CX.get() + 1;
 
                 while (--len) {
@@ -2237,18 +2442,15 @@ define([
                 //       during copy, only some data would be copied leaving CX
                 //       set to > 0, so need to trap this above
                 CX.set(len);
-            } else {
-                // Otherwise must have been #REPNE (#REPNZ)
-                util.problem("Instruction.execute() :: STOS - #REPNE invalid");
             }
         // Store Task Register
         }, "STR": function (cpu) {
-            util.panic("Execute (STR) :: unsupported");
+            this.operand1.write(cpu.TR.get());
         // Logical Compare
         }, "TEST": function (cpu) {
             var val1 = this.operand1.read(),
                 val2 = this.operand2.read(),
-                res = val1 & val2;
+                res = (val1 & val2) >>> 0;
 
             // Do not store result of subtraction; only flags
             setFlags(this, cpu, val1, val2, res);
@@ -2269,7 +2471,7 @@ define([
         }, "WBINVD": function (cpu) {
             util.warning("WBINVD :: Not fully implemented");
 
-            cpu.flushInstructionCaches();
+            cpu.purgeAllPages();
         // Exchange Register/Memory with Register
         }, "XCHG": function (cpu) {
             // If a memory operand is involved, BUS LOCK is asserted during exchange,
@@ -2283,6 +2485,8 @@ define([
         }, "XLAT": function (cpu) {
             var RBX = this.addressSizeAttr ? cpu.EBX : cpu.BX,
                 addrVirtual = (RBX.get() + cpu.AL.get()) & RBX.getMask();
+
+            //need to test to ensure XLAT insn respects segment override/operand-size/address-size prefix
 
             // Always 1 byte read
             cpu.AL.set(this.segreg.readSegment(addrVirtual, 1));

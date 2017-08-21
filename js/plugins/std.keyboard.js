@@ -12,7 +12,7 @@
  */
 
 /*jslint bitwise: true, plusplus: true */
-/*global define, require */
+/*global define */
 
 define([
 	"../core/util",
@@ -25,7 +25,9 @@ define([
 
 	var keyboardPlugin = {
 		applyTo: function (emu) {
-            var cancelKeypress = false;
+            var cancelKeypress = false,
+                lastMouseX = -1,
+                lastMouseY = -1;
 
             if (!util.global.document) {
                 return;
@@ -55,6 +57,45 @@ define([
 					return false;
 				}
 			});
+
+            function setUpMouse() {
+                function handleMouse(evt) {
+                    var newMouseX = evt.clientX,
+                        newMouseY = evt.clientY,
+                        mouseDeltaX = evt.movementX || (lastMouseX === -1 ? 0 : newMouseX - lastMouseX),
+                        mouseDeltaY = evt.movementY || (lastMouseY === -1 ? 0 : newMouseY - lastMouseY),
+                        buttonState = evt.type === "mouseup" ? 0 : evt.which;
+
+                    emu.machine.keyboard.mouse.motion(mouseDeltaX, -mouseDeltaY, 0, buttonState);
+
+                    lastMouseX = newMouseX;
+                    lastMouseY = newMouseY;
+
+                    evt.preventDefault();
+                    return false;
+                }
+
+                util.global.document.addEventListener("mousemove", handleMouse);
+                util.global.document.addEventListener("mousedown", handleMouse);
+                util.global.document.addEventListener("mouseup", handleMouse);
+
+                function setUpPointerLock() {
+                    var canvas = util.global.document.getElementById("screenVGA"),
+                        requestPointerLock = canvas.requestPointerLock ||
+                            canvas.mozRequestPointerLock ||
+                            canvas.webkitRequestPointerLock;
+
+                    if (requestPointerLock) {
+                        canvas.addEventListener("click", function () {
+                            requestPointerLock.call(canvas);
+                        });
+                    }
+                }
+
+                setUpPointerLock();
+            }
+
+            setUpMouse();
 		}
 	};
 

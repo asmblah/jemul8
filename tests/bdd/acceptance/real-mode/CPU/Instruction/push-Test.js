@@ -17,6 +17,8 @@ define([
 ) {
     "use strict";
 
+    // TODO: Add tests to ensure SP is incremented if specified by stack segment descriptor! (protected mode)
+
     describe("CPU 'push' instruction", function () {
         var system,
             testSystem;

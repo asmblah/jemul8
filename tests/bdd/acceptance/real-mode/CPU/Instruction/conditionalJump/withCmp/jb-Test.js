@@ -17,7 +17,7 @@ define([
 ) {
     "use strict";
 
-    describe("SIB (Scale/Index/Base) byte test", function () {
+    describe("CPU 'jb' (jump if below, unsigned) instruction", function () {
         var system,
             testSystem;
 
@@ -37,60 +37,104 @@ define([
         });
 
         describe("when under 16-bit real mode", function () {
-            it("should be able to perform a complex calculation using LEA with no displacement", function (done) {
+            it("should not jump when the left operand was greater", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 
-[BITS 16]
-mov ebx, 10
-mov esi, 20
-lea ax, [ebx * 4 + esi]
+mov dx, 7
+cmp dx, 3
+
+jb below
+mov ax, 0x1234
 hlt
+
+below:
+mov ax, 0x4321
+hlt
+
 EOS
 */) {});
 
                 testSystem.execute(assembly).done(function () {
-                    expect(system.getCPURegisters().ax.get()).to.equal(10 * 4 + 20);
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x1234);
                     done();
                 }).fail(function (exception) {
                     done(exception);
                 });
             });
 
-            it("should be able to perform a complex calculation using LEA with a displacement", function (done) {
+            it("should not jump when the left operand was equal", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 
-[BITS 16]
-mov ebx, 10
-mov esi, 20
-lea dx, [ebx * 8 + esi + 32]
+mov dx, 3
+cmp dx, 3
+
+jb below
+mov ax, 0x1234
 hlt
+
+below:
+mov ax, 0x4321
+hlt
+
 EOS
 */) {});
 
                 testSystem.execute(assembly).done(function () {
-                    expect(system.getCPURegisters().dx.get()).to.equal(10 * 8 + 20 + 32);
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x1234);
                     done();
                 }).fail(function (exception) {
                     done(exception);
                 });
             });
 
-            it("should be able to perform a complex calculation using LEA with a displacement with negative term", function (done) {
+            it("should jump when the left operand was smaller", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 
-[BITS 16]
-mov ebx, 10
-mov esi, 20
-lea dx, [ebx * 8 + esi - 22]
+mov dx, 2
+cmp dx, 3
+
+jb below
+mov ax, 0x1234
 hlt
+
+below:
+mov ax, 0x4321
+hlt
+
 EOS
 */) {});
 
                 testSystem.execute(assembly).done(function () {
-                    expect(system.getCPURegisters().dx.get()).to.equal(10 * 8 + 20 - 22);
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x4321);
+                    done();
+                }).fail(function (exception) {
+                    done(exception);
+                });
+            });
+
+            it('should not jump when the left operand was greater but if signed would be less', function (done) {
+                var assembly = util.heredoc(function (/*<<<EOS
+org 0x100
+
+mov dx, 0xfffe
+cmp dx, 3
+
+jb below
+mov ax, 0x1234
+hlt
+
+below:
+mov ax, 0x4321
+hlt
+
+EOS
+*/) {});
+
+                testSystem.execute(assembly).done(function () {
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x1234);
                     done();
                 }).fail(function (exception) {
                     done(exception);

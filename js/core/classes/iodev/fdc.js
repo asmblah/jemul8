@@ -278,12 +278,18 @@ define([
             var len = 2;
 
             util.each([ 0, 1 ], function (idx, num) {
-                var name = "floppy" + num;
+                var name = "floppy" + num,
+                    driveType = FDC.fromConstant(emu.getSetting(name + ".driveType"));
+
+                if (driveType !== null) {
+                    state.num_supported_floppies++;
+                    cmosValue |= driveType << (4 * (1 - num));
+                }
 
                 setupFloppy.call(
                     device
                     , num
-                    , FDC.fromConstant(emu.getSetting(name + ".driveType"))
+                    , driveType
                     , FDC.fromConstant(emu.getSetting(name + ".diskType"))
                     , emu.getSetting(name + ".status")
                     , emu.getSetting(name + ".path")
@@ -574,7 +580,6 @@ define([
             if (val & 0x80) {
                 state.main_status_reg &= FD_MS_NDMA;
                 state.pending_command = 0xfe; // RESET pending
-                debugger;
                 state.floppy_timer_index.activate(250, false);
             }
             if ((val & 0x7c) > 0) {
@@ -679,7 +684,11 @@ define([
                 //    debugger;
                 //}
 
-                state.command[ state.command_index++ ] = val;
+                var commandIndex = state.command_index;
+
+                state.command_index = (state.command_index + 1) & 0xFF;
+
+                state.command[ commandIndex ] = val;
             }
             if (state.command_index == state.command_size) {
                 /* read/write command not in progress any more */
@@ -698,10 +707,10 @@ define([
             break;
 
         case 0x3F7: /* diskette controller configuration control register */
-            if ((value & 0x03) != state.data_rate) {
-                util.info(("io_write: config control register: 0x%02x", value));
+            if ((val & 0x03) != state.data_rate) {
+                util.info(("io_write: config control register: 0x%02x", val));
             }
-            state.data_rate = value & 0x03;
+            state.data_rate = val & 0x03;
             switch (state.data_rate) {
             case 0: debug(("  500 Kbps")); break;
             case 1: debug(("  300 Kbps")); break;

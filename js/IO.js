@@ -106,7 +106,8 @@ define([
 
                 return portOptions.device.ioRead(port, length);
             } else {
-                throw new Exception("IO.read() :: Read from port #" + util.hexify(port) + " with length " + length + " ignored");
+                //throw new Exception("IO.read() :: Read from port #" + util.hexify(port) + " with length " + length + " ignored");
+                return 0;
             }
         },
 

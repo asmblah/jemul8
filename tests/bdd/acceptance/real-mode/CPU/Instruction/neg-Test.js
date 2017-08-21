@@ -17,7 +17,7 @@ define([
 ) {
     "use strict";
 
-    describe("CPU 'pop' instruction", function () {
+    describe("CPU 'neg' (two's complement negation) instruction", function () {
         /*jshint bitwise: false */
         var registers,
             system,
@@ -41,57 +41,32 @@ define([
         });
 
         util.each({
-            "pop word [si+1] in 16-bit segment": {
+            "negating zero": {
                 is32BitCodeSegment: false,
-                operand: "word [si+1]",
+                operand: "dx",
                 registers: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10,
+                    dx: 0,
 
-                    si: 0x50
+                    of: 0
                 },
-                memory: [{
-                    to: (0x400 << 4) + 0x10,
-                    data: 0x5678,
-                    size: 2
-                }],
                 expectedRegisters: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10 + 2,
+                    dx: 0,
 
-                    si: 0x50
-                },
-                expectedMemory: [{
-                    from: (0x400 << 4) + 0x10,
-                    size: 2,
-                    expected: 0x5678
-                }]
+                    of: 0
+                }
             },
-            "pop es in 32-bit segment": {
-                is32BitCodeSegment: true,
-                operand: "es",
+            "negating 4": {
+                is32BitCodeSegment: false,
+                operand: "dx",
                 registers: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10,
+                    dx: 4,
 
-                    si: 0x50
+                    of: 0
                 },
-                memory: [{
-                    to: (0x400 << 4) + 0x10,
-                    data: 0x56789123,
-                    size: 4
-                }],
                 expectedRegisters: {
-                    ds: 0x200,
-                    ss: 0x400,
-                    sp: 0x10 + 4,
+                    dx: -4 & 0xffff,
 
-                    si: 0x50,
-
-                    es: 0x9123
+                    of: 0
                 }
             }
         }, function (scenario, description) {
@@ -103,7 +78,7 @@ define([
                         var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 [BITS ${bits}]
-pop ${operand}
+neg ${operand}
 
 hlt
 EOS

@@ -88,6 +88,8 @@ define([
 
                 system.run().done(function () {
                     promise.resolve();
+                }).fail(function () {
+                    promise.reject();
                 });
             }
 
@@ -112,7 +114,7 @@ define([
 
             testSystem.ticksNow = 0;
 
-            sinon.stub(testSystem.system.getClock(), "getTicksNow", function () {
+            sinon.stub(testSystem.system.getClock(), "getTicksNow").callsFake(function () {
                 return testSystem.ticksNow;
             });
         },

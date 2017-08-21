@@ -53,7 +53,8 @@ define([
         },
 
         tick: function (ticksNow) {
-            var previousTriggerTicks,
+            var elapses = 0,
+                previousTriggerTicks,
                 timer = this;
 
             if (timer.enabled && ticksNow >= timer.triggerTicks) {
@@ -62,7 +63,12 @@ define([
                 do {
                     previousTriggerTicks = timer.triggerTicks;
                     timer.emit("elapse");
-                } while (timer.enabled && timer.triggerTicks !== previousTriggerTicks && ticksNow >= timer.triggerTicks);
+                } while (
+                    timer.enabled &&
+                    timer.triggerTicks !== previousTriggerTicks &&
+                    ticksNow >= timer.triggerTicks &&
+                    ++elapses < 100
+                );
             }
         },
 

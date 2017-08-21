@@ -53,8 +53,8 @@ define([
                     size: 2
                 }],
                 expectedRegisters: {
-                    flags: (0xabcd & 0x0fd5) | 2,
-                    eflags: (0x0000abcd & 0xffff0fd5) | 2 // Ensure high word of eflags is left untouched
+                    flags: 0xabcd,
+                    eflags: 0x0000abcd // Ensure high word of eflags is left untouched
                 }
             },
             "16-bit pop into flags of 0x0fd5": {
@@ -69,8 +69,24 @@ define([
                     size: 2
                 }],
                 expectedRegisters: {
-                    flags: 0x0fd5 | 2,     // Bit 1 is reserved, always set
-                    eflags: 0x00000fd5 | 2 // Ensure high word of eflags is left untouched
+                    flags: 0x0fd5,
+                    eflags: 0x00000fd5 // Ensure high word of eflags is left untouched
+                }
+            },
+            "16-bit pop into flags of 0xf000": {
+                is32BitCodeSegment: false,
+                registers: {
+                    ss: 0x300,
+                    sp: 0x200
+                },
+                memory: [{
+                    to: (0x300 << 4) + 0x200,
+                    data: 0xf000,
+                    size: 2
+                }],
+                expectedRegisters: {
+                    flags: 0xf000,
+                    eflags: 0x0000f000 // Ensure high word of eflags is left untouched
                 }
             },
             "32-bit pop into eflags": {
@@ -85,8 +101,8 @@ define([
                     size: 4
                 }],
                 expectedRegisters: {
-                    flags: (0xbcde & 0x7fd5) | 2, // Bit 1 is reserved, always set
-                    eflags: (0x4321bcde & 0x00037fd5) | 2
+                    flags: 0xbcde,
+                    eflags: 0x4321bcde
                 }
             }
         }, function (scenario, description) {

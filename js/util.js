@@ -74,6 +74,87 @@ define([
     };
 
     util.extend(util, {
+        // Mask applied to addresses presented at the address bus, depending
+        //  on setting of A20MASK#
+        MASK_ENABLE_A20:  0xFFFFFFFF,
+        MASK_DISABLE_A20: 0xFFeFFFFF,
+
+        // Type of reset: warm (software) or cold (hardware)
+        RESET_HARDWARE: 1,
+        RESET_SOFTWARE: 2,
+
+        // CPU interrupt/exception types
+        EXTERNAL_INTERRUPT: 0,
+        NMI: 2,
+        HARDWARE_EXCEPTION: 3, // All exceptions except #BP and #OF
+        SOFTWARE_INTERRUPT: 4,
+        PRIVILEGED_SOFTWARE_INTERRUPT: 5,
+        SOFTWARE_EXCEPTION: 6,
+
+        // CPU exception vectors
+        DE_EXCEPTION: 0, // Divide Error (fault)
+        DB_EXCEPTION: 1, // Debug (fault/trap)
+        BP_EXCEPTION: 3, // Breakpoint (trap)
+        OF_EXCEPTION: 4, // Overflow (trap)
+        BR_EXCEPTION: 5, // BOUND (fault)
+        UD_EXCEPTION: 6,
+        NM_EXCEPTION: 7,
+        DF_EXCEPTION: 8,
+        TS_EXCEPTION: 10,
+        NP_EXCEPTION: 11,
+        SS_EXCEPTION: 12,
+        GP_EXCEPTION: 13,
+        PF_EXCEPTION: 14,
+        MF_EXCEPTION: 16,
+        AC_EXCEPTION: 17,
+        MC_EXCEPTION: 18,
+        XM_EXCEPTION: 19,
+        // Total no. of handled exceptions
+        CPU_HANDLED_EXCEPTIONS: 20,
+
+        // Descriptor access types
+        ACCESS_INVALID     : 0x00,
+        ACCESS_VALID_CACHE : 0x01,
+        ACCESS_ROK         : 0x02,
+        ACCESS_WOK         : 0x04,
+
+        // Descriptor types
+        // For system & gate descriptors:
+        DESC_GATE_TYPE_NONE                       : 0x0,
+        DESC_SYS_SEGMENT_AVAIL_286_TSS            : 0x1,
+        DESC_SYS_SEGMENT_LDT                      : 0x2,
+        DESC_SYS_SEGMENT_BUSY_286_TSS             : 0x3,
+        DESC_286_CALL_GATE                        : 0x4,
+        DESC_TASK_GATE                            : 0x5,
+        DESC_286_INTERRUPT_GATE                   : 0x6,
+        DESC_286_TRAP_GATE                        : 0x7,
+        // 0x8 reserved
+        DESC_SYS_SEGMENT_AVAIL_386_TSS            : 0x9,
+        // 0xA reserved
+        DESC_SYS_SEGMENT_BUSY_386_TSS             : 0xB,
+        DESC_386_CALL_GATE                        : 0xC,
+        // 0xD reserved
+        DESC_386_INTERRUPT_GATE                   : 0xE,
+        DESC_386_TRAP_GATE                        : 0xF,
+
+        // For data/code descriptors:
+        DESC_DATA_READ_ONLY                       : 0x0,
+        DESC_DATA_READ_ONLY_ACCESSED              : 0x1,
+        DESC_DATA_READ_WRITE                      : 0x2,
+        DESC_DATA_READ_WRITE_ACCESSED             : 0x3,
+        DESC_DATA_READ_ONLY_EXPAND_DOWN           : 0x4,
+        DESC_DATA_READ_ONLY_EXPAND_DOWN_ACCESSED  : 0x5,
+        DESC_DATA_READ_WRITE_EXPAND_DOWN          : 0x6,
+        DESC_DATA_READ_WRITE_EXPAND_DOWN_ACCESSED : 0x7,
+        DESC_CODE_EXEC_ONLY                       : 0x8,
+        DESC_CODE_EXEC_ONLY_ACCESSED              : 0x9,
+        DESC_CODE_EXEC_READ                       : 0xA,
+        DESC_CODE_EXEC_READ_ACCESSED              : 0xB,
+        DESC_CODE_EXEC_ONLY_CONFORMING            : 0xC,
+        DESC_CODE_EXEC_ONLY_CONFORMING_ACCESSED   : 0xD,
+        DESC_CODE_EXEC_READ_CONFORMING            : 0xE,
+        DESC_CODE_EXEC_READ_CONFORMING_ACCESSED   : 0xF,
+
         copyBuffer: function (options) {
             var from = options.from,
                 fromBuffer = from.buffer,

@@ -41,6 +41,22 @@ define([
         });
 
         util.each({
+            "16-bit unsigned wrap around overflow, because 65535 is largest unsigned 16-bit number": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "ax",
+                registers: {
+                    ax: 1,
+                    bx: 65535
+                },
+                expectedRegisters: {
+                    ax: 1,
+                    bx: 0,
+                    cf: 1,
+                    of: 0,
+                    sf: 0  // Result is positive so sign flag is clear
+                }
+            },
             "16-bit negative wrap around overflow, because -32768 is smallest signed 16-bit number": {
                 is32BitCodeSegment: false,
                 operand1: "bx",

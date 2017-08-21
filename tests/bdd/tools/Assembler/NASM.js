@@ -60,16 +60,26 @@ define([
                         });
 
                         nasm.on("close", function (code) {
-                            fs.close(asmFD);
-                            fs.close(objectFD);
-
-                            if (code === 0) {
-                                fs.readFile(objectFile, function (error, data) {
-                                    promise.resolve(new Uint8Array(data));
+                            fs.close(asmFD, function () {
+                                fs.close(objectFD, function () {
+                                    if (code === 0) {
+                                        fs.readFile(objectFile, function (error, data) {
+                                            fs.unlink(asmFile, function () {
+                                                fs.unlink(objectFile, function () {
+                                                    promise.resolve(new Uint8Array(data));
+                                                });
+                                            });
+                                        });
+                                    } else {
+                                        promise.reject(
+                                            new Exception(
+                                                "Errors occurred during assembly: " +
+                                                errorBuffer.slice(0, errorLength).toString()
+                                            )
+                                        );
+                                    }
                                 });
-                            } else {
-                                promise.reject(new Exception("Errors occurred during assembly: " + errorBuffer.slice(0, errorLength).toString()));
-                            }
+                            });
                         });
                     });
                 });

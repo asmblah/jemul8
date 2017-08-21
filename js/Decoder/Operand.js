@@ -63,6 +63,7 @@ define([
 
         this.getPointerAddress = null;
         this.read = null;
+        this.readSelectorAndOffset = null;
         this.signExtend = null;
         this.write = null;
     }
@@ -90,6 +91,9 @@ define([
                     asm += "+";
                 }
                 asm += operand.reg.getName();
+            }
+            if (operand.scale > 1) {
+                asm += "*" + operand.scale;
             }
             if (operand.reg2) {
                 if (asm) {

@@ -41,10 +41,12 @@ define([
                 promise.mode = REJECTED;
                 promise.value = exception;
 
-                util.each(promise.thens, function (callbacks) {
-                    if (callbacks.onReject) {
-                        callbacks.onReject(exception);
-                    }
+                defer(function () {
+                    util.each(promise.thens, function (callbacks) {
+                        if (callbacks.onReject) {
+                            callbacks.onReject(exception);
+                        }
+                    });
                 });
             }
 
@@ -58,12 +60,13 @@ define([
                 promise.mode = RESOLVED;
                 promise.value = result;
 
-                util.each(promise.thens, function (callbacks) {
-                    if (callbacks.onResolve) {
-                        callbacks.onResolve(result);
-                    }
+                defer(function () {
+                    util.each(promise.thens, function (callbacks) {
+                        if (callbacks.onResolve) {
+                            callbacks.onResolve(result);
+                        }
+                    });
                 });
-
             }
 
             return promise;
@@ -79,17 +82,26 @@ define([
                 });
             } else if (promise.mode === REJECTED) {
                 if (onReject) {
-                    onReject(promise.value);
+                    defer(function () {
+                        onReject(promise.value);
+                    });
                 }
             } else if (promise.mode === RESOLVED) {
                 if (onResolve) {
-                    onResolve(promise.value);
+                    defer(function () {
+                        onResolve(promise.value);
+                    });
                 }
             }
 
             return promise;
         }
     });
+
+    function defer(callback) {
+        /*global setTimeout */
+        setTimeout(callback);
+    }
 
     return Promise;
 });

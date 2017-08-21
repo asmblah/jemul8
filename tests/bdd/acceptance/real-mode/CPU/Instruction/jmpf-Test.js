@@ -95,7 +95,7 @@ EOS
                 });
             });
 
-            it("should be able to jump forward using a 32-bit offset", function (done) {
+            it("should be able to jump forward using a 32-bit immediate offset", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
 [BITS 32]
 org 0x100
@@ -106,6 +106,34 @@ mov ax, 0x1234
 TIMES 0x0001010A-($-$$) DB 0
 mov ax, 0x4321
 hlt
+EOS
+*/) {});
+
+                testSystem.execute(assembly).done(function () {
+                    expect(system.getCPURegisters().ax.get()).to.equal(0x4321);
+                    done();
+                }).fail(function (exception) {
+                    done(exception);
+                });
+            });
+
+            it("should be able to jump forward using a 32-bit indirect offset", function (done) {
+                var assembly = util.heredoc(function (/*<<<EOS
+[BITS 32]
+org 0x100
+
+xor bx, bx
+mov ds, bx
+jmp far [address]
+mov ax, 0x1234
+
+TIMES 0x0000110A-($-$$) DB 0
+mov ax, 0x4321
+hlt
+
+address:
+dd 0x0000110A
+dw 0x0000
 EOS
 */) {});
 

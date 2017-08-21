@@ -17,7 +17,7 @@ define([
 ) {
     "use strict";
 
-    describe("Simple protected mode test", function () {
+    describe("Exception handling test", function () {
         var system,
             testSystem;
 
@@ -36,50 +36,38 @@ define([
             testSystem = null;
         });
 
-        describe("when under 32-bit protected mode", function () {
-            // Based on http://f.osdev.org/viewtopic.php?f=1&t=20588
-            it("should correctly enter protected mode and load AX with 0x1234", function (done) {
+        describe("when under 16-bit real mode", function () {
+            it("should raise interrupt 0 on divide by zero", function (done) {
                 var assembly = util.heredoc(function (/*<<<EOS
 org 0x100
 
-;; Set up ready to enter protected mode
-cli
-lgdt [gdtr]
-mov eax, cr0
-or al, 1
-mov cr0, eax
-jmp 0x10:protected
+[BITS 16]
+    xor ax, ax
+    mov es, ax ;; Use the Extra Segment to point to the IVT's segment (0)
+    mov [es:0 + 2], ax ;; Handler will be in segment 0
+    mov ax, div0_handler ;; Handler offset within segment
+    mov [es:0], ax
 
-;; Enter protected mode
-[BITS 32]
-protected:
-mov ax, 0x8
-mov ds, ax
-mov es, ax
-mov ss, ax
-mov esp, 0x100
+    ;; -- Handler installed, now trigger a divide by zero to use it --
 
-;; Store result in AX
-mov ax, 0x1234
+    mov ax, 10
+    mov bx, 0
+    div bx
+    hlt
 
-;; Finish
-hang:
-hlt
-jmp hang
-
-;; GDT
-gdt:      dw  0x0000, 0x0000, 0x0000, 0x0000
-sys_data: dw  0xFFFF, 0x0000, 0x9200, 0x00CF
-sys_code: dw  0xFFFF, 0x0000, 0x9800, 0x00CF
-gdt_end:
-
-gdtr:     dw gdt_end - gdt - 1
-          dd gdt
+;; Divide-by-zero exception (Interrupt 0) handler
+div0_handler:
+    mov dx, 1234 ;; Set a result to show we handled the exception
+    hlt
 EOS
 */) {});
 
                 testSystem.execute(assembly).done(function () {
-                    expect(system.getCPURegisters().ax.get()).to.equal(0x1234);
+                    // Check that ISR was called correctly
+                    expect(system.getCPURegisters().dx.get()).to.equal(1234);
+
+                    // Check that AX was left untouched
+                    expect(system.getCPURegisters().ax.get()).to.equal(10);
                     done();
                 }).fail(function (exception) {
                     done(exception);

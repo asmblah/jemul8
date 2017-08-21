@@ -619,8 +619,6 @@ define([
 				return;
 			}
 
-            debugger;
-
 			util.problem(util.sprintf(
 				"DMA writeHandler() :: Write to address: 0x%04X = 0x%04X, len=%u"
 				, addr, val, io_len

@@ -62,7 +62,7 @@ define([
                                     cf: 1,
                                     of: 1,
 
-                                    // Make sure divisor hasn't been touched
+                                    // Make sure multiplier hasn't been touched
                                     dh: 0xf9
                                 }
                             },
@@ -80,7 +80,7 @@ define([
                                     cf: 1,
                                     of: 1,
 
-                                    // Make sure divisor hasn't been touched
+                                    // Make sure multiplier hasn't been touched
                                     cx: 0xeeeb
                                 }
                             },
@@ -98,7 +98,7 @@ define([
                                     cf: 0,
                                     of: 0,
 
-                                    // Make sure divisor hasn't been touched
+                                    // Make sure multiplier hasn't been touched
                                     ecx: 0xaa
                                 }
                             },
@@ -116,7 +116,7 @@ define([
                                     cf: 1,
                                     of: 1,
 
-                                    // Make sure divisor hasn't been touched
+                                    // Make sure multiplier hasn't been touched
                                     ecx: 0xcc
                                 }
                             }
@@ -438,6 +438,76 @@ EOS
                                 expect(system.getCPURegisters()[sourceName].get()).to.equal((sourceValue & mask) >>> 0);
                             });
                         }
+                    });
+                });
+            });
+
+            describe("3-operand form", function () {
+                // Test in both modes so we check support for operand-size override prefix
+                util.each([true, false], function (is32BitCodeSegment) {
+                    /*jshint bitwise: false */
+                    var bits = is32BitCodeSegment ? 32 : 16;
+
+                    describe("when code segment is " + bits + "-bit", function () {
+                        util.each({
+                            "complex multiplication of immediate word with word in memory, result stored in register": {
+                                destination: "si",
+                                operand1: "word [ds:si+0074h]",
+                                operand2: "0x6e65",
+                                registers: {
+                                    ds: 0x400,
+                                    si: 0x4567
+                                },
+                                memory: [{
+                                    to: (0x400 << 4) + 0x4567 + 0x74,
+                                    data: 0x1234,
+                                    size: 2
+                                }],
+                                expectedRegisters: {
+                                    si: (0x1234 * 0x6e65) & 0xffff
+                                }
+                            }
+                        }, function (scenario, description) {
+                            describe(description, function () {
+                                beforeEach(function (done) {
+                                    var assembly = util.heredoc(function (/*<<<EOS
+[BITS ${bits}]
+org 0x100
+imul ${destination}, ${operand1}, ${operand2}
+hlt
+EOS
+*/) {}, {bits: bits, destination: scenario.destination, operand1: scenario.operand1, operand2: scenario.operand2});
+
+                                    testSystem.on("pre-run", function () {
+                                        registers.cs.set32BitMode(is32BitCodeSegment);
+                                    });
+
+                                    if (scenario.setup) {
+                                        scenario.setup(registers);
+                                    }
+
+                                    util.each(scenario.registers, function (value, register) {
+                                        registers[register].set(value);
+                                    });
+
+                                    util.each(scenario.memory, function (options) {
+                                        system.write(options);
+                                    });
+
+                                    testSystem.execute(assembly).done(function () {
+                                        done();
+                                    }).fail(function (exception) {
+                                        done(exception);
+                                    });
+                                });
+
+                                util.each(scenario.expectedRegisters, function (value, name) {
+                                    it("should leave the correct value in " + name, function () {
+                                        expect(registers[name].get()).to.equal(value >>> 0);
+                                    });
+                                });
+                            });
+                        });
                     });
                 });
             });

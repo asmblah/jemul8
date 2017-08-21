@@ -2128,7 +2128,53 @@ define([
 
         if (state.graphics_ctrl.graphics_alpha) {
             if (state.graphics_ctrl.memory_mapping == 3) { // 0xB8000 .. 0xBFFFF
-                util.panic("CGA 320x200x4 / 640x200x2 :: Not supported");
+                //util.panic("CGA 320x200x4 / 640x200x2 :: Not supported");
+                (function () {
+                    var x_tileno,
+                    	x_tileno2,
+                    	y_tileno;
+
+	                bufVRAM[offset] = val;
+					offset -= start_addr;
+					if (offset>=0x2000) {
+						y_tileno = offset - 0x2000;
+						y_tileno /= (320/4) >>> 0;
+						y_tileno <<= 1; //2 * y_tileno;
+						y_tileno++;
+						x_tileno = (offset - 0x2000) % (320/4);
+						x_tileno <<= 2; //*= 4;
+					} else {
+						y_tileno = (offset / (320/4)) >>> 0;
+						y_tileno <<= 1; //2 * y_tileno;
+						x_tileno = offset % (320/4);
+						x_tileno <<= 2; //*=4;
+					}
+					x_tileno2=x_tileno;
+					if (state.graphics_ctrl.shift_reg==0) {
+						x_tileno*=2;
+						x_tileno2+=7;
+					} else {
+						x_tileno2+=3;
+					}
+					if (state.x_dotclockdiv2) {
+						x_tileno = (x_tileno / (X_TILESIZE/2)) >>> 0;
+						x_tileno2 = (x_tileno2 / (X_TILESIZE/2)) >>> 0;
+					} else {
+						x_tileno = (x_tileno / X_TILESIZE) >>> 0;
+						x_tileno2 = (x_tileno2 / X_TILESIZE) >>> 0;
+					}
+					if (state.y_doublescan) {
+						y_tileno = (y_tileno / (Y_TILESIZE/2)) >>> 0;
+					} else {
+						y_tileno = (y_tileno / Y_TILESIZE) >>> 0;
+					}
+					state.vga_mem_updated = 1;
+					device.setTileUpdated(x_tileno, y_tileno, 1);
+					if (x_tileno2!=x_tileno) {
+						device.setTileUpdated(x_tileno2, y_tileno, 1);
+					}
+				}());
+				return;
             } else if (state.graphics_ctrl.memory_mapping != 1) {
                 util.panic("VGA :: Invalid memory mapping: " + state.graphics_ctrl.memory_mapping);
             }
