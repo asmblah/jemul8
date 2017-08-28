@@ -148,7 +148,7 @@ define([
         writeLinear: function (linearAddress, value, size) {
             /*jshint bitwise: false */
             var memory = this,
-                page = linearAddress >>> 9;
+                page = linearAddress >>> 8;
 
             /*if (134 >= linearAddress && 134 < linearAddress + size) {
                 debugger;
@@ -162,7 +162,7 @@ define([
         writePhysical: function (physicalAddress, value, size) {
             /*jshint bitwise: false */
             var memory = this,
-                page = physicalAddress >>> 9;
+                page = physicalAddress >>> 8;
 
             memory.system.purgePage(page);
 
@@ -172,8 +172,8 @@ define([
         writePhysicalBlock: function (physicalAddress, fromBuffer) {
             /*jshint bitwise: false */
             var memory = this,
-                startPage = physicalAddress >>> 9,
-                endPage = (physicalAddress + fromBuffer.byteLength - 1) >>> 9,
+                startPage = physicalAddress >>> 8,
+                endPage = (physicalAddress + fromBuffer.byteLength - 1) >>> 8,
                 page;
 
             for (page = startPage; page <= endPage; page++) {

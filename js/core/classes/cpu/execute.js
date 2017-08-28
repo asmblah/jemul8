@@ -19,12 +19,14 @@ define([
     "../../util",
     "vendor/jsbn/BigInteger",
     "../memory/buffer",
+    "js/CPU/CPUHalt",
     "./descriptor"
 ], function (
     newUtil,
     util,
     BigInteger,
     Buffer,
+    CPUHalt,
     Descriptor
 ) {
     "use strict";
@@ -752,6 +754,8 @@ define([
             util.debug("CPU HLT command encountered");
 
             cpu.halt();
+
+            throw new CPUHalt();
         // Signed Integer Division
         }, "IDIV": function (cpu) {
             var operandSize = this.operand1.size,

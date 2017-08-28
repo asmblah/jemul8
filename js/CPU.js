@@ -11,6 +11,7 @@
 define([
     "js/util",
     "js/CPU/CPUException",
+    "js/CPU/CPUHalt",
     "js/EventEmitter",
     "js/core/classes/cpu/execute",
     "js/core/classes/cpu/global_table_register",
@@ -27,6 +28,7 @@ define([
 ], function (
     util,
     CPUException,
+    CPUHalt,
     EventEmitter,
     LegacyExecute,
     LegacyGlobalTableRegister,
@@ -110,6 +112,8 @@ define([
         this.registers = registers;
         this.running = false;
         this.stats = {
+            fragmentHitsPerSecond: 0,
+            fragmentMissesPerSecond: 0,
             instructionsPerSecond: 0,
             microsecondsLastUpdate: 0,
             yieldsPerSecond: 0
@@ -570,7 +574,7 @@ define([
     util.extend(CPU.prototype, {
         cycle: function () {
             var cpu = this,
-                useRecompiler = false;
+                useRecompiler = true;
 
             if (useRecompiler) {
                 cpu.cycleWithRecompiler();
@@ -579,20 +583,26 @@ define([
             }
         },
 
-        updateStats: function (instructionsThisSlice) {
+        updateStats: function (instructionsThisSlice, fragmentMissesThisSlice, fragmentHitsThisSlice) {
             var cpu = this;
 
             // Benchmarking
             cpu.stats.yieldsPerSecond++;
             cpu.stats.instructionsPerSecond += instructionsThisSlice;
+            cpu.stats.fragmentHitsPerSecond += fragmentHitsThisSlice;
+            cpu.stats.fragmentMissesPerSecond += fragmentMissesThisSlice;
 
             if (cpu.clock.getMicrosecondsNow() > (cpu.stats.microsecondsLastUpdate + 1000000) || !cpu.running) {
                 if (util.global.document) {
                     (util.global.document.getElementById("performance") || {}).textContent =
                         "insns/sec: " + cpu.stats.instructionsPerSecond + ", " +
-                        "yields/sec: " + cpu.stats.yieldsPerSecond +
+                        "yields/sec: " + cpu.stats.yieldsPerSecond + ", " +
+                        "jit frag hits/sec: " + cpu.stats.fragmentHitsPerSecond + ", " +
+                        "jit frag misses/sec: " + cpu.stats.fragmentMissesPerSecond +
                         " :: " + (cpu.running ? "RUNNING" : "HALTED");
 
+                    cpu.stats.fragmentHitsPerSecond = 0;
+                    cpu.stats.fragmentMissesPerSecond = 0;
                     cpu.stats.instructionsPerSecond = 0;
                     cpu.stats.yieldsPerSecond = 0;
                     cpu.stats.microsecondsLastUpdate = cpu.clock.getMicrosecondsNow();
@@ -635,7 +645,7 @@ define([
 
                 physicalOffset = cpu.memory.linearToPhysical(linearOffset);
 
-                page = physicalOffset >>> 9;
+                page = physicalOffset >>> 8;
 
                 if (!pages[page]) {
                     pages[page] = [];
@@ -662,6 +672,11 @@ define([
 
                     instruction.execute(legacyCPU);
                 } catch (error) {
+                    if (error instanceof CPUHalt) {
+                        // CPU has halted - stop
+                        break;
+                    }
+
                     // Ignore if a CPU exception, as we will have handled it already.
                     // The failed instruction should be retried on the next cycle
                     if (!(error instanceof CPUException)) {
@@ -700,7 +715,7 @@ define([
 
             cpu.handleAsynchronousEvents();
 
-            cpu.updateStats(instructionsThisSlice);
+            cpu.updateStats(instructionsThisSlice, 0, 0);
         },
 
         cycleWithRecompiler: function () {
@@ -708,6 +723,8 @@ define([
             /*jshint bitwise: false */
             var cpu = this,
                 endOfSliceMicroseconds = cpu.clock.getMicrosecondsNow() + cpu.timeSliceDurationMicroseconds,
+                fragmentHitsThisSlice = 0,
+                fragmentMissesThisSlice = 0,
                 legacyCPU = cpu.legacyCPU,
                 registers = cpu.registers,
                 cs = registers.cs,
@@ -718,6 +735,7 @@ define([
                 ip,
                 instruction,
                 instructions,
+                instructionsThisFragment,
                 instructionsThisSlice = 0,
                 is32Bit,
                 isBranch,
@@ -744,7 +762,7 @@ define([
 
                 physicalOffset = cpu.memory.linearToPhysical(linearOffset);
 
-                page = physicalOffset >>> 9;
+                page = physicalOffset >>> 8;
 
                 if (!pages[page]) {
                     pages[page] = [];
@@ -752,53 +770,125 @@ define([
 
                 fragment = pages[page][physicalOffset];
 
+                if (fragment && fragment !== true && fragment.is32Bit !== is32Bit) {
+                    fragment = null;
+                }
+
                 if (!fragment) {
-                    instructions = [];
-                    parts.length = 0;
+                    // Instruction has not been run yet; record hit and interpret
+                    pages[page][physicalOffset] = true;
 
-                    fragmentOffset = physicalOffset;
+                    instruction = decoder.decode(memoryBufferByteView, physicalOffset, is32Bit);
 
-                    for (index = 0; index < 20; index++) {
-                        instruction = decoder.decode(memoryBufferByteView, fragmentOffset, is32Bit);
-                        instructions[index] = instruction;
+                    cpu.currentInstructionOffset = offset;
 
-                        offset += instruction.length;
-                        fragmentOffset += instruction.length;
+                    // Update (e)ip before executing instruction
+                    ip.set(offset + instruction.length);
 
-                        isBranch = BRANCHING_INSTRUCTIONS[instruction.opcodeData.name];
-
-                        if (isBranch || index === 19) {
-                            parts.push("ip.set(" + offset + ");\n");
+                    try {
+                        if (!instruction.execute) {
+                            // Invalid or undefined opcode
+                            cpu.exception(util.UD_EXCEPTION, null);
                         }
 
-                        parts.push("instructions[" + index + "].execute(legacyCPU);\n");
-
-                        if (isBranch) {
+                        instruction.execute(legacyCPU);
+                    } catch (error) {
+                        if (error instanceof CPUHalt) {
+                            // CPU has halted - stop
                             break;
+                        }
+
+                        // Ignore if a CPU exception, as we will have handled it already.
+                        // The failed instruction should be retried on the next cycle
+                        if (!(error instanceof CPUException)) {
+                            throw error;
                         }
                     }
 
-                    parts.push("return " + index + ";");
+                    instructionsThisFragment = 1;
+                    fragmentMissesThisSlice++;
+                } else {
+                    if (fragment === true) {
+                        // Instruction was previously hit; hot code found - compile!
+                        instructions = [];
+                        parts.length = 0;
 
-                    /*jshint evil: true */
-                    fragment = new Function(
-                        "cpu, ip, instructions, legacyCPU",
-                        "return function () {\n" + parts.join("") + "};"
-                    )(
-                        cpu,
-                        ip,
-                        instructions,
-                        legacyCPU
-                    );
+                        fragmentOffset = physicalOffset;
 
-                    pages[page][physicalOffset] = fragment;
+                        for (index = 0; index < 128; index++) {
+                            // TODO: When switching to protected mode, make sure the far jump
+                            //       causes the current fragment to be exited.
+                            //       (Clearing the entire fragment cache shouldn't be needed,
+                            //       as caching is done by physical address, and the data there
+                            //       will not change just because PE is set to 1.)
+
+                            instruction = decoder.decode(memoryBufferByteView, fragmentOffset, is32Bit);
+
+                            if (!instruction.execute) {
+                                // Invalid or undefined opcode
+                                cpu.exception(util.UD_EXCEPTION, null);
+                            }
+
+                            instructions[index] = instruction;
+
+                            isBranch = BRANCHING_INSTRUCTIONS[instruction.opcodeData.name];
+
+                            parts.push("cpu.currentInstructionOffset = " + offset + "; ");
+
+                            offset += instruction.length;
+                            fragmentOffset += instruction.length;
+
+                            parts.push("ip.set(" + offset + ");\n");
+                            parts.push("instructions[" + index + "].execute(legacyCPU);\n");
+
+                            if (isBranch) {
+                                index++; // Keep instruction count consistent
+                                break;
+                            }
+                        }
+
+                        /*jshint evil: true */
+                        fragment = new Function(
+                            "cpu, ip, instructions, legacyCPU",
+                            "return function () {\n" + parts.join("") + "};"
+                        )(
+                            cpu,
+                            ip,
+                            instructions,
+                            legacyCPU
+                        );
+                        fragment.instructionCount = index;
+                        fragment.is32Bit = is32Bit;
+
+                        pages[page][physicalOffset] = fragment;
+                        fragmentMissesThisSlice++;
+                    } else {
+                        fragmentHitsThisSlice++;
+                    }
+
+                    try {
+                        fragment();
+                    } catch (error) {
+                        if (error instanceof CPUHalt) {
+                            // CPU has halted - stop
+                            break;
+                        }
+
+                        // Ignore if a CPU exception, as we will have handled it already.
+                        // The failed instruction should be retried on the next cycle
+                        if (!(error instanceof CPUException)) {
+                            throw error;
+                        }
+                    }
+
+                    instructionsThisFragment = fragment.instructionCount;
                 }
 
                 /*
-                 * Internal total instruction counter for this time slice,
+                 * Internal instruction count stats for this time slice,
                  * for benchmarking and optimisation
                  */
-                instructionsThisSlice += fragment();
+                instructionsThisSlice += instructionsThisFragment;
 
                 /*
                  * Handle asynchronous events & check for end of slice
@@ -807,7 +897,8 @@ define([
                  * interrupt (if enabled) is every 244us,
                  * so approx. 4000 times/sec!)
                  */
-                if ((instructionsThisSlice % 200) < 20) {
+                if ((((instructionsThisSlice / 1000) >>> 0) % 5) === 0) { // Roughly every 5000 instructions
+                    // Stop CPU loop for this slice if we run out of time
                     if (cpu.clock.getMicrosecondsNow() > endOfSliceMicroseconds) {
                         break;
                     }
@@ -824,7 +915,7 @@ define([
 
             cpu.handleAsynchronousEvents();
 
-            cpu.updateStats(instructionsThisSlice);
+            cpu.updateStats(instructionsThisSlice, fragmentMissesThisSlice, fragmentHitsThisSlice);
         },
 
         // Decode one page of instructions (23)
@@ -1292,7 +1383,7 @@ define([
         },
 
         purgeAllPages: function () {
-            console.log("purgeAllPages() not implemented");
+            this.pages = [];
         },
 
         purgePage: function (page) {
@@ -1435,6 +1526,11 @@ define([
                 try {
                     cpu.interrupt(vector);
                 } catch (error) {
+                    if (error instanceof CPUHalt) {
+                        // CPU has halted - don't restart it again
+                        return true;
+                    }
+
                     // Ignore if a CPU exception, as we will have handled it already.
                     // The failed instruction should be retried on the next cycle
                     if (!(error instanceof CPUException)) {

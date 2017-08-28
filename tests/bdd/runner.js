@@ -169,7 +169,6 @@ define({
             "bdd/unit/js/IODevice/CMOSTest",
             "bdd/unit/js/IODevice/PITTest",
             "bdd/unit/js/plugins/std.keyboardTest",
-            "bdd/unit/js/CPUTest",
             "bdd/unit/js/DecoderTest",
             "bdd/unit/js/EmulatorTest",
             "bdd/unit/js/Jemul8Test",
