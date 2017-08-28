@@ -18,21 +18,41 @@ define({
     "use strict";
 
     var environment = jemul8.getEnvironment(),
-        driveType = environment.getOption("driveType"),
-        diskType = environment.getOption("diskType"),
+        driveType1 = environment.getOption("driveType"),
+        driveType2 = environment.getOption("driveType2"),
+        diskType1 = environment.getOption("diskType"),
+        diskType2 = environment.getOption("diskType2"),
         emulator,
-        path = environment.getOption("flp");
+        floppyConfig,
+        path1 = environment.getOption("flp"),
+        path2 = environment.getOption("flp2");
 
-    if (!driveType) {
+    if (!driveType1) {
         throw new Error("Argument 'driveType' is missing");
     }
 
-    if (!diskType) {
+    if (!diskType1) {
         throw new Error("Argument 'diskType' is missing");
     }
 
-    if (!path) {
+    if (!path1) {
         throw new Error("Argument 'flp' is missing");
+    }
+
+    floppyConfig = [{
+        "driveType": driveType1,
+        "diskType": diskType1,
+        "path": "../../boot/" + path1,
+        "loaded": true
+    }];
+
+    if (path2) {
+        floppyConfig.push({
+            "driveType": driveType2,
+            "diskType": diskType2,
+            "path": "../../boot/" + path2,
+            "loaded": true
+        });
     }
 
     emulator = jemul8.createEmulator({
@@ -42,12 +62,7 @@ define({
         "vga": {
             "bios": "docs/bochs-20100605/bios/VGABIOS-lgpl-latest"
         },
-        "floppy": [{
-            "driveType": driveType,
-            "diskType": diskType,
-            "path": "../../boot/" + path,
-            "loaded": true
-        }],
+        "floppy": floppyConfig,
         "ne2k": {
             "ioAddress": 0x300,
             "irq": 3
