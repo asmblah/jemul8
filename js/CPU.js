@@ -9,7 +9,9 @@
 
 /*global clearImmediate, define, setImmediate */
 define([
+    "js/core/util",
     "js/util",
+    "vendor/jsbn/BigInteger",
     "js/CPU/CPUException",
     "js/CPU/CPUHalt",
     "js/EventEmitter",
@@ -26,7 +28,9 @@ define([
     "js/Register",
     "vendor/setImmediate/setImmediate"
 ], function (
+    legacyUtil,
     util,
+    BigInteger,
     CPUException,
     CPUHalt,
     EventEmitter,
@@ -813,6 +817,8 @@ define([
                         instructions = [];
                         parts.length = 0;
 
+                        parts.push("var _insn;\n");
+
                         fragmentOffset = physicalOffset;
 
                         for (index = 0; index < 128; index++) {
@@ -833,13 +839,20 @@ define([
 
                             isBranch = BRANCHING_INSTRUCTIONS[instruction.opcodeData.name];
 
-                            parts.push("cpu.currentInstructionOffset = " + offset + "; ");
+                            parts.push("_cpu.currentInstructionOffset = " + offset + ";\n");
 
                             offset += instruction.length;
                             fragmentOffset += instruction.length;
 
-                            parts.push("ip.set(" + offset + ");\n");
-                            parts.push("instructions[" + index + "].execute(legacyCPU);\n");
+                            parts.push("_ip.set(" + offset + ");\n");
+                            // parts.push("instructions[" + index + "].execute(legacyCPU);\n");
+                            // parts.push(
+                            //     "(" + instruction.execute.toString() + ").call(instructions[" + index + "], legacyCPU);"
+                            // );
+                            parts.push(
+                                "_insn = _instructions[" + index + "];\n",
+                                instruction.recompiledJS
+                            );
 
                             if (isBranch) {
                                 index++; // Keep instruction count consistent
@@ -849,13 +862,21 @@ define([
 
                         /*jshint evil: true */
                         fragment = new Function(
-                            "cpu, ip, instructions, legacyCPU",
+                            "_cpu, _ip, _instructions, cpu, util, newUtil, branchRelative, setFlags, setFlags_Op1, setFlags_Result, CPUHalt, BigInteger",
                             "return function () {\n" + parts.join("") + "};"
                         )(
                             cpu,
                             ip,
                             instructions,
-                            legacyCPU
+                            legacyCPU,
+                            legacyUtil,
+                            util,
+                            LegacyExecute.branchRelative,
+                            LegacyExecute.setFlags,
+                            LegacyExecute.setFlags_Op1,
+                            LegacyExecute.setFlags_Result,
+                            CPUHalt,
+                            BigInteger
                         );
                         fragment.instructionCount = index;
                         fragment.is32Bit = is32Bit;
@@ -1200,12 +1221,26 @@ define([
             };
 
             decoder.on("post init", function (args) {
+                function recompile(execute) {
+                    return execute.toString()
+                        .replace(/^function\s*\([^)]*\)\s*\{|\}$/g, "")
+                        .replace(/\bthis\b/g, "_insn");
+                }
+
                 util.each(args.opcodeMap, function (opcodeData) {
                     opcodeData.execute = LegacyExecute.functions[opcodeData.name];
+
+                    if (opcodeData.execute) {
+                        opcodeData.recompiledJS = recompile(opcodeData.execute);
+                    }
                 });
 
                 util.each(args.opcodeExtensionMap, function (opcodeData) {
                     opcodeData.execute = LegacyExecute.functions[opcodeData.name];
+
+                    if (opcodeData.execute) {
+                        opcodeData.recompiledJS = recompile(opcodeData.execute);
+                    }
                 });
             });
 

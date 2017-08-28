@@ -2564,6 +2564,11 @@ define([
     var bit_ormask_OF = 32;
     /* ============ /State storage for Lazy Flags eval later ============ */
 
+    Execute.branchRelative = branchRelative;
+    Execute.setFlags = setFlags;
+    Execute.setFlags_Op1 = setFlags_Op1;
+    Execute.setFlags_Result = setFlags_Result;
+
     // Exports
     return Execute;
 });

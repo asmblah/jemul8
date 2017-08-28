@@ -708,6 +708,7 @@ define([
 
                 parts.push("instruction.opcodeData = this;");
                 parts.push("instruction.execute = this.execute;");
+                parts.push("instruction.recompiledJS = this.recompiledJS;");
 
                 if (!/^\w+$/.test(name)) {
                     name = "Unknown";
