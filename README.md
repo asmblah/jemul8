@@ -17,6 +17,17 @@ Live demo
 
 [http://jemul8.com](http://jemul8.com)
 
+Quick Started
+-------------
+
+type those command in you terminal :
+    
+    npm install
+    node bin/server
+
+Then open browser to visit http://localhost ,wait something great to happen.
+
+
 Run the tests
 -------------
 
