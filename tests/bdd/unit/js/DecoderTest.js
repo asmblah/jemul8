@@ -533,6 +533,29 @@ define([
                             segmentRegister: "ES"
                         }
                     ]
+                },
+                // Complex LEA with SIB byte
+                {
+                    is32BitCodeSegment: false,
+                    assembly: "lea ax, [fs:ebx * 4 + esi]",
+                    expectedName: "LEA",
+                    expectedOperands: [
+                        {
+                            baseRegister: "AX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "FS"
+                        },
+                        {
+                            baseRegister: "EBX",
+                            indexRegister: "ESI",
+                            isPointer: true,
+                            scale: 4,
+                            segmentRegister: "FS"
+                        }
+                    ],
+                    expectIs32BitAddressSize: true,
+                    expectIs32BitOperandSize: false
                 }
             ], function (scenario) {
                 var is32BitCodeSegment = scenario.is32BitCodeSegment,
