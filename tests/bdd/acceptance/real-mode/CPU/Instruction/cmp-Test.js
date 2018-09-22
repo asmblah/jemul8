@@ -155,6 +155,19 @@ define([
                     pf: util.getParity(120100 - 100000)
                 }
             },
+            "subtracting positive dword (reg) from positive dword (immediate) near limit, with negative result": {
+                operand1: "eax",
+                operand2: "0x80280000",
+                registers: {
+                    eax: 0x8003a000
+                },
+                expectedFlags: {
+                    cf: 1,
+                    sf: 1,
+                    zf: 0,
+                    pf: util.getParity(0x8003a000 - 0x80280000)
+                }
+            },
             "subtracting positive dword (reg) from positive dword (reg) with negative result": {
                 operand1: "eax",
                 operand2: "ebx",

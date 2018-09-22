@@ -41,7 +41,7 @@
     "test:browser:server:build": "webpack --config tests/bdd/harness/webpack.config-browser-server.js",
     "test:browser:client:build": "webpack --config tests/bdd/harness/webpack.config-browser-client.js",
     "test:browser:server": "node tests/bdd/server",
-    "test:mocha": "mocha-webpack --webpack-config tests/bdd/harness/webpack.config-node.js --include tests/bdd/harness/node -r source-map-support/register 'tests/bdd/**/*Test.js'",
+    "test:mocha": "mocha-webpack --timeout 10000 --webpack-config tests/bdd/harness/webpack.config-node.js --include tests/bdd/harness/node -r source-map-support/register 'tests/bdd/**/*Test.js'",
     "test:jest": "jest tests/jest",
     "test": "npm run test:jest && npm run test:mocha",
     "webtest": "node tests/bdd/webtest.js"

@@ -266,10 +266,10 @@ define([
                     result = decoderState.byteView[decoderState.offset] |
                         (decoderState.byteView[decoderState.offset + 1] << 8);
                 } else if (size === 4) {
-                    result = decoderState.byteView[decoderState.offset] |
+                    result = (decoderState.byteView[decoderState.offset] |
                         (decoderState.byteView[decoderState.offset + 1] << 8) |
                         (decoderState.byteView[decoderState.offset + 2] << 16) |
-                        (decoderState.byteView[decoderState.offset + 3] << 24);
+                        (decoderState.byteView[decoderState.offset + 3] << 24)) >>> 0; // Ensure positive integer
                 }
 
                 decoderState.offset += size;

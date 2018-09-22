@@ -178,7 +178,7 @@ define([
                             segmentRegister: "DS"
                         },
                         {
-                            immediate: -1,
+                            immediate: (-1 & 0xffff),
                             immediateSize: 2,
                             scale: 1,
                             segmentRegister: "DS"
@@ -255,7 +255,7 @@ define([
                         {
                             baseRegister: "BP",
                             indexRegister: null,
-                            displacement: -1,
+                            displacement: (-1 & 0xffff),
                             displacementSize: 2,
                             isPointer: true,
                             scale: 1,
@@ -356,19 +356,19 @@ define([
                             scale: 1,
                             segmentRegister: "ES"
                         }
-                    ]
+                    ],
+                    expectIs32BitOperandSize: false
                 },
                 // Negative displacement
                 {
                     is32BitCodeSegment: false,
-                    is32BitOperandSize: false,
                     assembly: "mov [bp-6], byte 3",
                     expectedName: "MOV",
                     expectedOperands: [
                         {
                             baseRegister: "BP",
                             indexRegister: null,
-                            displacement: -6,
+                            displacement: (-6 & 0xffff),
                             displacementSize: 2,
                             isPointer: true,
                             scale: 1,
@@ -534,6 +534,27 @@ define([
                         }
                     ]
                 },
+                // Operand with large immediate
+                {
+                    is32BitCodeSegment: false,
+                    assembly: "sub eax, 0x80280000",
+                    expectedName: "SUB",
+                    expectedOperands: [
+                        {
+                            baseRegister: "EAX",
+                            indexRegister: null,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        },
+                        {
+                            immediate: 0x80280000,
+                            immediateSize: 4,
+                            scale: 1,
+                            segmentRegister: "DS"
+                        }
+                    ],
+                    expectIs32BitOperandSize: true
+                },
                 // Complex LEA with SIB byte
                 {
                     is32BitCodeSegment: false,
@@ -645,7 +666,7 @@ define([
                                 if (data.hasOwnProperty("displacement")) {
                                     it("should have '" + data.displacement + "' as the displacement", function () {
                                         /*jshint bitwise: false */
-                                        expect(operand.displacement).to.equal(data.displacement & util.generateMask(data.displacementSize));
+                                        expect(operand.displacement).to.equal(data.displacement);
                                     });
 
                                     it("should have '" + data.displacementSize + "' as the displacement size", function () {
@@ -664,7 +685,7 @@ define([
                                 if (data.hasOwnProperty("immediate")) {
                                     it("should have '" + data.immediate + "' as the immediate", function () {
                                         /*jshint bitwise: false */
-                                        expect(operand.immed).to.equal(data.immediate & util.generateMask(data.immediateSize));
+                                        expect(operand.immed).to.equal(data.immediate);
                                     });
 
                                     it("should have '" + data.immediateSize + "' as the immediate size", function () {
@@ -683,7 +704,7 @@ define([
                                 if (data.hasOwnProperty("highImmediate")) {
                                     it("should have '" + data.highImmediate + "' as the high immediate", function () {
                                         /*jshint bitwise: false */
-                                        expect(operand.highImmed).to.equal(data.highImmediate & util.generateMask(data.highImmediateSize));
+                                        expect(operand.highImmed).to.equal(data.highImmediate);
                                     });
 
                                     it("should have '" + data.highImmediateSize + "' as the high immediate size", function () {
