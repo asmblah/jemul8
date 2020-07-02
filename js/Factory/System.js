@@ -12,6 +12,7 @@ define([
     "js/browser",
     "module",
     "js/util",
+    "js/Plugin/BuiltInPluginFactory",
     "js/Clock",
     "js/IODevice/CMOS",
     "js/IODevice/PIT/Counter",
@@ -23,6 +24,7 @@ define([
     "js/IO",
     "js/Memory",
     "js/IODevice/NE2K",
+    "js/IODevice/PCSpeaker",
     "js/IODevice/PIC",
     "js/IODevice/PIT",
     "js/IODevice/PS2",
@@ -33,6 +35,7 @@ define([
     browser,
     module,
     util,
+    BuiltInPluginFactory,
     Clock,
     CMOS,
     Counter,
@@ -44,6 +47,7 @@ define([
     IO,
     Memory,
     NE2K,
+    PCSpeaker,
     PIC,
     PIT,
     PS2,
@@ -79,7 +83,9 @@ define([
                 io,
                 factory = this,
                 memory,
+                pcSpeaker,
                 pic,
+                pit,
                 system,
                 vga;
 
@@ -87,7 +93,7 @@ define([
 
             io = new IO();
             memory = new Memory(factory.memoryAllocator, options[MEMORY_OPTIONS]);
-            system = new System(clock, io, memory);
+            system = new System(clock, io, memory, new BuiltInPluginFactory.default(factory.global));
             memory.setSystem(system);
 
             decoder = new Decoder();
@@ -109,17 +115,22 @@ define([
             io.register(new GuestToHost(system, io, memory, options[CMOS_OPTIONS]));
             io.register(pic);
 
-            io.register(new PIT(
+            pcSpeaker = new PCSpeaker.default(system, io, memory, options);
+            io.register(pcSpeaker);
+
+            pit = new PIT(
                 system,
                 io,
                 memory,
                 new Counter(system, system.createTimer()),
                 new Counter(system, system.createTimer()),
                 new Counter(system, system.createTimer()),
+                pcSpeaker,
                 options[PIT_OPTIONS]
-            ));
+            );
+            io.register(pit);
 
-            io.register(new PS2(system, io, memory, options[PS2_OPTIONS]));
+            io.register(new PS2(system, io, memory, pit, options[PS2_OPTIONS]));
             vga = new VGA(system, io, memory, options[VGA_OPTIONS]);
             io.register(vga);
             memory.register({

@@ -25,11 +25,13 @@ define([
 ) {
     "use strict";
 
-    function PS2(system, io, memory, options) {
+    function PS2(system, io, memory, pit, options) {
         IODevice.call(this, "PS/2", system, io, memory, options);
 
         this.legacyReadHandler = null;
         this.legacyWriteHandler = null;
+        this.pit = pit;
+        this.speakerGateState = 0;
 
         this.legacyPS2 = new LegacyPS2((function (ps2) {
             return {
@@ -76,6 +78,7 @@ define([
         getIOPorts: function () {
             return {
                 0x0060: { description: "PS/2", allowedIOLengths: {1: true} },
+                0x0061: { description: "PS/2 Speaker", allowedIOLengths: {1: true} },
                 0x0064: { description: "PS/2", allowedIOLengths: {1: true} }
             };
         },
@@ -100,11 +103,30 @@ define([
         ioRead: function (port, length) {
             var ps2 = this;
 
+            if (port === 0x0061) {
+                return (ps2.speakerGateState) |
+                  (ps2.pit.isSpeakerDataOn() << 1) |
+                  (((ps2.system.getMicrosecondsNow() / 15) & 1) << 4) |
+                  (ps2.pit.isCounterOutHigh(2) << 5);
+            }
+
             return ps2.legacyReadHandler(ps2.legacyPS2, port, length);
         },
 
         ioWrite: function (port, value, length) {
             var ps2 = this;
+
+            if (port === 0x0061) {
+                ps2.speakerGateState = value & 0x1;
+
+                if (ps2.speakerGateState && ((value >>> 1) & 0x1)) {
+                    ps2.pit.turnSpeakerDataOn();
+                } else {
+                    ps2.pit.turnSpeakerDataOff();
+                }
+
+                return;
+            }
 
             ps2.legacyWriteHandler(ps2.legacyPS2, port, value, length);
         },

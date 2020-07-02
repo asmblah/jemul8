@@ -26,7 +26,7 @@ define([
     "use strict";
 
     // Constructor / pre-init
-    function PIT(system, io, memory, counter0, counter1, counter2, options) {
+    function PIT(system, io, memory, counter0, counter1, counter2, speaker, options) {
         var pit = this;
 
         IODevice.call(this, "PIT", system, io, memory, options);
@@ -47,6 +47,14 @@ define([
             counter1,
             counter2
         ];
+        /**
+         * @type {PCSpeaker}
+         */
+        this.speaker = speaker;
+        /**
+         * @type {boolean}
+         */
+        this.speakerDataOn = false;
     }
 
     util.inherit(PIT).from(IODevice);
@@ -91,9 +99,9 @@ define([
             } else if (port === 0x0043) {
                 (function () {
                     /*jshint bitwise: false */
-                    var counterIndex = (value >> 6) & 0x02,
-                        operatingMode = (value >> 1) & 0x07,
+                    var counterIndex = (value >> 6) & 0x03, // FIXME: Test this - was &2, but why??
                         readLoadMode = (value >> 4) & 0x03,
+                        operatingMode = (value >> 1) & 0x07,
                         binaryOrBCD = value & 1;
 
                     pit.counters[counterIndex].configure(binaryOrBCD, operatingMode, readLoadMode);
@@ -105,10 +113,60 @@ define([
             pit.system.debug("PIT.ioWrite() :: Unsupported write");
         },
 
+        /**
+         * Determines whether the output of the given counter is high
+         *
+         * @param {number} counterIndex
+         * @returns {boolean}
+         */
+        isCounterOutHigh: function (counterIndex) {
+            return this.counters[counterIndex].isOutHigh();
+        },
+
+        /**
+         * Returns whether the PIT is currently playing sound via the PC speaker
+         *
+         * @returns {boolean}
+         */
+        isSpeakerDataOn: function () {
+            return this.speakerDataOn;
+        },
+
         reset: function () {
             var pit = this;
 
             return pit;
+        },
+
+        /**
+         * Starts playing the tone that Counter 2 is generating via the PC speaker
+         */
+        turnSpeakerDataOn: function () {
+            var count = this.counters[2].getInitialCount(),
+                frequency;
+
+            this.speakerDataOn = true;
+
+            if (count === 0) {
+                return;
+            }
+
+            frequency = 1193180 / count;
+
+            if (frequency > 22050) {
+                frequency = 22050;
+            }
+
+            this.speaker.turnOn(frequency);
+        },
+
+        /**
+         * Stops playing the current tone via the PC speaker
+         */
+        turnSpeakerDataOff: function () {
+            this.speakerDataOn = false;
+
+            this.speaker.turnOff();
         }
     });
 

@@ -25,12 +25,29 @@ define([
         SQUARE_WAVE_GENERATOR = 3,
         SOFTWARE_TRIGGERED_STROBE = 4,
         HARDWARE_TRIGGERED_STROBE = 5,
-        MODE_HIGH = 0,
-        MODE_LOW = 1,
+
+        MODE_NOT_STARTED = 0,
+        MODE_HIGH = 1,
+        MODE_LOW = 2,
+
         READ_LOAD_LATCH_COUNT = 0,
         READ_LOAD_LSB_ONLY = 1,
         READ_LOAD_MSB_ONLY = 2,
-        READ_LOAD_LSB_THEN_MSB = 3;
+        READ_LOAD_LSB_THEN_MSB = 3,
+
+        NOT_LOADED = 0,
+        HALF_LOADED = 1,
+        FULLY_LOADED = 2,
+
+        goLow = function (counter) {
+            counter.mode = MODE_LOW;
+            counter.emit("out low");
+        },
+
+        goHigh = function (counter) {
+            counter.mode = MODE_HIGH;
+            counter.emit("out high");
+        };
 
     // Constructor / pre-init
     function Counter(system, timer) {
@@ -39,13 +56,13 @@ define([
         EventEmitter.call(this);
 
         this.binaryOrBCD = null;
-        this.count = 0;
         this.enabled = false;
-        this.halfLoadedCount = false;
+        this.initialCount = 0;
         this.latchedCount = 0;
+        this.loadState = NOT_LOADED;
         this.mode = MODE_LOW;
+        this.nextElapseTicks = 0;
         this.operatingMode = null;
-        this.previousTicks = null;
         this.readLoadMode = null;
         this.system = system;
         this.timer = timer;
@@ -80,13 +97,60 @@ define([
 
             counter.binaryOrBCD = binaryOrBCD;
             counter.enabled = false;
-            counter.halfLoadedCount = false;
+            counter.loadState = NOT_LOADED;
+            counter.mode = MODE_NOT_STARTED;
             counter.operatingMode = operatingMode;
             counter.readLoadMode = readLoadMode;
 
             if (readLoadMode === READ_LOAD_LATCH_COUNT) {
-                counter.latchedCount = counter.count;
+                counter.latchedCount = counter.getCount();
             }
+        },
+
+        /**
+         * Fetches the current value of this counter.
+         * Note that as we don't exactly simulate a real 8254 (by triggering every tick)
+         * we need to calculate what the count would be depending on the current time
+         * and this counter's current operating mode
+         *
+         * @returns {number}
+         */
+        getCount: function () {
+            var counter = this,
+                currentTicks = counter.system.getTicksNow(),
+                ticksRemainingUntilElapse = counter.nextElapseTicks - currentTicks;
+
+            if (counter.operatingMode === SQUARE_WAVE_GENERATOR && counter.mode === MODE_HIGH) {
+                // In square wave mode, the timer elapses every half-count,
+                // so we need to adjust only in the first half of each counting cycle
+                ticksRemainingUntilElapse += counter.initialCount / 2;
+            }
+
+            if (ticksRemainingUntilElapse < 0) {
+                ticksRemainingUntilElapse = 0;
+            }
+
+            return ticksRemainingUntilElapse;
+        },
+
+        /**
+         * Fetches the initial count that this counter was loaded with
+         * (not necessarily the same as the _current_ count, if some ticks have passed
+         * since it was loaded)
+         *
+         * @returns {number}
+         */
+        getInitialCount: function () {
+            return this.initialCount;
+        },
+
+        /**
+         * Returns true if this counter's OUT is currently high, false otherwise
+         *
+         * @returns {boolean}
+         */
+        isOutHigh: function () {
+            return this.mode === MODE_HIGH;
         },
 
         receiveHalfCount: function () {
@@ -94,33 +158,33 @@ define([
             var counter = this;
 
             if (counter.readLoadMode === READ_LOAD_LSB_ONLY) {
-                return this.count & 0xff;
+                return this.getCount() & 0xff;
             }
 
             if (counter.readLoadMode === READ_LOAD_MSB_ONLY) {
-                return this.count >>> 8;
+                return this.getCount() >>> 8;
             }
 
             if (counter.readLoadMode === READ_LOAD_LSB_THEN_MSB) {
-                if (counter.halfLoadedCount) {
-                    counter.halfLoadedCount = false;
+                if (counter.loadState === HALF_LOADED) {
+                    counter.loadState = NOT_LOADED;
 
-                    return counter.count >>> 8;
+                    return counter.getCount() >>> 8;
                 }
 
-                counter.halfLoadedCount = true;
+                counter.loadState = HALF_LOADED;
 
-                return counter.count & 0xff;
+                return counter.getCount() & 0xff;
             }
 
             if (counter.readLoadMode === READ_LOAD_LATCH_COUNT) {
-                if (counter.halfLoadedCount) {
-                    counter.halfLoadedCount = false;
+                if (counter.loadState === HALF_LOADED) {
+                    counter.loadState = NOT_LOADED;
 
                     return counter.latchedCount >>> 8;
                 }
 
-                counter.halfLoadedCount = true;
+                counter.loadState = HALF_LOADED;
 
                 return counter.latchedCount & 0xff;
             }
@@ -129,67 +193,94 @@ define([
         sendHalfCount: function (halfCount) {
             var counter = this;
 
-            if (counter.readLoadMode === READ_LOAD_LSB_THEN_MSB) {
-                if (counter.halfLoadedCount) {
+            if (counter.readLoadMode === READ_LOAD_LSB_ONLY) {
+                counter.initialCount = halfCount;
+
+                counter.loadState = FULLY_LOADED;
+            } else if (counter.readLoadMode === READ_LOAD_LSB_THEN_MSB) {
+                if (counter.loadState === NOT_LOADED) {
+                    counter.initialCount = halfCount;
+
+                    counter.loadState = HALF_LOADED;
+                } else if (counter.loadState === HALF_LOADED) {
                     /*jshint bitwise: false */
-                    counter.count |= halfCount << 8;
+                    counter.initialCount |= halfCount << 8;
+
+                    counter.loadState = FULLY_LOADED;
                 } else {
-                    counter.count = halfCount;
+                    throw new Error('Tried to read count for a second time');
                 }
+            } else {
+                throw new Error('Read/load mode ' + counter.readLoadMode + ' not fully supported');
             }
 
-            counter.halfLoadedCount = !counter.halfLoadedCount;
-
-            if (!counter.halfLoadedCount) {
+            if (counter.loadState === FULLY_LOADED) {
                 counter.enabled = true;
-                counter.mode = MODE_LOW;
-                counter.previousTicks = counter.system.getTicksNow();
-                counter.timer.triggerAtTicks(counter.previousTicks + 1);
-            }
-        },
+                counter.loadState = NOT_LOADED;
+                counter.mode = MODE_NOT_STARTED;
 
-        setCount: function (count) {
-            this.count = count;
+                // Intel docs say that count won't be loaded until the next CLK pulse,
+                // but I think we can safely ignore that here and load it immediately
+                counter.nextElapseTicks = counter.system.getTicksNow();
+                onElapse(counter);
+            }
         }
     });
 
     function onElapse(counter) {
-        var count;
+        var initialCount;
 
         if (!counter.enabled) {
             return;
         }
 
-        count = counter.count === 0 ? 0xFFFF + 1 : counter.count;
+        initialCount = counter.initialCount === 0 ? 0xFFFF + 1 : counter.initialCount;
 
-        if (counter.operatingMode === RATE_GENERATOR) {
-            if (counter.mode === MODE_LOW) {
-                counter.emit("out high");
-                counter.mode = MODE_HIGH;
+        if (counter.operatingMode === INTERRUPT_ON_TERMINAL_COUNT) {
+            if (counter.mode === MODE_NOT_STARTED) {
+                goLow(counter);
 
-                counter.previousTicks += count;
+                counter.nextElapseTicks += initialCount;
 
-                counter.timer.triggerAtTicks(counter.previousTicks);
+                counter.timer.triggerAtTicks(counter.nextElapseTicks);
             } else {
-                counter.emit("out low");
-                counter.mode = MODE_LOW;
-
-                counter.previousTicks += 1;
-
-                counter.timer.triggerAtTicks(counter.previousTicks);
+                goHigh(counter);
             }
-        } else if (counter.operatingMode === SQUARE_WAVE_GENERATOR) {
-            if (counter.mode === MODE_LOW) {
-                counter.emit("out high");
-                counter.mode = MODE_HIGH;
+        } else if (counter.operatingMode === RATE_GENERATOR) {
+            if (counter.mode === MODE_NOT_STARTED) {
+                goHigh(counter); // OUT will initially be high for this mode
+
+                counter.nextElapseTicks += initialCount;
+
+                counter.timer.triggerAtTicks(counter.nextElapseTicks);
+            } else if (counter.mode === MODE_LOW) {
+                goHigh(counter);
+
+                counter.nextElapseTicks += initialCount;
+
+                counter.timer.triggerAtTicks(counter.nextElapseTicks);
             } else {
-                counter.emit("out low");
-                counter.mode = MODE_LOW;
+                goLow(counter);
+
+                counter.nextElapseTicks += 1;
+
+                counter.timer.triggerAtTicks(counter.nextElapseTicks);
+            }
+        // TODO: What is mode 7, and is this correct?
+        } else if (counter.operatingMode === SQUARE_WAVE_GENERATOR || counter.operatingMode === 7) {
+            if (counter.mode === MODE_NOT_STARTED) {
+                goHigh(counter); // OUT will initially be high for this mode
+            } else if (counter.mode === MODE_LOW) {
+                goHigh(counter);
+            } else {
+                goLow(counter);
             }
 
-            counter.previousTicks += count / 2;
+            counter.nextElapseTicks += initialCount / 2;
 
-            counter.timer.triggerAtTicks(counter.previousTicks);
+            counter.timer.triggerAtTicks(counter.nextElapseTicks);
+        } else {
+            throw new Error('Counter mode ' + counter.operatingMode + ' not supported');
         }
     }
 

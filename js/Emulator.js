@@ -9,18 +9,12 @@
 
 /*global define */
 define([
-    "js/plugins",
-    "require",
     "js/util",
     "js/EventEmitter",
-    "js/Exception",
     "js/Promise"
 ], function (
-    plugins,
-    require,
     util,
     EventEmitter,
-    Exception,
     Promise
 ) {
     "use strict";
@@ -51,8 +45,8 @@ define([
             return promise;
         },
 
-        loadPlugin: function (identifier) {
-            this.system.loadPlugin(identifier);
+        loadPlugin: function (identifierOrInstance) {
+            this.system.loadPlugin(identifierOrInstance);
         },
 
         pause: function () {

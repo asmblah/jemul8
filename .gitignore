@@ -1,14 +1,15 @@
 # Boot images shouldn't be in tree
-boot/
+/boot/
+
+# Build artifacts
+/demos/floppy/dist/
+/dist/
 
 # Shouldn't include reference docs
-docs/
+/docs/
 
 # Dev testing bits
-dev/
-
-#
-Hiew726w
+/draft/
 
 # Mac OSX
 .DS_Store

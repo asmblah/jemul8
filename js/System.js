@@ -9,7 +9,6 @@
 
 /*global define */
 define([
-    "js/plugins",
     "require",
     "js/util",
     "js/EventEmitter",
@@ -18,7 +17,6 @@ define([
     "js/Promise",
     "js/Timer"
 ], function (
-    plugins,
     require,
     util,
     EventEmitter,
@@ -35,7 +33,7 @@ define([
         RESET_TYPE_OPTION = "type",
         hasOwn = {}.hasOwnProperty;
 
-    function System(clock, io, memory) {
+    function System(clock, io, memory, builtInPluginFactory) {
         EventEmitter.call(this);
 
         this.a20Mask = A20_DISABLED_MASK;
@@ -45,6 +43,7 @@ define([
         // (H)old (R)e(Q)uest
         this.hrq = new Pin("HRQ");
 
+        this.builtInPluginFactory = builtInPluginFactory;
         this.cpu = null;
         this.dma = null;
         this.inited = false;
@@ -132,7 +131,7 @@ define([
                 }
 
                 function loadPlugin(plugin) {
-                    util.each(plugin.setupIODevices(), function (fn, ioDeviceIdentifier) {
+                    util.forOwn(plugin.setupIODevices(), function (fn, ioDeviceIdentifier) {
                         var ioDevice = system.io.getRegisteredDevice(ioDeviceIdentifier),
                             result;
 
@@ -168,17 +167,17 @@ define([
                     checkLoaded();
                 }
 
-                util.each(system.pluginsToLoad, function (identifier) {
+                util.each(system.pluginsToLoad, function (identifierOrInstance) {
+                    var plugin;
+
                     markLoading();
 
-                    if (util.isString(identifier)) {
-                        require(["./Plugin/" + plugins[identifier]], function (Plugin) {
-                            var plugin = new Plugin();
+                    if (util.isString(identifierOrInstance)) {
+                        plugin = system.builtInPluginFactory.createFromIdentifier(identifierOrInstance)
 
-                            loadPlugin(plugin);
-                        });
+                        loadPlugin(plugin);
                     } else {
-                        loadPlugin(identifier);
+                        loadPlugin(identifierOrInstance);
                     }
                 });
 
@@ -239,16 +238,10 @@ define([
             return this.hrq.isHigh();
         },
 
-        loadPlugin: function (identifier) {
+        loadPlugin: function (identifierOrPlugin) {
             var system = this;
 
-            if (util.isString(identifier)) {
-                if (!hasOwn.call(plugins, identifier)) {
-                    throw new Exception("Emulator.loadPlugin() :: Unrecognised standard plugin identifier '" + identifier + "'");
-                }
-            }
-
-            system.pluginsToLoad.push(identifier);
+            system.pluginsToLoad.push(identifierOrPlugin);
         },
 
         loadROM: function (buffer, address, type) {
@@ -328,6 +321,7 @@ define([
             /*global Uint8Array */
             var as,
                 data,
+                device,
                 from,
                 offset,
                 port,
@@ -336,8 +330,19 @@ define([
 
             options = options || {};
 
-            if (!hasOwn.call(options, "from") && !hasOwn.call(options, "port")) {
-                throw new Exception("System.read() :: Either 'from' or 'port' must be specified");
+            if (!hasOwn.call(options, "device") && !hasOwn.call(options, "from") && !hasOwn.call(options, "port")) {
+                throw new Exception("System.read() :: One of 'device', 'from' or 'port' must be specified");
+            }
+
+            // Reading from I/O device
+            if (hasOwn.call(options, "device")) {
+                device = system.io.getRegisteredDevice(options.device);
+
+                if (device === null) {
+                    throw new Exception("System.read() :: Unknown device identifier '" + options.device + "' given");
+                }
+
+                return device.readData(options.subDevice);
             }
 
             if (!hasOwn.call(options, "size")) {
@@ -387,11 +392,11 @@ define([
             var irqHandlers = this.irqHandlers;
 
             if (irq < 0 || irq > 0xF) {
-                throw new Exception("IO.registerIRQ() :: Invalid IRQ number " + irq + " - must be between 0-F inclusive");
+                throw new Exception("System.registerIRQ() :: Invalid IRQ number " + irq + " - must be between 0-F inclusive");
             }
 
             if (irqHandlers[irq]) {
-                throw new Exception("IO.registerIRQ() :: IRQ conflict for '" + handler + "' (already in use by '" + irqHandlers[irq] + "')");
+                throw new Exception("System.registerIRQ() :: IRQ conflict for '" + handler + "' (already in use by '" + irqHandlers[irq] + "')");
             }
 
             irqHandlers[irq] = handler;
