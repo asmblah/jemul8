@@ -351,7 +351,7 @@ define([
         var machine = this.machine,
             mem = this,
         // Apply A20 mask to physical address
-            addrA20 = (addrPhysical & machine.maskA20) >>> 0,
+            addrA20 = (addrPhysical & machine.getA20Mask()) >>> 0,
         // Determine whether we are in CMOS ROM
             isBIOS = (addrA20 >= (~BIOS_MASK >>> 0)),
             buf = null,

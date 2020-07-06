@@ -64,7 +64,7 @@ define([
                         }
                     }
                 },
-                get maskA20 () {
+                getA20Mask () {
                     return memory.system.getA20Mask();
                 },
                 vga: vga

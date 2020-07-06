@@ -55,6 +55,9 @@ define([
                         system.raiseIRQ(irq);
                     }
                 },
+                getEnableA20: function () {
+                    return system.getEnableA20();
+                },
                 registerTimer: function (fn, thisObj, interval) {
                     var timer = system.createTimer();
 

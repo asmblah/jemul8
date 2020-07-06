@@ -89,6 +89,10 @@ define([
             return this.cpu.getRegisters();
         },
 
+        getEnableA20: function () {
+            return this.a20Mask === A20_ENABLED_MASK;
+        },
+
         getFloppyDriveType: function () {
             return this.floppyDriveType;
         },
