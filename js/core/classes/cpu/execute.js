@@ -2383,7 +2383,7 @@ define([
         }, "SHRD": function (cpu) {
             var dest = this.operand1.read(),
                 source = this.operand2.read(),
-                count = this.operand3.read() & 0xF,
+                count = this.operand3.read() & 0x1F,
                 res = (source << (this.operand1.size * 8 - count)) | (dest >>> count);
 
             this.operand1.write(res);
@@ -2391,7 +2391,7 @@ define([
             setFlags(this, cpu, dest, source, res);
 
             cpu.CF.setBin((dest >> (count - 1)) & 0x1);
-            cpu.CF.setBin((((res << 1) ^ res) >> 15) & 0x1); // of = result14 ^ result15
+            cpu.OF.setBin((((res << 1) ^ res) >>> (this.operand1.size * 8 - 1)) & 0x1); // of = result14 ^ result15
         // Store Local Descriptor Table Register
         }, "SLDT": function (cpu) {
             util.panic("Execute (SLDT) :: unsupported");

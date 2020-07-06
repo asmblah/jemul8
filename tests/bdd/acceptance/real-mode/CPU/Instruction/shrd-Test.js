@@ -88,6 +88,78 @@ define([
 
                     cf: 0 // Last bit shifted out of dest operand
                 }
+            },
+            "ebx:eax >>> 30": {
+                is32BitCodeSegment: false,
+                dest: "eax",
+                source: "ebx",
+                count: "30",
+                registers: {
+                    eax: parseInt("01010111011101010100101111001011", 2),
+                    ebx: parseInt("11100011010011110100011110000111", 2),
+                },
+                expectedRegisters: {
+                    eax: parseInt("10001101001111010001111000011101", 2),
+                    ebx: parseInt("11100011010011110100011110000111", 2), // Source should be left unchanged
+
+                    cf: 0 // Last bit shifted out of dest operand
+                }
+            },
+            "ebx:eax >>> 127 (check that only the first 5 bits 0-4 of count are used - effective >>> 31)": {
+                is32BitCodeSegment: false,
+                dest: "eax",
+                source: "ebx",
+                count: "cl",
+                registers: {
+                    eax: parseInt("11010111011101010100101111001011", 2),
+                    ebx: parseInt("11100011010011110100011110000111", 2),
+                    cl: 127
+                },
+                expectedRegisters: {
+                    eax: parseInt("11000110100111101000111100001111", 2),
+                    ebx: parseInt("11100011010011110100011110000111", 2), // Source should be left unchanged
+
+                    cf: 1 // Last bit shifted out of dest operand
+                }
+            },
+            "of flag set when sign change occurred for a 1-bit shift": {
+                is32BitCodeSegment: false,
+                dest: "eax",
+                source: "ebx",
+                count: "1",
+                registers: {
+                    eax: parseInt("10000000000000000000111000000001", 2),
+                    ebx: parseInt("11100011010011110100011110000000", 2)
+                },
+                expectedRegisters: {
+                    of: 1
+                }
+            },
+            "of flag cleared when sign change did not occur for a 1-bit shift": {
+                is32BitCodeSegment: false,
+                dest: "eax",
+                source: "ebx",
+                count: "1",
+                registers: {
+                    eax: parseInt("10000000000000000000111000000001", 2),
+                    ebx: parseInt("11100011010011110100011110000001", 2)
+                },
+                expectedRegisters: {
+                    of: 0
+                }
+            },
+            "of flag still cleared when sign change occurred but for a non-1-bit shift": {
+                is32BitCodeSegment: false,
+                dest: "eax",
+                source: "ebx",
+                count: "2",
+                registers: {
+                    eax: parseInt("10000000000000000000111000000001", 2),
+                    ebx: parseInt("11100011010011110100011110000000", 2)
+                },
+                expectedRegisters: {
+                    of: 0
+                }
             }
         }, function (scenario, description) {
             var is32BitCodeSegment = scenario.is32BitCodeSegment;
