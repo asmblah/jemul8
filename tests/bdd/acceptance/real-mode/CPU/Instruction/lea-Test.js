@@ -77,6 +77,16 @@ define([
                     edx: 82
                 },
                 expectedResult: 82 + 12341234 + 16
+            },
+            {
+                is32BitMode: false,
+                destination: "ebx",
+                // Using SIB byte
+                expression: "[edi*8+edi+0xffffffe9]",
+                setup: {
+                    edi: 0xe999dddd
+                },
+                expectedResult: 0x3668ccae
             }
         ], function (scenario) {
             describe("for 'lea " + scenario.destination + ", " + scenario.expression + "'", function () {
