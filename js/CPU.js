@@ -108,11 +108,12 @@ define([
         this.clock = clock;
         this.currentInstructionOffset = 0;
         this.decoder = decoder;
+        this.inhibitInterruptsByLoadOfSS = false;
         this.intr = new Pin();
         this.io = io;
         this.memory = memory;
         this.options = options;
-        this.pages = [];
+        this.pages = {};
         this.registers = registers;
         this.running = false;
         this.stats = {
@@ -457,11 +458,15 @@ define([
                     },
 
                     getCPL: function () {
-                        return 0;
+                        return cpu.getCPL();
                     },
 
                     halt: function () {
                         cpu.halt();
+                    },
+
+                    inhibitInterruptsByLoadOfSS: function () {
+                        cpu.inhibitInterruptsByLoadOfSS = true;
                     },
 
                     interrupt: function (vector) {
@@ -633,7 +638,8 @@ define([
                 offset,
                 page,
                 pages = cpu.pages,
-                physicalOffset;
+                physicalOffset,
+                trapEnabled = false;
 
             if (cpu.running) {
                 memoryBufferDataView = cpu.memory.getView();
@@ -645,36 +651,50 @@ define([
                 ip = is32Bit ? registers.eip : registers.ip;
                 offset = ip.get();
 
-                linearOffset = cs.cache.base + offset;
-
-                physicalOffset = cpu.memory.linearToPhysical(linearOffset);
-
-                page = physicalOffset >>> 8;
-
-                if (!pages[page]) {
-                    pages[page] = [];
-                }
-
-                instruction = pages[page][physicalOffset];
-
-                if (!instruction) {
-                    instruction = decoder.decode(memoryBufferByteView, physicalOffset, is32Bit);
-
-                    pages[page][physicalOffset] = instruction;
-                }
-
-                cpu.currentInstructionOffset = offset;
-
-                // Update (e)ip before executing instruction
-                ip.set(offset + instruction.length);
+                linearOffset = cs.cache.getBase() + offset;
 
                 try {
+                    // Only applies to the instruction _after_ it was set
+                    cpu.inhibitInterruptsByLoadOfSS = false;
+                    trapEnabled = registers.tf.get();
+
+                    // May throw a CPUException if there is a page fault
+                    physicalOffset = cpu.memory.linearToPhysical(linearOffset, false);
+
+                    page = physicalOffset >>> 8;
+
+                    if (!pages[page]) {
+                        pages[page] = [];
+                    }
+
+                    instruction = pages[page][physicalOffset];
+
+                    if (!instruction) {
+                        instruction = decoder.decode(memoryBufferByteView, physicalOffset, is32Bit);
+
+                        pages[page][physicalOffset] = instruction;
+                    }
+
+                    instruction.offset = linearOffset;
+
+                    cpu.currentInstructionOffset = offset;
+
+                    // Update (e)ip before executing instruction
+                    ip.set(offset + instruction.length);
+
                     if (!instruction.execute) {
                         // Invalid or undefined opcode
                         cpu.exception(util.UD_EXCEPTION, null);
                     }
 
                     instruction.execute(legacyCPU);
+
+                    if (trapEnabled) {
+                        // Trap flag was set
+                        registers.dr6.set(1 << 14);
+
+                        cpu.exception(util.DB_EXCEPTION, null);
+                    }
                 } catch (error) {
                     if (error instanceof CPUHalt) {
                         // CPU has halted - stop
@@ -830,9 +850,9 @@ define([
                     ip = is32Bit ? registers.eip : registers.ip;
                     offset = ip.get();
 
-                    linearOffset = cs.cache.base + offset;
+                    linearOffset = cs.cache.getBase() + offset;
 
-                    physicalOffset = cpu.memory.linearToPhysical(linearOffset);
+                    physicalOffset = cpu.memory.linearToPhysical(linearOffset, false);
 
                     page = physicalOffset >>> 8;
 
@@ -991,8 +1011,20 @@ define([
             var cpu = this,
                 registers = cpu.registers;
 
-            // Point to the instruction that caused the exception (we'll have jumped past it by now)
-            registers.eip.set(cpu.currentInstructionOffset);
+            // FIXME: _All_ traps should point to the instruction after
+            //        the one that caused the instruction
+            if (vector === util.DB_EXCEPTION) {
+                if (cpu.inhibitInterruptsByLoadOfSS) {
+                    // Don't fire a trap exception interrupt if we just loaded SS
+                    // (this is because a new SS:(E)SP pair is being loaded,
+                    // so if we allowed the interrupt to occur after SS had been changed
+                    // but before (E)SP, the stack pointer would probably be invalid
+                    return;
+                }
+            } else {
+                // Point to the instruction that caused the exception (we'll have jumped past it by now)
+                registers.eip.set(cpu.currentInstructionOffset);
+            }
 
             cpu.interrupt(vector);
 
@@ -1424,12 +1456,11 @@ define([
         },
 
         purgeAllPages: function () {
-            this.pages = [];
+            this.pages = {};
         },
 
         purgePage: function (page) {
-            //this.pages[page].length = 0;
-            this.pages[page] = [];
+            this.pages[page] = undefined; // See https://jsperf.com/delete-vs-undefined-vs-null/16
         },
 
         // Push data onto the Stack
@@ -1558,7 +1589,7 @@ define([
                 vector;
 
             // Check interrupts are enabled/uninhibited & one is pending
-            if (cpu.intr.isHigh() && cpu.registers.if.isHigh()) {
+            if (cpu.intr.isHigh() && cpu.registers.if.isHigh() && !cpu.inhibitInterruptsByLoadOfSS) {
                 // Only EVER process one interrupt here: we have to allow the ISR to actually run!
 
                 // (NB: This may set INTR with the next interrupt)
@@ -1592,7 +1623,7 @@ define([
             var cpu = this;
 
             clearImmediate(cpu.timeout);
-            cpu.pages.length = 0;
+            cpu.purgeAllPages();
             cpu.timeout = null;
             cpu.running = false;
         }
