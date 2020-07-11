@@ -10,10 +10,12 @@
 /*global define */
 define([
     "js/util",
+    "vendor/jsbn/BigInteger",
     "js/CPU",
     "tools/TestSystem"
 ], function (
     util,
+    BigInteger,
     CPU,
     TestSystem
 ) {
@@ -187,6 +189,91 @@ define([
                     cx: 256
                 },
                 // Should overflow because quotient (-32769) will not fit in ax
+                expectedExceptionVector: CPU.DIVIDE_ERROR
+            },
+            "64-bit divide of edx:eax +32767 by +1 with no remainder": {
+                divisor: "ecx",
+                registers: {
+                    edx: 0,
+                    eax: 32767,
+                    ecx: 1
+                },
+                expectedRegisters: {
+                    eax: 32767, // Quotient
+                    edx: 0,     // No remainder
+                    ecx: 1      // (Just check the divisor register is left untouched)
+                }
+            },
+            "64-bit divide of edx:eax +0x0c379aab8a801c70 by +0x0abcdef1 with no remainder": {
+                divisor: "ebx",
+                registers: {
+                    edx: 0x000c379a,
+                    eax: 0xa607a7f7,
+                    ebx: 0x0abcdef1
+                },
+                expectedRegisters: {
+                    eax: 0x01234567, // Positive quotient because dividend and divisor both negative
+                    edx: 0,          // No remainder
+                    ebx: 0x0abcdef1  // (Just check the divisor register is left untouched)
+                }
+            },
+            "64-bit divide of edx:eax -45616777215 by -12341234 with remainder": {
+                divisor: "ebx",
+                registers: {
+                    edx: new BigInteger('-45616777215', 10).getHighIntValue(),
+                    eax: new BigInteger('-45616777215', 10).getLowIntValue(),
+                    ebx: -12341234
+                },
+                expectedRegisters: {
+                    eax: 3696,     // Positive quotient because dividend and divisor both negative
+                    edx: -3576351, // Negative remainder (always same sign as dividend)
+                    ebx: -12341234 // (Just check the divisor register is left untouched)
+                }
+            },
+            "64-bit divide of edx:eax -45616777215 by +12341234 with remainder": {
+                divisor: "ebx",
+                registers: {
+                    edx: new BigInteger('-45616777215', 10).getHighIntValue(),
+                    eax: new BigInteger('-45616777215', 10).getLowIntValue(),
+                    ebx: 12341234
+                },
+                expectedRegisters: {
+                    eax: -3696,    // Negative quotient because one operand was negative
+                    edx: -3576351, // Negative remainder (always same sign as dividend)
+                    ebx: 12341234  // (Just check the divisor register is left untouched)
+                }
+            },
+            "64-bit divide of edx:eax -45616777215 by +256 with remainder": {
+                divisor: "ecx",
+                registers: {
+                    edx: new BigInteger('-45616777215', 10).getHighIntValue(),
+                    eax: new BigInteger('-45616777215', 10).getLowIntValue(),
+                    ecx: 256
+                },
+                expectedRegisters: {
+                    eax: -178190535, // Negative quotient because one operand was negative
+                    edx: -255,       // Negative remainder (always same sign as dividend)
+                    ecx: 256         // (Just check the divisor register is left untouched)
+                }
+            },
+            "64-bit divide of edx:eax -45616777215 by +5 with no remainder": {
+                divisor: "ecx",
+                registers: {
+                    edx: new BigInteger('-45616777215', 10).getHighIntValue(),
+                    eax: new BigInteger('-45616777215', 10).getLowIntValue(),
+                    ecx: 5,
+
+                    // Set up the stack for the exception
+                    ss: 0xd000,
+                    esp: 0xe000
+                },
+                expectedRegisters: {
+                    // Ensure registers are left unchanged
+                    edx: new BigInteger('-45616777215', 10).getHighIntValue(),
+                    eax: new BigInteger('-45616777215', 10).getLowIntValue(),
+                    ecx: 5
+                },
+                // Should overflow because quotient (-9123355443) will not fit in eax
                 expectedExceptionVector: CPU.DIVIDE_ERROR
             }
         }, function (scenario, description) {

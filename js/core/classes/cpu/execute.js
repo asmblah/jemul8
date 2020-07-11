@@ -771,12 +771,14 @@ define([
             }
 
             // Dividend is AX
-            if (operandSize == 1) {
+            if (operandSize === 1) {
                 dividend = util.toSigned(cpu.AX.get(), 2);
                 // Integer result - truncated toward zero, keeping sign
                 quotient = (dividend / divisor) >> 0;
 
-                if (quotient < -128 || quotient > 127) {
+                if (quotient < -0x80 || quotient > 0x7f) {
+                    // Overflow - quotient won't fit into the destination operand.
+                    // Indicated with a Divide Error exception rather than by the Overflow Flag.
                     cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
@@ -784,12 +786,14 @@ define([
                 cpu.AL.set(quotient); // Quotient
                 cpu.AH.set(dividend % divisor); // Remainder
             // Dividend is DX:AX
-            } else if (operandSize == 2) {
+            } else if (operandSize === 2) {
                 dividend = util.toSigned((cpu.DX.get() << 16) | cpu.AX.get(), 2 + 2);
                 // Integer result - truncated toward zero, keeping sign
                 quotient = (dividend / divisor) >> 0;
 
-                if (quotient < -32768 || quotient > 32767) {
+                if (quotient < -0x8000 || quotient > 0x7fff) {
+                    // Overflow - quotient won't fit into the destination operand.
+                    // Indicated with a Divide Error exception rather than by the Overflow Flag.
                     cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
@@ -797,30 +801,27 @@ define([
                 cpu.AX.set(quotient); // Quotient
                 cpu.DX.set(dividend % divisor); // Remainder
             // Dividend is EDX:EAX
-            /*} else if (operandSize == 4) {
-                util.warning("IDIV :: 64-bit SIGNED divide needs testing");
-                dividend = Int64.fromBits(cpu.EAX.get(), cpu.EDX.get());
-                divisor = Int64.fromNumber(divisor);
-                quotient = dividend.div(divisor);
-                cpu.EAX.set(quotient.getLowBits());
-                cpu.EDX.set(dividend.modulo(divisor).getLowBits());
-            }*/
-            // Dividend is EDX:EAX
-            } else if (operandSize == 4) {
+            } else if (operandSize === 4) {
                 // Format is EDX:EAX, EAX must be 8 hex digits long so zero-pad as needed
                 eaxHex = cpu.EAX.get().toString(16);
                 eaxHex = "00000000".substr(0, 8 - eaxHex.length) + eaxHex;
-                dividend = new BigInteger(cpu.EDX.get().toString(16) + eaxHex, 16);
+                dividend = util.toSigned(new BigInteger(cpu.EDX.get().toString(16) + eaxHex, 16), 8);
                 divisor = new BigInteger(divisor.toString(16), 16);
                 quotient = dividend.divide(divisor);
 
-                if (quotient.toRadix(16).length > 8) {
+                if (
+                    quotient.compareTo(new BigInteger('-80000000', 16)) < 0 ||
+                    quotient.compareTo(new BigInteger('7fffffff', 16)) > 0
+                ) {
+                    // Overflow - quotient won't fit into the destination operand.
+                    // Indicated with a Divide Error exception rather than by the Overflow Flag.
                     cpu.exception(util.DE_EXCEPTION, null);
                     return;
                 }
 
-                cpu.EAX.set(quotient.intValue());
-                cpu.EDX.set(dividend.mod(divisor).intValue());
+                cpu.EAX.set(util.signExtend(quotient.intValue(), 4));
+                // TODO: Why can't we use `.mod(...)` here?
+                cpu.EDX.set(dividend.subtract(divisor.multiply(quotient)).intValue(), 4);
             }
         // Signed Multiply
         // - See http://faydoc.tripod.com/cpu/imul.htm
