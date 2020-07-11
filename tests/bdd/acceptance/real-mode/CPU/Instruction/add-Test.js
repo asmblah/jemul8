@@ -152,6 +152,22 @@ define([
                     of: 0, // - and no signed overflow
                     sf: 1  // Negative result
                 }
+            },
+            "adding two numbers where second is near limit": {
+                is32BitCodeSegment: false,
+                operand1: "ebx",
+                operand2: "eax",
+                registers: {
+                    eax: 0x8002cc14,
+                    ebx: 0x3b34
+                },
+                expectedRegisters: {
+                    eax: 0x8002cc14, // Should be left untouched
+                    ebx: 0x80030748,
+                    cf: 0, // No wrap around, so no carry
+                    of: 0, // - and no signed overflow
+                    sf: 1  // Negative result (in signed result - as it is greater than 0x7fffffff)
+                }
             }
         }, function (scenario, description) {
             var is32BitCodeSegment = scenario.is32BitCodeSegment;
