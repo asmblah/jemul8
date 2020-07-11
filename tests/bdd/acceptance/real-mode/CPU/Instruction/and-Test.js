@@ -41,14 +41,21 @@ define([
         });
 
         util.each({
-            "and b,ss:[bp+si+0079h], ah": {
+            "with SIB byte and displacement, positive non-zero result": {
                 operand1: "[ss:bp+si+0x79]",
                 operand2: "ah",
                 registers: {
                     ss: 0x500,
                     bp: 0x1234,
                     si: 0x4567,
-                    ax: 0x0fcd
+                    ax: 0x0fcd,
+
+                    af: 1, // Set these 3 to make sure they are all clear
+                    cf: 1,
+                    of: 1,
+                    pf: 1,
+                    sf: 1,
+                    zf: 1
                 },
                 memory: [{
                     to: (0x500 << 4) + 0x1234 + 0x4567 + 0x79,
@@ -60,7 +67,15 @@ define([
                     size: 1,
                     // 111100b AND 001111b to test overlap
                     expected: 0x3c & 0x0f
-                }]
+                }],
+                expectedRegisters: {
+                    af: 0,
+                    cf: 0,
+                    of: 0,
+                    pf: util.getParity(0x3c & 0x0f),
+                    sf: 0, // Positive result
+                    zf: 0  // Non-zero result
+                }
             }
         }, function (scenario, description) {
             describe(description, function () {
@@ -86,7 +101,7 @@ EOS
                             }
 
                             util.each(scenario.registers, function (value, register) {
-                                registers[register].set(value);
+                                registers[register][/f$/.test(register) ? "setBin" : "set"](value);
                             });
 
                             util.each(scenario.memory, function (options) {
