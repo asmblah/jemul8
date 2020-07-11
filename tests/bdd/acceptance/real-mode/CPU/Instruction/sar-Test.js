@@ -119,12 +119,13 @@ define([
                 registers: {
                     cl: 0,
 
-                    flags: 0xffff
+                    // Exclude the Trap Flag as otherwise a debug exception will be raised
+                    flags: 0xfeff
                 },
                 expectedRegisters: {
                     cl: 0,
 
-                    flags: 0xffff
+                    flags: 0xfeff
                 }
             }
         }, function (scenario, description) {
