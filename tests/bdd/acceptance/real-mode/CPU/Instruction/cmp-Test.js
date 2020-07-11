@@ -155,6 +155,21 @@ define([
                     pf: util.getParity(120100 - 100000)
                 }
             },
+            "subtracting positive dword from negative dword with negative result": {
+                operand1: "eax",
+                operand2: "ebx",
+                registers: {
+                    eax: -2 & 0xffffffff,
+                    ebx: 21
+                },
+                expectedFlags: {
+                    cf: 0,
+                    of: 0,
+                    sf: 1,
+                    zf: 0,
+                    pf: util.getParity((-2 & 0xffffffff) - 21)
+                }
+            },
             "subtracting positive dword (reg) from positive dword (immediate) near limit, with negative result": {
                 operand1: "eax",
                 operand2: "0x80280000",
@@ -219,6 +234,28 @@ define([
                     zf: 0,
                     pf: util.getParity(120100 - 120101)
                 }
+            },
+            "comparing small 32-bit positive number with small negative number": {
+                operand1: "eax",
+                operand2: "ebx",
+                registers: {
+                    eax: 0x12,
+                    ebx: -4,
+
+                    af: 0, // Set flags to opposites of values expected to check they get set
+                    cf: 0,
+                    of: 1,
+                    sf: 1,
+                    zf: 1
+                },
+                expectedFlags: {
+                    af: 1,
+                    cf: 1,
+                    of: 0,
+                    pf: util.getParity(0x12 - -4),
+                    sf: 0, // Positive result
+                    zf: 0
+                }
             }
         }, function (scenario, description) {
             describe(description, function () {
@@ -244,7 +281,7 @@ EOS
                             }
 
                             util.each(scenario.registers, function (value, register) {
-                                registers[register].set(value);
+                                registers[register][/f$/.test(register) ? "setBin" : "set"](value);
                             });
 
                             util.each(scenario.memory, function (options) {
