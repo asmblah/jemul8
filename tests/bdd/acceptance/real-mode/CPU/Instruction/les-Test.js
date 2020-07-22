@@ -63,6 +63,76 @@ define([
                     es: 0x5678,
                     di: 0x1234
                 }
+            },
+            "les bx,[es:0x120] (use of ES for memory segment whilst also loading ES, 16-bit)": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "[es:0x120]",
+                registers: {
+                    es: 0x200
+                },
+                memory: [{
+                    to: (0x200 << 4) + 0x120,
+                    data: 0x56781234,
+                    size: 4
+                }],
+                expectedRegisters: {
+                    es: 0x5678,
+                    bx: 0x1234
+                }
+            },
+            "les ebx,[es:0x140] (use of ES for memory segment whilst also loading ES, 32-bit)": {
+                is32BitCodeSegment: false,
+                operand1: "ebx",
+                operand2: "[es:0x140]",
+                registers: {
+                    es: 0x300
+                },
+                memory: [{
+                    to: (0x300 << 4) + 0x140,
+                    data: [0x78, 0x56, 0x34, 0x12, 0xcd, 0xab]
+                }],
+                expectedRegisters: {
+                    es: 0xabcd,
+                    ebx: 0x12345678
+                }
+            },
+            "les bx,[fs:0x120]": {
+                is32BitCodeSegment: false,
+                operand1: "bx",
+                operand2: "[fs:0x120]",
+                registers: {
+                    fs: 0x200
+                },
+                memory: [{
+                    to: (0x200 << 4) + 0x120,
+                    data: 0x56781234,
+                    size: 4
+                }],
+                expectedRegisters: {
+                    fs: 0x200,
+
+                    es: 0x5678,
+                    bx: 0x1234
+                }
+            },
+            "les ebx,[fs:0x140]": {
+                is32BitCodeSegment: false,
+                operand1: "ebx",
+                operand2: "[fs:0x140]",
+                registers: {
+                    fs: 0x300
+                },
+                memory: [{
+                    to: (0x300 << 4) + 0x140,
+                    data: [0x78, 0x56, 0x34, 0x12, 0xcd, 0xab]
+                }],
+                expectedRegisters: {
+                    fs: 0x300,
+
+                    es: 0xabcd,
+                    ebx: 0x12345678
+                }
             }
         }, function (scenario, description) {
             var is32BitCodeSegment = scenario.is32BitCodeSegment;

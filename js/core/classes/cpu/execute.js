@@ -1273,10 +1273,11 @@ define([
             }
         // Load Full Pointer with ES
         }, "LES": function (cpu) {
-            var farPointer = this.operand2.read();
+            var farPointer;
 
             // 16-bit
             if (!this.operandSizeAttr) {
+                farPointer = this.operand2.read();
                 /*
                  *  Example:
                  *  LES AX, m
@@ -1287,14 +1288,13 @@ define([
                 // TODO: Remove this mask? (should be covered in .write())
                 this.operand1.write(farPointer & 0xFFFF);
                 // TODO: Remove this mask? (should be covered in .set())
-                cpu.ES.set((farPointer >> 16) & 0xFFFF);
-
-                // In Protected Mode, load the descriptor into the segment register
+                cpu.ES.set((farPointer >>> 16) & 0xFFFF);
             // 32-bit
             } else {
-                this.operand1.write(this.operand2.read());
-                util.panic("LES :: Not implemented");
-                // In Protected Mode, load the descriptor into the segment register
+                farPointer = this.operand2.readSelectorAndOffset();
+
+                cpu.ES.set(farPointer.selector);
+                this.operand1.write(farPointer.offset);
             }
         // Load Full Pointer with FS
         }, "LFS": function (cpu) {
