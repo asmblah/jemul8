@@ -228,11 +228,11 @@ define([
             this.operand1.write(val & ~(1 << offsetBit));
         // Bit Test and Set (386+)
         }, "BTS": function (cpu) {
-            var offsetBit = this.operand2.read(),
+            var offsetBit = this.operand2.read() % (this.operand1.size * 8),
                 val = this.operand1.read();
 
             // Read bit at specified offset & store in Carry Flag
-            cpu.CF.setBin((val >> offsetBit) & 0x01);
+            cpu.CF.setBin((val >>> offsetBit) & 0x01);
             // Set the bit just read
             this.operand1.write(val | (1 << offsetBit));
         // Unconditional Far (32/48-bit) absolute Call
